@@ -1,0 +1,502 @@
+.admin-page {
+  min-height: 80vh;
+  background: #f5f7fa;
+}
+
+/* =========================
+   HEADER ADMIN
+========================= */
+
+.admin-header {
+  padding: 45px 7%;
+
+  background:
+    linear-gradient(
+      120deg,
+      #001b46,
+      #075cd8
+    );
+
+  color: white;
+}
+
+.admin-header > div {
+  max-width: 1300px;
+  margin: auto;
+}
+
+.admin-header span {
+  font-size: 11px;
+  font-weight: bold;
+
+  letter-spacing: 2px;
+}
+
+.admin-header h1 {
+  margin: 8px 0;
+
+  font-size: 38px;
+}
+
+.admin-header p {
+  color: #dce8ff;
+
+  font-size: 14px;
+}
+
+/* =========================
+   CONTENEDOR
+========================= */
+
+.admin-container {
+  width: 86%;
+  max-width: 1300px;
+
+  margin: 35px auto;
+
+  display: grid;
+
+  grid-template-columns:
+    220px 1fr;
+
+  gap: 30px;
+
+  align-items: start;
+}
+
+/* =========================
+   MENÚ LATERAL
+========================= */
+
+.admin-menu {
+  background: white;
+
+  border-radius: 10px;
+
+  padding: 15px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.admin-menu button {
+  width: 100%;
+
+  padding: 13px 15px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #333;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font-size: 13px;
+
+  transition: 0.2s;
+}
+
+.admin-menu button:hover {
+  background: #eef4ff;
+
+  color: #075cd8;
+}
+
+/* =========================
+   CONTENIDO
+========================= */
+
+.admin-content {
+  min-width: 0;
+}
+
+/* =========================
+   TARJETAS ESTADÍSTICAS
+========================= */
+
+.admin-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 18px;
+
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  min-height: 130px;
+
+  padding: 20px;
+
+  background: white;
+
+  border-radius: 10px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 10px;
+
+  background: #eef4ff;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  font-size: 23px;
+}
+
+.stat-card span {
+  color: #777;
+
+  font-size: 11px;
+}
+
+.stat-card h2 {
+  margin: 5px 0;
+
+  color: #001b46;
+
+  font-size: 23px;
+}
+
+.stat-card small {
+  color: #198754;
+
+  font-size: 10px;
+}
+
+/* =========================
+   PANELES
+========================= */
+
+.admin-panels {
+  display: grid;
+
+  grid-template-columns:
+    2fr 1fr;
+
+  gap: 20px;
+}
+
+.admin-panel {
+  background: white;
+
+  border-radius: 10px;
+
+  padding: 22px;
+
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.admin-panel-title {
+  margin-bottom: 20px;
+
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 15px;
+}
+
+.admin-panel-title h2 {
+  margin-bottom: 5px;
+
+  color: #001b46;
+
+  font-size: 18px;
+}
+
+.admin-panel-title p {
+  color: #888;
+
+  font-size: 11px;
+}
+
+.admin-panel-title button {
+  border: none;
+
+  background: transparent;
+
+  color: #075cd8;
+
+  font-weight: bold;
+
+  cursor: pointer;
+}
+
+/* =========================
+   TABLA PEDIDOS
+========================= */
+
+.admin-table-container {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  padding: 12px;
+
+  background: #f7f8fa;
+
+  color: #777;
+
+  text-align: left;
+
+  font-size: 11px;
+}
+
+.admin-table td {
+  padding: 14px 12px;
+
+  border-bottom: 1px solid #eee;
+
+  color: #333;
+
+  font-size: 12px;
+}
+
+.order-status {
+  display: inline-block;
+
+  padding: 6px 9px;
+
+  border-radius: 15px;
+
+  font-size: 10px;
+
+  font-weight: bold;
+}
+
+.order-status.pendiente {
+  background: #fff5d6;
+  color: #956c00;
+}
+
+.order-status.en-preparación {
+  background: #e5f0ff;
+  color: #075cd8;
+}
+
+.order-status.enviado {
+  background: #e9e5ff;
+  color: #6347c7;
+}
+
+.order-status.entregado {
+  background: #e0f7e7;
+  color: #198754;
+}
+
+/* =========================
+   INVENTARIO BAJO
+========================= */
+
+.low-stock-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.low-stock-item {
+  padding: 15px 0;
+
+  border-bottom: 1px solid #eee;
+
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+}
+
+.low-stock-item:last-child {
+  border-bottom: none;
+}
+
+.low-stock-item strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  font-size: 12px;
+}
+
+.low-stock-item span {
+  color: #888;
+
+  font-size: 10px;
+}
+
+.stock-number {
+  width: 35px;
+  height: 35px;
+
+  border-radius: 50%;
+
+  background: #ffe5e5;
+
+  color: #d63031;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  font-weight: bold;
+
+  font-size: 12px;
+}
+
+/* =========================
+   ACCIONES RÁPIDAS
+========================= */
+
+.admin-actions {
+  margin-top: 25px;
+
+  padding: 22px;
+
+  background: white;
+
+  border-radius: 10px;
+
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.admin-actions h2 {
+  margin-bottom: 20px;
+
+  color: #001b46;
+
+  font-size: 18px;
+}
+
+.quick-actions {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 15px;
+}
+
+.quick-actions button {
+  min-height: 90px;
+
+  padding: 15px;
+
+  border: 1px solid #eee;
+
+  border-radius: 8px;
+
+  background: white;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.quick-actions button:hover {
+  border-color: #075cd8;
+
+  color: #075cd8;
+
+  transform: translateY(-3px);
+}
+
+.quick-actions span {
+  font-size: 24px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1100px) {
+
+  .admin-stats {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .admin-panels {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 850px) {
+
+  .admin-container {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-menu {
+    flex-direction: row;
+
+    overflow-x: auto;
+  }
+
+  .admin-menu button {
+    min-width: 150px;
+  }
+
+  .quick-actions {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 550px) {
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+}

@@ -1,0 +1,316 @@
+.product-detail {
+  width: 86%;
+  max-width: 1250px;
+
+  margin: 50px auto;
+
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+
+  gap: 70px;
+}
+
+/* IMAGEN */
+
+.product-detail-gallery {
+  width: 100%;
+}
+
+.product-detail-main-image {
+  width: 100%;
+  height: 520px;
+
+  background: #f7f7f7;
+
+  border-radius: 12px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  overflow: hidden;
+}
+
+.product-detail-main-image img {
+  width: 90%;
+  height: 90%;
+
+  object-fit: contain;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.product-detail-main-image img:hover {
+  transform: scale(1.05);
+}
+
+/* INFORMACIÓN */
+
+.product-detail-info {
+  padding-top: 15px;
+}
+
+.detail-category {
+  margin-bottom: 8px;
+
+  color: #075cd8;
+
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.product-detail-info h1 {
+  margin-bottom: 15px;
+
+  color: #202020;
+
+  font-size: 38px;
+
+  line-height: 1.15;
+}
+
+.detail-rating {
+  margin-bottom: 15px;
+
+  color: #ffb400;
+}
+
+.detail-price {
+  margin-bottom: 25px;
+
+  color: #075cd8;
+
+  font-size: 30px;
+}
+
+.detail-description {
+  margin-bottom: 25px;
+
+  color: #555;
+
+  font-size: 15px;
+
+  line-height: 1.7;
+}
+
+/* STOCK */
+
+.detail-stock {
+  padding: 18px 0;
+
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+
+  display: flex;
+
+  gap: 10px;
+}
+
+.stock-available {
+  color: #198754;
+}
+
+.stock-empty {
+  color: #d63031;
+}
+
+/* CANTIDAD */
+
+.detail-quantity {
+  margin: 30px 0;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 25px;
+}
+
+.quantity-buttons {
+  display: flex;
+
+  border: 1px solid #ddd;
+
+  border-radius: 6px;
+
+  overflow: hidden;
+}
+
+.quantity-buttons button,
+.quantity-buttons span {
+  width: 40px;
+  height: 40px;
+
+  border: none;
+
+  background: white;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-buttons button {
+  cursor: pointer;
+
+  font-size: 18px;
+
+  transition: 0.2s;
+}
+
+.quantity-buttons button:hover {
+  background: #f2f2f2;
+}
+
+/* BOTONES */
+
+.detail-actions {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 15px;
+}
+
+.detail-actions button {
+  padding: 15px;
+
+  border-radius: 7px;
+
+  font-size: 14px;
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+/* BOTÓN AGREGAR AL CARRITO */
+
+.detail-cart-button {
+  border: 2px solid #075cd8;
+
+  background: white;
+
+  color: #075cd8;
+}
+
+.detail-cart-button:hover {
+  background: #075cd8;
+
+  color: white;
+}
+
+/* BOTÓN COMPRAR AHORA */
+
+.detail-buy-button {
+  border: 2px solid #075cd8;
+
+  background: #075cd8;
+
+  color: white;
+}
+
+.detail-buy-button:hover {
+  background: #004bb5;
+
+  border-color: #004bb5;
+}
+
+/* BOTONES DESHABILITADOS */
+
+.detail-actions button:disabled {
+  background: #e5e5e5;
+
+  border-color: #cccccc;
+
+  color: #888888;
+
+  cursor: not-allowed;
+
+  opacity: 0.7;
+}
+
+.detail-actions button:disabled:hover {
+  background: #e5e5e5;
+
+  border-color: #cccccc;
+
+  color: #888888;
+}
+
+/* BENEFICIOS */
+
+.detail-benefits {
+  margin-top: 30px;
+
+  padding-top: 25px;
+
+  border-top: 1px solid #eee;
+}
+
+.detail-benefits > div {
+  margin-bottom: 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+}
+
+.detail-benefits span {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.detail-benefits small {
+  margin-top: 4px;
+
+  color: #777;
+}
+
+.product-not-found {
+  min-height: 60vh;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 850px) {
+  .product-detail {
+    grid-template-columns: 1fr;
+
+    gap: 30px;
+  }
+
+  .product-detail-main-image {
+    height: 380px;
+  }
+
+  .product-detail-info h1 {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 500px) {
+  .product-detail {
+    width: 92%;
+  }
+
+  .product-detail-main-image {
+    height: 300px;
+  }
+
+  .detail-actions {
+    grid-template-columns: 1fr;
+  }
+}
