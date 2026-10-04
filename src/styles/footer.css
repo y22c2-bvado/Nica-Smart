@@ -1,107 +1,548 @@
-.footer {
-  margin-top: 70px;
-  padding: 50px 7%;
+/* =========================================
+   FOOTER
+   NICA S-MART
+   ========================================= */
 
-  background: #001b46;
-  color: white;
+.footer {
+  width: 100%;
+
+  margin-top: auto;
+
+  background:
+    linear-gradient(
+      135deg,
+      #041b3d 0%,
+      #062b5f 45%,
+      #041b3d 100%
+    );
+
+  color: #ffffff;
+}
+
+
+/* =========================================
+   CONTENEDOR PRINCIPAL
+   ========================================= */
+
+.footer-container {
+  width: min(1450px, 90%);
+
+  margin: 0 auto;
 
   display: grid;
 
   grid-template-columns:
-    2fr 1fr 1fr 1fr 1.4fr;
+    1.35fr
+    1fr
+    1fr
+    1fr;
 
-  gap: 45px;
+  gap: 70px;
+
+  padding: 75px 0 65px;
 }
 
-/* =========================
+
+/* =========================================
    MARCA
-========================= */
+   ========================================= */
 
-.footer-brand h2 {
-  margin-bottom: 15px;
+.footer-brand {
+  display: flex;
 
-  font-size: 24px;
+  flex-direction: column;
 
-  color: white;
+  align-items: flex-start;
 }
 
-.footer-brand p {
-  max-width: 280px;
 
-  color: #c4cbd7;
+/* LOGO */
 
-  font-size: 13px;
+.footer-logo {
+  display: flex;
 
-  line-height: 1.6;
-}
+  align-items: center;
 
-/* =========================
-   COLUMNAS
-========================= */
+  gap: 14px;
 
-.footer-column h3,
-.footer-contact h3 {
-  margin-bottom: 18px;
-
-  font-size: 14px;
-
-  color: white;
-}
-
-.footer-column a {
-  display: block;
-
-  margin-bottom: 10px;
-
-  color: #c4cbd7;
+  color: #ffffff;
 
   text-decoration: none;
 
-  font-size: 12px;
-
-  transition: 0.2s;
+  margin-bottom: 32px;
 }
+
+
+/* ÍCONO DEL CARRITO */
+
+.footer-logo-icon {
+  font-size: 58px;
+
+  color: #3d9cff;
+}
+
+
+/* TEXTO DEL LOGO */
+
+.footer-logo span {
+  font-size: 36px;
+
+  font-weight: 800;
+
+  letter-spacing: -1px;
+
+  white-space: nowrap;
+}
+
+
+/* S-MART AZUL */
+
+.footer-logo strong {
+  color: #2687ee;
+
+  font-weight: 800;
+}
+
+
+/* =========================================
+   DESCRIPCIÓN
+   ========================================= */
+
+.footer-description {
+  margin: 0;
+
+  font-size: 19px;
+
+  line-height: 1.7;
+
+  color: #cbd8e8;
+
+  text-align: left;
+}
+
+
+/* =========================================
+   REDES SOCIALES
+   ========================================= */
+
+.footer-social {
+  display: flex;
+
+  gap: 18px;
+
+  margin-top: 38px;
+}
+
+
+.footer-social a {
+  width: 48px;
+
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background-color: rgba(255, 255, 255, 0.07);
+
+  color: #ffffff;
+
+  font-size: 21px;
+
+  text-decoration: none;
+
+  transition:
+    background-color 0.25s ease,
+    transform 0.25s ease,
+    color 0.25s ease;
+}
+
+
+/* HOVER REDES */
+
+.footer-social a:hover {
+  background-color: #2687ee;
+
+  color: #ffffff;
+
+  transform: translateY(-4px);
+}
+
+
+/* =========================================
+   COLUMNAS
+   ========================================= */
+
+.footer-column {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+}
+
+
+/* TÍTULOS */
+
+.footer-column h3 {
+  margin: 0;
+
+  font-size: 29px;
+
+  font-weight: 750;
+
+  color: #ffffff;
+
+  text-align: left;
+}
+
+
+/* LÍNEA AZUL BAJO EL TÍTULO */
+
+.footer-title-line {
+  width: 45px;
+
+  height: 4px;
+
+  margin-top: 17px;
+
+  margin-bottom: 29px;
+
+  border-radius: 10px;
+
+  background-color: #2687ee;
+}
+
+
+/* =========================================
+   LINKS DEL FOOTER
+   ========================================= */
+
+.footer-column a {
+  width: fit-content;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 22px;
+
+  margin-bottom: 22px;
+
+  color: #f1f5f9;
+
+  font-size: 18px;
+
+  text-decoration: none;
+
+  text-align: left;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* ICONOS */
+
+.footer-column a svg {
+  min-width: 29px;
+
+  font-size: 29px;
+
+  color: #63b3ff;
+
+  stroke-width: 1.8;
+}
+
+
+/* HOVER */
 
 .footer-column a:hover {
-  color: white;
-  transform: translateX(3px);
+  color: #63b3ff;
+
+  transform: translateX(5px);
 }
 
-/* =========================
-   CONTACTO
-========================= */
 
-.footer-contact p {
-  margin-bottom: 10px;
+/* =========================================
+   PARTE INFERIOR
+   ========================================= */
 
-  color: #c4cbd7;
+.footer-bottom {
+  width: 100%;
 
-  font-size: 12px;
-
-  line-height: 1.5;
+  border-top: 1px solid rgba(126, 188, 255, 0.45);
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
 
-@media (max-width: 1100px) {
-  .footer {
+/* CONTENEDOR DEL COPYRIGHT */
+
+.footer-bottom-container {
+  width: min(1450px, 90%);
+
+  margin: 0 auto;
+
+  min-height: 100px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+
+/* COPYRIGHT */
+
+.footer-bottom p {
+  margin: 0;
+
+  font-size: 16px;
+
+  color: #f1f5f9;
+
+  text-align: left;
+}
+
+
+/* =========================================
+   ENLACES LEGALES
+   ========================================= */
+
+.footer-legal {
+  display: flex;
+
+  align-items: center;
+
+  gap: 25px;
+}
+
+
+.footer-legal a {
+  color: #f1f5f9;
+
+  font-size: 16px;
+
+  text-decoration: none;
+
+  transition: color 0.2s ease;
+}
+
+
+.footer-legal a:hover {
+  color: #63b3ff;
+}
+
+
+/* SEPARADORES */
+
+.footer-legal > span {
+  width: 1px;
+
+  height: 32px;
+
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+
+/* =========================================
+   TABLET GRANDE
+   ========================================= */
+
+@media (max-width: 1200px) {
+
+  .footer-container {
     grid-template-columns:
-      repeat(3, 1fr);
+      1.2fr
+      1fr
+      1fr
+      1fr;
+
+    gap: 40px;
   }
+
+
+  .footer-logo span {
+    font-size: 30px;
+  }
+
+
+  .footer-logo-icon {
+    font-size: 50px;
+  }
+
+
+  .footer-column h3 {
+    font-size: 25px;
+  }
+
+
+  .footer-column a {
+    font-size: 16px;
+
+    gap: 15px;
+  }
+
+
+  .footer-column a svg {
+    font-size: 24px;
+  }
+
 }
 
-@media (max-width: 750px) {
-  .footer {
+
+/* =========================================
+   TABLET
+   ========================================= */
+
+@media (max-width: 950px) {
+
+  .footer-container {
     grid-template-columns:
       repeat(2, 1fr);
+
+    gap: 55px 70px;
+
+    padding: 60px 0;
   }
+
+
+  .footer-bottom-container {
+    flex-direction: column;
+
+    justify-content: center;
+
+    padding: 25px 0;
+  }
+
+
+  .footer-bottom p {
+    text-align: center;
+  }
+
 }
 
-@media (max-width: 500px) {
-  .footer {
-    grid-template-columns:
-      1fr;
+
+/* =========================================
+   MÓVIL
+   ========================================= */
+
+@media (max-width: 600px) {
+
+  .footer-container {
+    width: 88%;
+
+    grid-template-columns: 1fr;
+
+    gap: 45px;
+
+    padding: 50px 0;
   }
+
+
+  /* CENTRAR MARCA */
+
+  .footer-brand {
+    align-items: center;
+
+    text-align: center;
+  }
+
+
+  .footer-logo {
+    justify-content: center;
+
+    margin-bottom: 22px;
+  }
+
+
+  .footer-logo span {
+    font-size: 27px;
+  }
+
+
+  .footer-logo-icon {
+    font-size: 44px;
+  }
+
+
+  .footer-description {
+    text-align: center;
+
+    font-size: 16px;
+  }
+
+
+  .footer-social {
+    margin-top: 28px;
+  }
+
+
+  /* COLUMNAS */
+
+  .footer-column {
+    align-items: center;
+  }
+
+
+  .footer-column h3 {
+    text-align: center;
+
+    font-size: 24px;
+  }
+
+
+  .footer-title-line {
+    margin-left: auto;
+
+    margin-right: auto;
+  }
+
+
+  .footer-column a {
+    font-size: 16px;
+  }
+
+
+  /* PARTE INFERIOR */
+
+  .footer-bottom-container {
+    width: 88%;
+
+    min-height: auto;
+
+    padding: 30px 0;
+  }
+
+
+  .footer-bottom p {
+    font-size: 14px;
+
+    line-height: 1.6;
+  }
+
+
+  .footer-legal {
+    flex-direction: column;
+
+    gap: 14px;
+  }
+
+
+  .footer-legal > span {
+    display: none;
+  }
+
+
+  .footer-legal a {
+    font-size: 14px;
+  }
+
 }

@@ -4,7 +4,7 @@ import Footer from '../components/Footer'
 
 import '../styles/admin.css'
 
-function Admin() {
+export default function Admin() {
   const recentOrders = [
     {
       id: 'ORD-1001',
