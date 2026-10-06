@@ -1,12 +1,10 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-
+import { getProducts } from '../services/api'
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
 import Footer from '../components/Footer'
-
-import products from '../data/products'
 
 import '../styles/products.css'
 
@@ -18,6 +16,20 @@ function Products() {
 
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState(initialCategory)
+
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+useEffect(() => {
+  getProducts()
+    .then(setProducts)
+    .catch((err) => console.error(err))
+    .finally(() => setLoading(false))
+}, [])
+useEffect(() => {
+  const cat = searchParams.get('category') || 'Todos'
+  setCategory(cat)
+}, [searchParams])
 
   const categories = [
     'Todos',
@@ -144,36 +156,22 @@ function Products() {
 
           </div>
 
-          {filteredProducts.length > 0 ? (
-
-            <div className="products-grid">
-
-              {filteredProducts.map((product) => (
-
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
-
-              ))}
-
-            </div>
-
+          {loading ? (
+          <p>Cargando productos...</p>
+          ) : filteredProducts.length > 0 ? (
+          <div className="products-grid">
+            {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+          </div>
           ) : (
-
-            <div className="no-products">
-
-              <h3>
-                No encontramos productos
-              </h3>
-
-              <p>
-                Intenta realizar otra búsqueda
-                o seleccionar otra categoría.
-              </p>
-
-            </div>
-
+          <div className="no-products">
+          <h3>No encontramos productos</h3>
+            <p>
+              Intenta realizar otra búsqueda
+              o seleccionar otra categoría.
+            </p>
+          </div>
           )}
 
         </section>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import {
   useParams,
   useNavigate,
@@ -7,9 +7,7 @@ import {
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
-import products from '../data/products'
-
+import { getProductById } from '../services/api'
 import { useCart } from '../context/CartContext'
 
 import '../styles/productDetail.css'
@@ -21,22 +19,44 @@ function ProductDetail() {
 
   const { addToCart } = useCart()
 
-  const product = products.find(
-    (product) => product.id === Number(id)
-  )
-
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
 
+  useEffect(() => {
+    setLoading(true)
+    getProductById(id)
+      .then(setProduct)
+      .catch((err) => {
+        console.error(err)
+        setProduct(null)
+      })
+      .finally(() => setLoading(false))
+  }, [id])
+
+  // Mientras carga
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <Navbar />
+        <main className="product-not-found">
+          <h1>Cargando producto...</h1>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  // Si no existe el producto
   if (!product) {
     return (
       <>
         <Header />
         <Navbar />
-
         <main className="product-not-found">
           <h1>Producto no encontrado</h1>
         </main>
-
         <Footer />
       </>
     )
@@ -100,7 +120,7 @@ function ProductDetail() {
           </div>
 
           <h2 className="detail-price">
-            C$ {product.price.toLocaleString()}
+            C$ {Number(product.price).toLocaleString()}
           </h2>
 
           <p className="detail-description">

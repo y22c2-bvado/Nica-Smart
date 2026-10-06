@@ -72,7 +72,7 @@ function Cart() {
                       </h3>
 
                       <p className="cart-item-price">
-                        C$ {item.price.toLocaleString()}
+                        C$ {Number(item.price).toLocaleString()}
                       </p>
 
                       <div className="cart-quantity">
@@ -108,7 +108,7 @@ function Cart() {
                       <strong>
                         C${' '}
                         {(
-                          item.price *
+                          Number(item.price) *
                           item.quantity
                         ).toLocaleString()}
                       </strong>
