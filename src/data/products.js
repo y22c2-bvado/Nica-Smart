@@ -1,12 +1,12 @@
 const products = [
-    
+       
   {
     id: 1,
     name: 'AirPods 2da Generación',
     category: 'Audio',
     price: 2490,
     stock: 15,
-    image: '/Imagenes/Airpods2.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=AirPods',
     description:
       'Audífonos inalámbricos con conexión Bluetooth y estuche de carga.',
   },
@@ -17,7 +17,7 @@ const products = [
     category: 'Audio',
     price: 1200,
     stock: 20,
-    image: '/Imagenes/audifonosBlu.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Audifonos+Bluetooth',
     description:
       'Audífonos inalámbricos ideales para música, llamadas y uso diario.',
   },
@@ -28,7 +28,7 @@ const products = [
     category: 'Cargadores',
     price: 850,
     stock: 25,
-    image: '/Imagenes/cargador35.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Cargador+35W',
     description:
       'Cargador USB-C de carga rápida compatible con múltiples dispositivos.',
   },
@@ -39,7 +39,7 @@ const products = [
     category: 'Cargadores',
     price: 1450,
     stock: 18,
-    image: '/Imagenes/cargador65.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Cargador+65W',
     description:
       'Cargador USB-C de alta potencia para teléfonos, tablets y laptops compatibles.',
   },
@@ -50,7 +50,7 @@ const products = [
     category: 'Cables',
     price: 350,
     stock: 40,
-    image: '/Imagenes/cableAC.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=USB-C+a+USB-C',
     description:
       'Cable USB-C para carga rápida y transferencia de datos.',
   },
@@ -61,7 +61,7 @@ const products = [
     category: 'Cables',
     price: 450,
     stock: 35,
-    image: '/Imagenes/cableC.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=USB-C+Lightning',
     description:
       'Cable compatible con dispositivos que utilizan conexión Lightning.',
   },
@@ -72,7 +72,7 @@ const products = [
     category: 'Cables',
     price: 550,
     stock: 22,
-    image: '/Imagenes/cableHD.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=HDMI+2.1',
     description:
       'Cable HDMI para transmisión de audio y video en alta resolución.',
   },
@@ -83,7 +83,7 @@ const products = [
     category: 'Energía',
     price: 1200,
     stock: 17,
-    image: '/Imagenes/powebank.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Power+Bank+10000',
     description:
       'Batería portátil para cargar dispositivos móviles durante el día.',
   },
@@ -94,7 +94,7 @@ const products = [
     category: 'Energía',
     price: 1850,
     stock: 12,
-    image: '/Imagenes/powerbank.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Power+Bank+20000',
     description:
       'Batería portátil de gran capacidad para múltiples cargas.',
   },
@@ -105,7 +105,7 @@ const products = [
     category: 'Relojes',
     price: 3200,
     stock: 10,
-    image: '/Imagenes/smarwatch.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Smartwatch',
     description:
       'Reloj inteligente con conectividad Bluetooth y funciones deportivas.',
   },
@@ -116,7 +116,7 @@ const products = [
     category: 'Soportes',
     price: 950,
     stock: 14,
-    image: '/Imagenes/soporte.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Soporte+Laptop',
     description:
       'Soporte ajustable para mejorar la posición y ventilación de la laptop.',
   },
@@ -127,7 +127,7 @@ const products = [
     category: 'Soportes',
     price: 550,
     stock: 30,
-    image: '/Imagenes/soportecelular.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Soporte+Celular',
     description:
       'Soporte magnético compacto para teléfonos móviles.',
   },
@@ -138,7 +138,7 @@ const products = [
     category: 'Computación',
     price: 650,
     stock: 28,
-    image: '/Imagenes/mouse.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Mouse',
     description:
       'Mouse inalámbrico para computadora y laptop.',
   },
@@ -149,7 +149,7 @@ const products = [
     category: 'Gaming',
     price: 2200,
     stock: 13,
-    image: '/Imagenes/teclado.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Teclado+RGB',
     description:
       'Teclado mecánico con iluminación RGB para gaming y productividad.',
   },
@@ -160,7 +160,7 @@ const products = [
     category: 'Adaptadores',
     price: 1450,
     stock: 19,
-    image: '/Imagenes/usbhub.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Hub+USB-C',
     description:
       'Hub USB-C con múltiples conexiones para distintos dispositivos.',
   },
@@ -171,7 +171,7 @@ const products = [
     category: 'Adaptadores',
     price: 750,
     stock: 21,
-    image: '/Imagenes/usbhd.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=USB-C+a+HDMI',
     description:
       'Adaptador para conectar dispositivos USB-C a pantallas HDMI.',
   },
@@ -182,7 +182,7 @@ const products = [
     category: 'Computación',
     price: 1800,
     stock: 16,
-    image: '/Imagenes/webcam.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Webcam+1080p',
     description:
       'Cámara web Full HD para videollamadas, clases y reuniones.',
   },
@@ -193,7 +193,7 @@ const products = [
     category: 'Audio',
     price: 1600,
     stock: 18,
-    image: '/Imagenes/bocinablu.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Bocina+Bluetooth',
     description:
       'Bocina portátil con conexión Bluetooth y batería recargable.',
   },
@@ -204,7 +204,7 @@ const products = [
     category: 'Gaming',
     price: 1900,
     stock: 14,
-    image: '/Imagenes/control.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Control+Gaming',
     description:
       'Control inalámbrico para videojuegos y diferentes dispositivos.',
   },
@@ -215,7 +215,7 @@ const products = [
     category: 'Cargadores',
     price: 1100,
     stock: 24,
-    image: '/Imagenes/inalambrico.jpg',
+    image: 'https://placehold.co/500x500/f5f5f5/222?text=Carga+Inalambrica',
     description:
       'Base de carga inalámbrica para teléfonos compatibles.',
   },

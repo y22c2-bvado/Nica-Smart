@@ -1,11 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
 import { useCart } from '../context/CartContext'
-
+import { createOrder } from '../services/ordersService'
 import '../styles/cart.css'
 
 function Cart() {
@@ -23,6 +21,52 @@ function Cart() {
     cartItems.length > 0 ? 150 : 0
 
   const total = cartTotal + shipping
+  
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      return
+    }
+
+    try {
+      const orderData = {
+        subtotal: cartTotal,
+        shipping: shipping,
+        total: total,
+
+        products: cartItems.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          price: Number(item.price),
+          quantity: item.quantity,
+          subtotal:
+            Number(item.price) *
+            item.quantity,
+        })),
+      }
+
+      const order = await createOrder(orderData)
+
+      console.log(
+        'Compra registrada:',
+        order
+      )
+
+      alert(
+        `Compra realizada correctamente. Orden #${order.orderId}`
+      )
+
+    } catch (error) {
+      console.error(
+        'Error al procesar compra:',
+        error
+      )
+
+      alert(
+        error.message ||
+        'No se pudo realizar la compra'
+      )
+    }
+  }
 
   return (
     <>
@@ -190,6 +234,7 @@ function Cart() {
               type="button"
               className="checkout-button"
               disabled={cartItems.length === 0}
+              onClick={handleCheckout}
             >
               Proceder al pago
             </button>
