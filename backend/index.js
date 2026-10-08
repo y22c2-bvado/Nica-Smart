@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
+const orderRoutes = require('./routes/orders');
 const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
 const authRoutes = require('./routes/auth');
@@ -34,6 +35,7 @@ app.get('/', async (req, res) => {
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 
 
 app.listen(port, () => {

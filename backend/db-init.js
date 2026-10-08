@@ -36,6 +36,33 @@ const insertAdminUser = `
   ON CONFLICT (email) DO NOTHING;
 `;
 
+const createOrdersTable = `
+  CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    customer_name VARCHAR(150) NOT NULL,
+    customer_email VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(50),
+    customer_address TEXT,
+    subtotal NUMERIC(10,2) NOT NULL,
+    shipping NUMERIC(10,2) DEFAULT 0,
+    total NUMERIC(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pendiente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const createOrderItemsTable = `
+  CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id),
+    product_name VARCHAR(200) NOT NULL,
+    price NUMERIC(10,2) NOT NULL,
+    quantity INTEGER NOT NULL
+  );
+`;
+
 const insertSeedData = `
   INSERT INTO products (name, category, price, stock, image, description) VALUES
   ('AirPods 2da Generación', 'Audio', 2490, 15, '/Imagenes/Airpods2.jpg', 'Audífonos inalámbricos con conexión Bluetooth y estuche de carga.'),
@@ -66,7 +93,6 @@ async function init() {
     await pool.query(createProductsTable);
     console.log('✅ Tabla products creada (o ya existía)');
 
-
     console.log('🔧 Creando tabla users...');
     await pool.query(createUsersTable);
     console.log('✅ Tabla users creada (o ya existía)');
@@ -74,6 +100,14 @@ async function init() {
     console.log('👤 Insertando usuario admin...');
     await pool.query(insertAdminUser);
     console.log('✅ Usuario admin listo');
+
+    console.log('🔧 Creando tabla orders...');
+    await pool.query(createOrdersTable);
+    console.log('✅ Tabla orders creada');
+
+    console.log('🔧 Creando tabla order_items...');
+    await pool.query(createOrderItemsTable);
+    console.log('✅ Tabla order_items creada');
 
     const { rows } = await pool.query('SELECT COUNT(*) FROM products');
     if (parseInt(rows[0].count) === 0) {
