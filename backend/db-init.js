@@ -6,7 +6,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-const createTableSQL = `
+const createProductsTable = `
   CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -17,6 +17,23 @@ const createTableSQL = `
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+`;
+
+const createUsersTable = `
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const insertAdminUser = `
+  INSERT INTO users (name, email, password, role)
+  VALUES ('Admin', 'admin@nica-smart.com', 'admin123', 'admin')
+  ON CONFLICT (email) DO NOTHING;
 `;
 
 const insertSeedData = `
@@ -46,8 +63,17 @@ const insertSeedData = `
 async function init() {
   try {
     console.log('🔧 Creando tabla products...');
-    await pool.query(createTableSQL);
-    console.log('✅ Tabla creada (o ya existía)');
+    await pool.query(createProductsTable);
+    console.log('✅ Tabla products creada (o ya existía)');
+
+
+    console.log('🔧 Creando tabla users...');
+    await pool.query(createUsersTable);
+    console.log('✅ Tabla users creada (o ya existía)');
+
+    console.log('👤 Insertando usuario admin...');
+    await pool.query(insertAdminUser);
+    console.log('✅ Usuario admin listo');
 
     const { rows } = await pool.query('SELECT COUNT(*) FROM products');
     if (parseInt(rows[0].count) === 0) {
@@ -58,10 +84,12 @@ async function init() {
       console.log(`ℹ️  Ya hay ${rows[0].count} productos, no se insertaron duplicados`);
     }
 
-    const total = await pool.query('SELECT COUNT(*) FROM products');
-    console.log(`📊 Total de productos: ${total.rows[0].count}`);
-
+    const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
+    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
+      console.log(`📊 Total de productos: ${totalProducts.rows[0].count}`);
+      console.log(`📊 Total de usuarios: ${totalUsers.rows[0].count}`);
     process.exit(0);
+
   } catch (err) {
     console.error('❌ Error:', err.message);
     process.exit(1);
