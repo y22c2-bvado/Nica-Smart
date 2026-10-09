@@ -14,6 +14,8 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -25,7 +27,7 @@ const pool = new Pool({
 const googleClient = new OAuth2Client({
   clientId: GOOGLE_CLIENT_ID,
   clientSecret: GOOGLE_CLIENT_SECRET,
-  redirectUri: FRONTEND_URL
+  redirectUri: GOOGLE_REDIRECT_URI
 });
 
 // ==========================================
@@ -68,10 +70,10 @@ router.post('/', async (req, res) => {
     // INTERCAMBIAR EL CÓDIGO POR TOKENS
     // ==========================================
 
-    const { tokens } = await googleClient.getToken({
-      code,
-      redirect_uri: FRONTEND_URL
-    });
+   const { tokens } = await googleClient.getToken({
+  code,
+  redirect_uri: GOOGLE_REDIRECT_URI
+});
 
     if (!tokens.id_token) {
       return res.status(401).json({

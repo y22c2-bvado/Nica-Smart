@@ -19,6 +19,18 @@ const createProductsTable = `
   );
 `;
 
+const createGoogleUsersTable = `
+  CREATE TABLE IF NOT EXISTS google_users (
+    id BIGSERIAL PRIMARY KEY,
+    google_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    name VARCHAR(255),
+    picture TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
 const createUsersTable = `
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -87,6 +99,7 @@ const insertSeedData = `
   ('Base de Carga Inalámbrica', 'Cargadores', 1100, 24, '/Imagenes/inalambrico.jpg', 'Base de carga inalámbrica para teléfonos compatibles.');
 `;
 
+
 async function init() {
   try {
     console.log('🔧 Creando tabla products...');
@@ -96,6 +109,11 @@ async function init() {
     console.log('🔧 Creando tabla users...');
     await pool.query(createUsersTable);
     console.log('✅ Tabla users creada (o ya existía)');
+
+    // NUEVO: TABLA PARA INICIO DE SESIÓN CON GOOGLE
+    console.log('🔧 Creando tabla google_users...');
+    await pool.query(createGoogleUsersTable);
+    console.log('✅ Tabla google_users creada (o ya existía)');
 
     console.log('👤 Insertando usuario admin...');
     await pool.query(insertAdminUser);
@@ -109,19 +127,30 @@ async function init() {
     await pool.query(createOrderItemsTable);
     console.log('✅ Tabla order_items creada');
 
-    const { rows } = await pool.query('SELECT COUNT(*) FROM products');
+    const { rows } = await pool.query(
+      'SELECT COUNT(*) FROM products'
+    );
+
     if (parseInt(rows[0].count) === 0) {
       console.log('📦 Insertando productos...');
       await pool.query(insertSeedData);
       console.log('✅ 20 productos insertados');
     } else {
-      console.log(`ℹ️  Ya hay ${rows[0].count} productos, no se insertaron duplicados`);
+      console.log(
+        `ℹ️ Ya hay ${rows[0].count} productos, no se insertaron duplicados`
+      );
     }
 
-    const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
-    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
-      console.log(`📊 Total de productos: ${totalProducts.rows[0].count}`);
-      console.log(`📊 Total de usuarios: ${totalUsers.rows[0].count}`);
+    const totalProducts = await pool.query(
+      'SELECT COUNT(*) FROM products'
+    );
+    const totalUsers = await pool.query(
+      'SELECT COUNT(*) FROM users'
+    );
+
+    console.log(`📊 Total de productos: ${totalProducts.rows[0].count}`);
+    console.log(`📊 Total de usuarios: ${totalUsers.rows[0].count}`);
+
     process.exit(0);
 
   } catch (err) {
@@ -129,5 +158,6 @@ async function init() {
     process.exit(1);
   }
 }
+
 
 init();
