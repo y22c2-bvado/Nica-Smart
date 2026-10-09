@@ -1,3 +1,12 @@
+
+/* ==========================================
+   NICA S-MART - HEADER
+========================================== */
+
+/* ==========================================
+   BARRA SUPERIOR
+========================================== */
+
 .topbar {
   height: 34px;
   padding: 0 7%;
@@ -16,6 +25,10 @@
   gap: 20px;
   align-items: center;
 }
+
+/* ==========================================
+   HEADER PRINCIPAL
+========================================== */
 
 .header {
   min-height: 90px;
@@ -51,6 +64,10 @@
   color: #555;
 }
 
+/* ==========================================
+   BUSCADOR
+========================================== */
+
 .search-container {
   flex: 1;
   max-width: 600px;
@@ -75,6 +92,7 @@
 
 .search-container button {
   width: 52px;
+  flex-shrink: 0;
 
   border: none;
 
@@ -85,6 +103,10 @@
 
   cursor: pointer;
 }
+
+/* ==========================================
+   OPCIONES DEL HEADER
+========================================== */
 
 .header-options {
   display: flex;
@@ -105,11 +127,104 @@
 
 .option-icon {
   font-size: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
 }
 
-.header-option > div {
+/* FOTO DE PERFIL DE GOOGLE */
+
+.account-link .option-icon img {
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+  object-fit: cover;
+
+  border: 2px solid #e4eaf5;
+}
+
+/* ==========================================
+   INFORMACIÓN DE LA CUENTA
+========================================== */
+
+.account-link {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+/* Nombre y estado uno debajo del otro */
+
+.account-info {
   display: flex;
   flex-direction: column;
+
+  align-items: flex-start;
+  justify-content: center;
+
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Nombre del cliente */
+
+.account-name {
+  display: block;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  color: #09204b;
+
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Estado de sesión */
+
+.account-status {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: #16a34a !important;
+
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Botón que abre el menú */
+
+.account-link > button {
+  display: block;
+
+  padding: 0;
+  border: none;
+  background: transparent;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-link > button:hover .account-name {
+  color: #075cd8;
+}
+
+/* ==========================================
+   USUARIO SIN INICIAR SESIÓN
+========================================== */
+
+.header-option > div:not(.option-icon):not(.account-dropdown) {
+  min-width: 0;
 }
 
 .header-option small {
@@ -122,9 +237,84 @@
   white-space: nowrap;
 }
 
-/* =========================
+/* Evitar que las reglas generales alteren
+   el nombre y el estado del cliente */
+
+.header-option .account-name {
+  font-size: 14px;
+  color: #09204b;
+}
+
+.header-option .account-status {
+  font-size: 12px;
+  color: #16a34a;
+}
+
+/* ==========================================
+   MENÚ DESPLEGABLE DEL USUARIO
+========================================== */
+
+.account-dropdown {
+  position: absolute;
+
+  top: calc(100% + 12px);
+  right: 0;
+
+  min-width: 190px;
+  padding: 12px;
+
+  background: #ffffff;
+  color: #10264e;
+
+  border: 1px solid #e4eaf5;
+  border-radius: 10px;
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-dropdown a {
+  display: block;
+
+  color: #10264e;
+  text-decoration: none;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  transition: color 0.2s;
+}
+
+.account-dropdown a:hover {
+  color: #075cd8;
+}
+
+.account-dropdown button {
+  width: 100%;
+
+  border: none;
+  background: transparent;
+
+  color: #d62828;
+
+  text-align: left;
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.account-dropdown button:hover {
+  color: #a61b1b;
+}
+
+/* ==========================================
    CONTADOR DEL CARRITO
-========================= */
+========================================== */
 
 .cart-count {
   position: absolute;
@@ -150,9 +340,9 @@
   font-weight: bold;
 }
 
-/* =========================
+/* ==========================================
    LINKS DEL HEADER
-========================= */
+========================================== */
 
 .account-link,
 .cart-link {
@@ -160,17 +350,17 @@
   text-decoration: none;
 }
 
-.account-link:hover strong,
+.account-link:hover .account-name,
 .cart-link:hover strong {
   color: #075cd8;
 }
 
-/* =========================
+/* ==========================================
    HOVER DEL CARRITO
-========================= */
+========================================== */
 
 .cart-link {
-  transition: 0.2s;
+  transition: transform 0.2s;
 }
 
 .cart-link:hover {
@@ -181,9 +371,24 @@
   transform: scale(1.05);
 }
 
-/* =========================
+/* ==========================================
    RESPONSIVE
-========================= */
+========================================== */
+
+@media (max-width: 1000px) {
+  .header {
+    padding: 15px 4%;
+    gap: 20px;
+  }
+
+  .header-options {
+    gap: 18px;
+  }
+
+  .search-container {
+    min-width: 160px;
+  }
+}
 
 @media (max-width: 800px) {
   .topbar {
@@ -193,6 +398,7 @@
   .header {
     flex-direction: column;
     align-items: stretch;
+    gap: 20px;
   }
 
   .logo {
@@ -205,5 +411,38 @@
 
   .header-options {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 15px 12px;
+  }
+
+  .header-options {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .account-link {
+    gap: 8px;
+  }
+
+  .account-link .option-icon img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .header-option .account-name {
+    font-size: 12px;
+  }
+
+  .header-option .account-status {
+    font-size: 11px;
+  }
+
+  .account-dropdown {
+    right: 0;
+    min-width: 170px;
   }
 }
