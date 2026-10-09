@@ -1,0 +1,191 @@
+
+/* ==========================================
+   NICA S-MART - REGISTRO DE CLIENTES
+========================================== */
+
+.register-page {
+  min-height: 100vh;
+  padding: 45px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background:
+    radial-gradient(
+      circle at 5% 20%,
+      #dce9ff 0,
+      transparent 32%
+    ),
+    linear-gradient(
+      135deg,
+      #eef5ff,
+      #f8fbff
+    );
+  font-family: inherit;
+  color: #001b46;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 510px;
+  padding: 40px;
+  background: white;
+  border: 1px solid #e1e9f5;
+  border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(0, 27, 70, 0.10);
+}
+
+.register-brand {
+  display: block;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #001b46;
+  text-decoration: none;
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.register-brand span {
+  color: #075cd8;
+}
+
+.register-heading {
+  margin-bottom: 28px;
+}
+
+.register-heading h1 {
+  margin: 0 0 10px;
+  font-size: 34px;
+  font-weight: 800;
+  color: #001b46;
+}
+
+.register-heading p {
+  margin: 0;
+  color: #70809d;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.register-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 21px;
+}
+
+.register-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #001b46;
+}
+
+.register-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd8eb;
+  border-radius: 11px;
+  background: #fff;
+  padding: 15px 16px;
+  color: #001b46;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.register-field input:focus {
+  border-color: #075cd8;
+  box-shadow: 0 0 0 3px rgba(7, 92, 216, 0.12);
+}
+
+.register-field small {
+  color: #74839d;
+  font-size: 12px;
+}
+
+.register-password-wrapper {
+  position: relative;
+}
+
+.register-password-wrapper input {
+  padding-right: 55px;
+}
+
+.register-password-wrapper button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.register-submit {
+  width: 100%;
+  padding: 17px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 11px;
+  background: #075cd8;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.register-submit:hover:not(:disabled) {
+  background: #004bb8;
+}
+
+.register-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.register-error {
+  padding: 14px;
+  margin-bottom: 22px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.register-footer {
+  margin-top: 25px;
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.register-footer a,
+.register-back {
+  color: #075cd8;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.register-back {
+  display: block;
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 550px) {
+  .register-page {
+    padding: 20px 12px;
+  }
+
+  .register-card {
+    padding: 27px 20px;
+  }
+
+  .register-heading h1 {
+    font-size: 29px;
+  }
+}
