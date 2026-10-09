@@ -1,3 +1,4 @@
+
 import './App.css'
 
 import {
@@ -14,41 +15,57 @@ import Cart from './pages/Cart'
 import Admin from './pages/Admin'
 import ProductDetail from './pages/ProductDetail'
 
+// NUEVA PÁGINA DE CONFIRMACIÓN DE COMPRA
+import Checkout from './pages/Checkout'
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
+        {/* PÁGINA PRINCIPAL */}
         <Route
           path="/"
           element={<Home />}
         />
 
+        {/* INICIO DE SESIÓN */}
         <Route
           path="/login"
           element={<Login />}
         />
 
+        {/* PRODUCTOS */}
         <Route
           path="/products"
           element={<Products />}
         />
 
+        {/* CATEGORÍAS */}
         <Route
           path="/categories"
           element={<Categories />}
         />
 
+        {/* CARRITO */}
         <Route
           path="/cart"
           element={<Cart />}
         />
 
+        {/* CONFIRMACIÓN DE COMPRA */}
+        <Route
+          path="/checkout"
+          element={<Checkout />}
+        />
+
+        {/* PANEL DE ADMINISTRACIÓN */}
         <Route
           path="/admin"
           element={<Admin />}
         />
 
+        {/* DETALLE DEL PRODUCTO */}
         <Route
           path="/product/:id"
           element={<ProductDetail />}

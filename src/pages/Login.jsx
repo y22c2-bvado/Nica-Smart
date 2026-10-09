@@ -5,22 +5,22 @@ import { useGoogleLogin } from '@react-oauth/google'
 
 import '../styles/login.css'
 
+// ==========================================
+// CONFIGURACIÓN DEL BACKEND
+// ==========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/$/, '')
+
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
   // ==========================================
-  // CONFIGURACIÓN DEL BACKEND
+  // REDIRECCIÓN DESPUÉS DEL LOGIN
   // ==========================================
-
-  const API_URL = (
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.DEV ? 'http://localhost:3000' : '')
-  ).trim().replace(/\/$/, '')
-
-  if (import.meta.env.DEV) {
-    console.log('NICA S-MART - API configurada:', API_URL)
-  }
 
   const from =
     location.state?.from === '/cart'
@@ -41,11 +41,12 @@ function Login() {
   const [error, setError] = useState('')
 
   // ==========================================
-  // GUARDAR SESIÓN
+  // GUARDAR SESIÓN DEL CLIENTE
   // ==========================================
 
   const saveSession = (data) => {
     const token = data?.token || data?.access_token
+    const user = data?.user
 
     if (!token || typeof token !== 'string') {
       throw new Error(
@@ -53,16 +54,46 @@ function Login() {
       )
     }
 
+    if (
+      !user ||
+      typeof user !== 'object' ||
+      typeof user.email !== 'string' ||
+      !user.email.trim()
+    ) {
+      throw new Error(
+        'El servidor no devolvió los datos del usuario.'
+      )
+    }
+
+    // Guardar el perfil completo que mostrará Header.jsx
+    const userData = {
+      id: user.id,
+      name:
+        typeof user.name === 'string' && user.name.trim()
+          ? user.name.trim()
+          : user.email.split('@')[0],
+      email: user.email.trim(),
+      picture: user.picture || null,
+      role: user.role || 'USER',
+      provider: user.provider || 'local'
+    }
+
+    // Guardar sesión
     localStorage.setItem('token', token)
+    localStorage.setItem('user', JSON.stringify(userData))
     localStorage.setItem('rememberMe', String(rememberMe))
 
+    // Actualizar el encabezado sin recargar
+    window.dispatchEvent(new Event('auth-change'))
+
+    // Regresar al carrito si llegó desde allí
     navigate(from, {
-      replace: true,
+      replace: true
     })
   }
 
   // ==========================================
-  // VALIDACIONES
+  // VALIDAR CORREO
   // ==========================================
 
   const validateEmail = (value) => {
@@ -91,6 +122,10 @@ function Login() {
 
     return null
   }
+
+  // ==========================================
+  // VALIDAR CONTRASEÑA
+  // ==========================================
 
   const validatePassword = (value) => {
     const controlRegex = /[\x00-\x1F\x7F]/
@@ -142,12 +177,12 @@ function Login() {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             email: email.trim(),
-            password,
-          }),
+            password
+          })
         }
       )
 
@@ -158,10 +193,12 @@ function Login() {
           response.status === 401
             ? 'Correo o contraseña incorrectos.'
             : data.message ||
+              data.error ||
               'No se pudo iniciar sesión.'
         )
       }
 
+      // Guardar token Y datos del usuario
       saveSession(data)
 
     } catch (err) {
@@ -179,7 +216,7 @@ function Login() {
   }
 
   // ==========================================
-  // LOGIN CON GOOGLE
+  // INICIAR SESIÓN CON GOOGLE
   // ==========================================
 
   const googleLogin = useGoogleLogin({
@@ -203,18 +240,18 @@ function Login() {
           )
         }
 
-        // Enviar código de Google al backend
+        // Enviar código OAuth a Express
         const result = await fetch(
           `${API_URL}/api/auth/google`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Requested-With': 'XmlHttpRequest',
+              'X-Requested-With': 'XmlHttpRequest'
             },
             body: JSON.stringify({
-              code: response.code,
-            }),
+              code: response.code
+            })
           }
         )
 
@@ -223,11 +260,12 @@ function Login() {
         if (!result.ok) {
           throw new Error(
             data.message ||
+            data.error ||
             'No se pudo autenticar con Google.'
           )
         }
 
-        // Guardar JWT generado por Express
+        // Guarda JWT, nombre, correo y foto de Google
         saveSession(data)
 
       } catch (err) {
@@ -247,24 +285,30 @@ function Login() {
 
     onError: (googleError) => {
       console.error('Error OAuth Google:', googleError)
-      setGoogleLoading(false)
 
-      setError(
-        'No se pudo iniciar sesión con Google.'
-      )
+      setGoogleLoading(false)
+      setError('No se pudo iniciar sesión con Google.')
     },
 
     onNonOAuthError: (googleError) => {
-      console.error('Error de ventana Google:', googleError)
+      console.error(
+        'Error de ventana Google:',
+        googleError
+      )
+
       setGoogleLoading(false)
 
       setError(
         googleError?.type === 'popup_closed'
-          ? 'Cerraste la ventana de Google antes de completar el inicio de sesión.'
+          ? 'Se cerró la ventana de Google antes de completar el inicio de sesión.'
           : 'No se pudo abrir o completar la ventana de Google.'
       )
-    },
+    }
   })
+
+  // ==========================================
+  // BOTÓN GOOGLE
+  // ==========================================
 
   const handleGoogleLogin = () => {
     if (loading || googleLoading) return
@@ -283,8 +327,7 @@ function Login() {
       return
     }
 
-    // Se llama directamente desde el clic para
-    // evitar bloqueos de la ventana emergente.
+    // Abrir popup directamente con el clic
     googleLogin()
   }
 
@@ -351,7 +394,7 @@ function Login() {
           <p>Ingresa tus datos para continuar.</p>
         </div>
 
-        {/* MENSAJE DE ERROR */}
+        {/* MENSAJES DE ERROR */}
         {error && (
           <div className="login-error" role="alert">
             {error}
@@ -455,6 +498,7 @@ function Login() {
             >
               ¿Olvidaste tu contraseña?
             </button>
+
           </div>
 
           {/* BOTÓN PRINCIPAL */}
