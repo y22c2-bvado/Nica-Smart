@@ -15,8 +15,14 @@ import Cart from './pages/Cart'
 import Admin from './pages/Admin'
 import ProductDetail from './pages/ProductDetail'
 
-// NUEVA PÁGINA DE CONFIRMACIÓN DE COMPRA
+// PÁGINA DE CONFIRMACIÓN DE COMPRA
 import Checkout from './pages/Checkout'
+
+// PERFIL DEL CLIENTE
+import Profile from './pages/Profile'
+
+// HISTORIAL DE PEDIDOS
+import MyOrders from './pages/MyOrders'
 
 function App() {
   return (
@@ -57,6 +63,18 @@ function App() {
         <Route
           path="/checkout"
           element={<Checkout />}
+        />
+
+        {/* PERFIL DEL CLIENTE */}
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
+
+        {/* HISTORIAL DE PEDIDOS */}
+        <Route
+          path="/orders"
+          element={<MyOrders />}
         />
 
         {/* PANEL DE ADMINISTRACIÓN */}

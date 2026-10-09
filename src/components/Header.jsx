@@ -18,33 +18,67 @@ function Header() {
   // CARGAR USUARIO AUTENTICADO
   // ==========================================
 
-  const loadUser = () => {
-    const token = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
-
-    if (!token || !storedUser) {
-      setUser(null)
-      return
-    }
-
-    try {
-      const parsedUser = JSON.parse(storedUser)
-      setUser(parsedUser)
-    } catch (error) {
-      console.error('Error leyendo usuario:', error)
-      setUser(null)
-    }
-  }
-
   useEffect(() => {
+    const loadUser = () => {
+      const token = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+
+      if (!token || !storedUser) {
+        setUser(null)
+        return
+      }
+
+      try {
+        const parsedUser = JSON.parse(storedUser)
+
+        // Revisar que el token no haya expirado.
+        // La validación de su firma corresponde al backend.
+        const parts = token.split('.')
+
+        if (parts.length !== 3) {
+          setUser(null)
+          return
+        }
+
+        const encodedPayload = parts[1]
+          .replace(/-/g, '+')
+          .replace(/_/g, '/')
+
+        const payload = JSON.parse(
+          atob(
+            encodedPayload.padEnd(
+              Math.ceil(encodedPayload.length / 4) * 4,
+              '='
+            )
+          )
+        )
+
+        if (
+          !payload.exp ||
+          payload.exp * 1000 <= Date.now() ||
+          !parsedUser?.email
+        ) {
+          setUser(null)
+          return
+        }
+
+        setUser(parsedUser)
+      } catch (error) {
+        console.error('Error leyendo sesión:', error)
+        setUser(null)
+      }
+    }
+
     loadUser()
 
     window.addEventListener('storage', loadUser)
     window.addEventListener('auth-change', loadUser)
+    window.addEventListener('focus', loadUser)
 
     return () => {
       window.removeEventListener('storage', loadUser)
       window.removeEventListener('auth-change', loadUser)
+      window.removeEventListener('focus', loadUser)
     }
   }, [])
 
@@ -65,6 +99,10 @@ function Header() {
     navigate('/')
   }
 
+  // ==========================================
+  // NOMBRE DEL CLIENTE
+  // ==========================================
+
   const userName =
     user?.name?.trim() ||
     user?.email?.split('@')[0] ||
@@ -72,8 +110,9 @@ function Header() {
 
   return (
     <>
-      <div className="topbar">
+      {/* BARRA SUPERIOR */}
 
+      <div className="topbar">
         <div>
           🚚 Envíos a todo Nicaragua
         </div>
@@ -82,10 +121,13 @@ function Header() {
           <span>Ayuda</span>
           <span>Seguimiento de pedido</span>
         </div>
-
       </div>
 
+      {/* ENCABEZADO */}
+
       <header className="header">
+
+        {/* LOGO */}
 
         <div className="logo">
           <div className="logo-main">
@@ -101,8 +143,9 @@ function Header() {
           </span>
         </div>
 
-        <div className="search-container">
+        {/* BUSCADOR */}
 
+        <div className="search-container">
           <input
             type="text"
             placeholder="Buscar productos..."
@@ -111,8 +154,9 @@ function Header() {
           <button type="button">
             🔍
           </button>
-
         </div>
+
+        {/* OPCIONES DEL ENCABEZADO */}
 
         <div className="header-options">
 
@@ -124,8 +168,15 @@ function Header() {
 
             <div
               className="header-option account-link"
-              style={{ position: 'relative' }}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}
             >
+
+              {/* FOTO DE PERFIL */}
 
               <div className="option-icon">
                 {user.picture ? (
@@ -134,8 +185,8 @@ function Header() {
                     alt="Foto de perfil"
                     referrerPolicy="no-referrer"
                     style={{
-                      width: 35,
-                      height: 35,
+                      width: 38,
+                      height: 38,
                       borderRadius: '50%',
                       objectFit: 'cover'
                     }}
@@ -145,30 +196,69 @@ function Header() {
                 )}
               </div>
 
+              {/* NOMBRE Y ESTADO DE SESIÓN */}
+
               <button
                 type="button"
                 onClick={() => setShowMenu(!showMenu)}
                 aria-expanded={showMenu}
+                aria-label="Opciones de mi cuenta"
                 style={{
                   border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  textAlign: 'left',
                   color: 'inherit',
-                  font: 'inherit'
+                  font: 'inherit',
+                  padding: 0,
+                  textAlign: 'left'
                 }}
               >
-                <small>
-                  {userName}
-                </small>
 
-                <strong>
-                  Sesión activa ▾
-                </strong>
+                <div
+                  className="account-info"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+
+                  <strong
+                    className="account-name"
+                    style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {userName}
+                  </strong>
+
+                  <small
+                    className="account-status"
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#16a34a',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    ● Sesión activa ▾
+                  </small>
+
+                </div>
+
               </button>
+
+              {/* MENÚ DESPLEGABLE */}
 
               {showMenu && (
                 <div
+                  className="account-dropdown"
                   style={{
                     position: 'absolute',
                     top: '100%',
@@ -178,7 +268,8 @@ function Header() {
                     background: '#fff',
                     color: '#10264e',
                     borderRadius: 10,
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                    boxShadow:
+                      '0 8px 25px rgba(0,0,0,0.15)',
                     zIndex: 1000,
                     display: 'flex',
                     flexDirection: 'column',
@@ -222,6 +313,8 @@ function Header() {
 
           ) : (
 
+            /* CUANDO EL CLIENTE NO HA INICIADO SESIÓN */
+
             <Link
               to="/login"
               className="header-option account-link"
@@ -231,7 +324,7 @@ function Header() {
                 👤
               </div>
 
-              <div>
+              <div className="account-info">
                 <small>
                   Mi cuenta
                 </small>

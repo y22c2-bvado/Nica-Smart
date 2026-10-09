@@ -1,0 +1,56 @@
+
+/* ==========================================
+   EDITAR PERFIL DE NICA S-MART
+========================================== */
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 24px;
+}
+
+.profile-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #10244a;
+}
+
+.profile-field input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #cbd7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #10244a;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.profile-field input:focus {
+  outline: none;
+  border-color: #075cd8;
+  box-shadow: 0 0 0 3px rgba(7, 92, 216, 0.12);
+}
+
+.profile-field input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.profile-field small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.profile-orders-link {
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .profile-field input {
+    font-size: 16px;
+  }
+}
