@@ -9,6 +9,7 @@ import {
 
 import Home from './pages/Home'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
 import Cart from './pages/Cart'
@@ -39,6 +40,12 @@ function App() {
         <Route
           path="/login"
           element={<Login />}
+        />
+
+        {/* REGISTRO DE CLIENTES */}
+        <Route
+          path="/register"
+          element={<Register />}
         />
 
         {/* PRODUCTOS */}
