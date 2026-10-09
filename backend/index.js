@@ -2,7 +2,32 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+
+// ==========================================
+// CONFIGURACIÓN DE VARIABLES DE ENTORNO
+// ==========================================
+
+// Cargar siempre el archivo backend/.env
+// independientemente de dónde se ejecute Node.js.
+require('dotenv').config({
+  path: path.join(__dirname, '.env')
+});
+
+// ==========================================
+// DIAGNÓSTICO DE GOOGLE OAUTH
+// ==========================================
+
+// Muestra solamente si las variables existen.
+// No imprime contraseñas ni claves privadas.
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Configuración Google OAuth:', {
+    GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+    JWT_SECRET: !!process.env.JWT_SECRET,
+    FRONTEND_URL: !!process.env.FRONTEND_URL
+  });
+}
 
 // ==========================================
 // IMPORTACIÓN DE RUTAS
@@ -13,7 +38,7 @@ const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
 const authRoutes = require('./routes/auth');
 
-// NUEVA RUTA: AUTENTICACIÓN CON GOOGLE
+// AUTENTICACIÓN CON GOOGLE
 const googleAuthRoutes = require('./routes/googleAuth');
 
 const app = express();
@@ -83,8 +108,8 @@ app.use('/api/categories', categoryRoutes);
 // AUTENTICACIÓN CON GOOGLE
 // ==========================================
 
-// Recibe el código OAuth enviado desde Login.jsx
 // POST http://localhost:3000/api/auth/google
+// Recibe el código OAuth desde Login.jsx.
 
 app.use('/api/auth/google', googleAuthRoutes);
 
@@ -141,5 +166,5 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
-  console.log(`Google OAuth: POST /api/auth/google`);
+  console.log('Google OAuth: POST /api/auth/google');
 });
