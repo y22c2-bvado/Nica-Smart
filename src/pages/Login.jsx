@@ -10,9 +10,17 @@ function Login() {
   const location = useLocation()
 
   // ==========================================
-  // CONFIGURACIÓN
+  // CONFIGURACIÓN DEL BACKEND
   // ==========================================
-  const API_URL = import.meta.env.VITE_API_URL
+
+  const API_URL = (
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.DEV ? 'http://localhost:3000' : '')
+  ).trim().replace(/\/$/, '')
+
+  if (import.meta.env.DEV) {
+    console.log('NICA S-MART - API configurada:', API_URL)
+  }
 
   const from =
     location.state?.from === '/cart'
@@ -22,6 +30,7 @@ function Login() {
   // ==========================================
   // ESTADOS DEL FORMULARIO
   // ==========================================
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -34,8 +43,9 @@ function Login() {
   // ==========================================
   // GUARDAR SESIÓN
   // ==========================================
+
   const saveSession = (data) => {
-    const token = data.token || data.access_token
+    const token = data?.token || data?.access_token
 
     if (!token || typeof token !== 'string') {
       throw new Error(
@@ -44,11 +54,7 @@ function Login() {
     }
 
     localStorage.setItem('token', token)
-
-    localStorage.setItem(
-      'rememberMe',
-      String(rememberMe)
-    )
+    localStorage.setItem('rememberMe', String(rememberMe))
 
     navigate(from, {
       replace: true,
@@ -58,6 +64,7 @@ function Login() {
   // ==========================================
   // VALIDACIONES
   // ==========================================
+
   const validateEmail = (value) => {
     const cleanEmail = value.trim()
 
@@ -106,6 +113,7 @@ function Login() {
   // ==========================================
   // LOGIN CON CORREO Y CONTRASEÑA
   // ==========================================
+
   const handleSubmit = async (event) => {
     event.preventDefault()
 
@@ -130,7 +138,7 @@ function Login() {
 
     try {
       const response = await fetch(
-        `${API_URL.replace(/\/$/, '')}/api/auth/login`,
+        `${API_URL}/api/auth/login`,
         {
           method: 'POST',
           headers: {
@@ -143,32 +151,40 @@ function Login() {
         }
       )
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
         throw new Error(
           response.status === 401
             ? 'Correo o contraseña incorrectos.'
-            : data.message || 'No se pudo iniciar sesión.'
+            : data.message ||
+              'No se pudo iniciar sesión.'
         )
       }
 
       saveSession(data)
 
     } catch (err) {
+      console.error('Error de autenticación:', err)
+
       setError(
-        err.message || 'Error al iniciar sesión.'
+        err instanceof TypeError
+          ? 'No se pudo conectar al servidor. Verifica que Express esté funcionando.'
+          : err.message || 'Error al iniciar sesión.'
       )
+
     } finally {
       setLoading(false)
     }
   }
 
   // ==========================================
-  // LOGIN REAL CON GOOGLE
+  // LOGIN CON GOOGLE
   // ==========================================
+
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
+    ux_mode: 'popup',
 
     onSuccess: async (response) => {
       setError('')
@@ -189,11 +205,12 @@ function Login() {
 
         // Enviar código de Google al backend
         const result = await fetch(
-          `${API_URL.replace(/\/$/, '')}/api/auth/google`,
+          `${API_URL}/api/auth/google`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'X-Requested-With': 'XmlHttpRequest',
             },
             body: JSON.stringify({
               code: response.code,
@@ -201,7 +218,7 @@ function Login() {
           }
         )
 
-        const data = await result.json()
+        const data = await result.json().catch(() => ({}))
 
         if (!result.ok) {
           throw new Error(
@@ -210,46 +227,71 @@ function Login() {
           )
         }
 
-        // Guardar JWT generado por nuestro backend
+        // Guardar JWT generado por Express
         saveSession(data)
 
       } catch (err) {
         console.error('Error Google:', err)
 
         setError(
-          err.message ||
-          'Error al iniciar sesión con Google.'
+          err instanceof TypeError
+            ? 'No se pudo conectar al backend de Google.'
+            : err.message ||
+              'Error al iniciar sesión con Google.'
         )
+
       } finally {
         setGoogleLoading(false)
       }
     },
 
-    onError: () => {
+    onError: (googleError) => {
+      console.error('Error OAuth Google:', googleError)
       setGoogleLoading(false)
 
       setError(
         'No se pudo iniciar sesión con Google.'
       )
     },
+
+    onNonOAuthError: (googleError) => {
+      console.error('Error de ventana Google:', googleError)
+      setGoogleLoading(false)
+
+      setError(
+        googleError?.type === 'popup_closed'
+          ? 'Cerraste la ventana de Google antes de completar el inicio de sesión.'
+          : 'No se pudo abrir o completar la ventana de Google.'
+      )
+    },
   })
 
   const handleGoogleLogin = () => {
+    if (loading || googleLoading) return
+
     setError('')
 
-    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()) {
       setError(
         'Falta configurar el Client ID de Google.'
       )
       return
     }
 
+    if (!API_URL) {
+      setError('El servidor no está configurado.')
+      return
+    }
+
+    // Se llama directamente desde el clic para
+    // evitar bloqueos de la ventana emergente.
     googleLogin()
   }
 
   // ==========================================
-  // FACEBOOK - PENDIENTE DE CONFIGURACIÓN
+  // FACEBOOK - PENDIENTE
   // ==========================================
+
   const handleFacebookLogin = () => {
     setError(
       'El inicio de sesión con Facebook estará disponible cuando configuremos Meta OAuth.'
