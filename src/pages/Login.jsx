@@ -1,152 +1,511 @@
-import Header from '../components/Header'
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
+
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useGoogleLogin } from '@react-oauth/google'
 
 import '../styles/login.css'
 
 function Login() {
-  const handleSubmit = (event) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // ==========================================
+  // CONFIGURACIÓN
+  // ==========================================
+  const API_URL = import.meta.env.VITE_API_URL
+
+  const from =
+    location.state?.from === '/cart'
+      ? '/cart'
+      : '/'
+
+  // ==========================================
+  // ESTADOS DEL FORMULARIO
+  // ==========================================
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // ==========================================
+  // GUARDAR SESIÓN
+  // ==========================================
+  const saveSession = (data) => {
+    const token = data.token || data.access_token
+
+    if (!token || typeof token !== 'string') {
+      throw new Error(
+        'El servidor no devolvió un token de autenticación.'
+      )
+    }
+
+    localStorage.setItem('token', token)
+
+    localStorage.setItem(
+      'rememberMe',
+      String(rememberMe)
+    )
+
+    navigate(from, {
+      replace: true,
+    })
+  }
+
+  // ==========================================
+  // VALIDACIONES
+  // ==========================================
+  const validateEmail = (value) => {
+    const cleanEmail = value.trim()
+
+    const emailRegex =
+      /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+
+    const controlRegex = /[\x00-\x1F\x7F]/
+
+    if (!cleanEmail) {
+      return 'El correo electrónico es obligatorio.'
+    }
+
+    if (cleanEmail.length > 254) {
+      return 'El correo electrónico es demasiado largo.'
+    }
+
+    if (controlRegex.test(cleanEmail)) {
+      return 'El correo contiene caracteres no permitidos.'
+    }
+
+    if (!emailRegex.test(cleanEmail)) {
+      return 'Ingresa un correo electrónico válido.'
+    }
+
+    return null
+  }
+
+  const validatePassword = (value) => {
+    const controlRegex = /[\x00-\x1F\x7F]/
+
+    if (!value) {
+      return 'La contraseña es obligatoria.'
+    }
+
+    if (value.length > 128) {
+      return 'La contraseña no puede superar los 128 caracteres.'
+    }
+
+    if (controlRegex.test(value)) {
+      return 'La contraseña contiene caracteres no permitidos.'
+    }
+
+    return null
+  }
+
+  // ==========================================
+  // LOGIN CON CORREO Y CONTRASEÑA
+  // ==========================================
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    alert('Inicio de sesión de prueba')
+    if (loading || googleLoading) return
+
+    setError('')
+
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+
+    if (emailError || passwordError) {
+      setError(emailError || passwordError)
+      return
+    }
+
+    if (!API_URL) {
+      setError('El servidor no está configurado.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await fetch(
+        `${API_URL.replace(/\/$/, '')}/api/auth/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          response.status === 401
+            ? 'Correo o contraseña incorrectos.'
+            : data.message || 'No se pudo iniciar sesión.'
+        )
+      }
+
+      saveSession(data)
+
+    } catch (err) {
+      setError(
+        err.message || 'Error al iniciar sesión.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ==========================================
+  // LOGIN REAL CON GOOGLE
+  // ==========================================
+  const googleLogin = useGoogleLogin({
+    flow: 'auth-code',
+
+    onSuccess: async (response) => {
+      setError('')
+      setGoogleLoading(true)
+
+      try {
+        if (!API_URL) {
+          throw new Error(
+            'El servidor no está configurado.'
+          )
+        }
+
+        if (!response.code) {
+          throw new Error(
+            'Google no devolvió un código de autorización.'
+          )
+        }
+
+        // Enviar código de Google al backend
+        const result = await fetch(
+          `${API_URL.replace(/\/$/, '')}/api/auth/google`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code: response.code,
+            }),
+          }
+        )
+
+        const data = await result.json()
+
+        if (!result.ok) {
+          throw new Error(
+            data.message ||
+            'No se pudo autenticar con Google.'
+          )
+        }
+
+        // Guardar JWT generado por nuestro backend
+        saveSession(data)
+
+      } catch (err) {
+        console.error('Error Google:', err)
+
+        setError(
+          err.message ||
+          'Error al iniciar sesión con Google.'
+        )
+      } finally {
+        setGoogleLoading(false)
+      }
+    },
+
+    onError: () => {
+      setGoogleLoading(false)
+
+      setError(
+        'No se pudo iniciar sesión con Google.'
+      )
+    },
+  })
+
+  const handleGoogleLogin = () => {
+    setError('')
+
+    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      setError(
+        'Falta configurar el Client ID de Google.'
+      )
+      return
+    }
+
+    googleLogin()
+  }
+
+  // ==========================================
+  // FACEBOOK - PENDIENTE DE CONFIGURACIÓN
+  // ==========================================
+  const handleFacebookLogin = () => {
+    setError(
+      'El inicio de sesión con Facebook estará disponible cuando configuremos Meta OAuth.'
+    )
   }
 
   return (
-    <>
-      <Header />
-      <Navbar />
+    <main className="login-page">
 
-      <main className="login-page">
+      {/* FONDO DECORATIVO */}
+      <div className="login-bg-shape login-bg-shape-left"></div>
+      <div className="login-bg-shape login-bg-shape-right"></div>
 
-        <section className="login-container">
+      <div className="login-side login-side-left">
+        <div className="shopping-bag">
+          <div className="bag-handle"></div>
 
-          <div className="login-info">
+          <div className="bag-body">
+            <span className="bag-cart">🛒</span>
+          </div>
+        </div>
+      </div>
 
-            <span className="login-label">
-              BIENVENIDO
-            </span>
+      <div className="login-side login-side-right">
+        <div className="plant-box">
+          <div className="plant"></div>
+          <div className="pot"></div>
+        </div>
 
-            <h1>
-              Inicia sesión en
-              <br />
-              Nica S-Mart
-            </h1>
+        <div className="laptop-box">
+          <div className="laptop-screen"></div>
+          <div className="laptop-base"></div>
+        </div>
+      </div>
 
-            <p>
-              Accede a tu cuenta para consultar tus pedidos,
-              gestionar tus datos y realizar tus compras.
-            </p>
+      {/* TARJETA PRINCIPAL */}
+      <section className="login-card">
 
-            <div className="login-benefits">
+        {/* LOGO */}
+        <div className="brand-block">
+          <div className="brand-row">
+            <span className="brand-cart">🛒</span>
 
-              <div>
-                <span>📦</span>
-
-                <div>
-                  <strong>Consulta tus pedidos</strong>
-                  <p>Revisa el estado de tus compras.</p>
-                </div>
-              </div>
-
-              <div>
-                <span>🛒</span>
-
-                <div>
-                  <strong>Compra más rápido</strong>
-                  <p>Guarda tus datos para futuras compras.</p>
-                </div>
-              </div>
-
-              <div>
-                <span>🔒</span>
-
-                <div>
-                  <strong>Cuenta segura</strong>
-                  <p>Protegemos la información de tu cuenta.</p>
-                </div>
-              </div>
-
-            </div>
-
+            <h2>
+              Nica <span>S-Mart</span>
+            </h2>
           </div>
 
-          <div className="login-card">
+          <p>
+            Tecnología, hogar y más para tu día a día
+          </p>
+        </div>
 
-            <h2>Iniciar sesión</h2>
+        {/* ENCABEZADO */}
+        <div className="login-heading">
+          <h1>Iniciar sesión</h1>
+          <p>Ingresa tus datos para continuar.</p>
+        </div>
 
-            <p className="login-subtitle">
-              Ingresa tus datos para continuar.
-            </p>
+        {/* MENSAJE DE ERROR */}
+        {error && (
+          <div className="login-error" role="alert">
+            {error}
+          </div>
+        )}
 
-            <form onSubmit={handleSubmit}>
+        {/* FORMULARIO */}
+        <form
+          className="login-form"
+          onSubmit={handleSubmit}
+        >
 
-              <div className="form-group">
-                <label htmlFor="email">
-                  Correo electrónico
-                </label>
+          {/* CORREO */}
+          <div className="form-group">
+            <label htmlFor="email">
+              Correo electrónico
+            </label>
 
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  required
-                />
-              </div>
+            <div className="input-wrapper">
+              <span className="input-icon">✉</span>
 
-              <div className="form-group">
-                <label htmlFor="password">
-                  Contraseña
-                </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setError('')
+                }}
+                maxLength={254}
+                autoComplete="email"
+                required
+              />
+            </div>
+          </div>
 
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Ingresa tu contraseña"
-                  required
-                />
-              </div>
+          {/* CONTRASEÑA */}
+          <div className="form-group">
+            <label htmlFor="password">
+              Contraseña
+            </label>
 
-              <div className="login-options">
+            <div className="input-wrapper">
+              <span className="input-icon">🔒</span>
 
-                <label className="remember">
-                  <input type="checkbox" />
-                  Recordarme
-                </label>
-
-                <button
-                  type="button"
-                  className="forgot-password"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-
-              </div>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Ingresa tu contraseña"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
+                maxLength={128}
+                autoComplete="current-password"
+                required
+              />
 
               <button
-                type="submit"
-                className="login-button"
+                type="button"
+                className="show-password"
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+                aria-label={
+                  showPassword
+                    ? 'Ocultar contraseña'
+                    : 'Mostrar contraseña'
+                }
               >
-                Iniciar sesión
-              </button>
-
-            </form>
-
-            <div className="register-text">
-              ¿No tienes una cuenta?
-
-              <button type="button">
-                Crear cuenta
+                {showPassword ? '🙈' : '👁'}
               </button>
             </div>
-
           </div>
 
-        </section>
+          {/* OPCIONES */}
+          <div className="login-options">
 
-      </main>
+            <label className="remember-box">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) =>
+                  setRememberMe(e.target.checked)
+                }
+              />
 
-      <Footer />
-    </>
+              <span>Recordarme</span>
+            </label>
+
+            <button
+              type="button"
+              className="forgot-link"
+              onClick={() =>
+                setError(
+                  'La recuperación de contraseña estará disponible próximamente.'
+                )
+              }
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          {/* BOTÓN PRINCIPAL */}
+          <button
+            type="submit"
+            className="login-button"
+            disabled={loading || googleLoading}
+          >
+            <span>
+              {loading
+                ? 'Iniciando sesión...'
+                : 'Iniciar sesión'}
+            </span>
+
+            {!loading && (
+              <span className="arrow">→</span>
+            )}
+          </button>
+
+        </form>
+
+        {/* DIVISOR */}
+        <div className="divider">
+          <span>o continúa con</span>
+        </div>
+
+        {/* BOTONES SOCIALES */}
+        <div className="social-buttons">
+
+          {/* GOOGLE */}
+          <button
+            type="button"
+            className="social-button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading || loading}
+          >
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 48 48"
+              aria-hidden="true"
+            >
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.28 5.48-4.82 7.18l7.73 6C44.36 38.03 46.98 31.88 46.98 24.55z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.88 23.88 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"
+              />
+              <path
+                fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              />
+            </svg>
+
+            <span>
+              {googleLoading
+                ? 'Conectando con Google...'
+                : 'Continuar con Google'}
+            </span>
+          </button>
+
+          {/* FACEBOOK */}
+          <button
+            type="button"
+            className="social-button"
+            onClick={handleFacebookLogin}
+          >
+            <span className="facebook-icon">f</span>
+            <span>Continuar con Facebook</span>
+          </button>
+
+        </div>
+
+        {/* CREAR CUENTA */}
+        <div className="register-box">
+          <span>¿No tienes una cuenta?</span>
+
+          <button
+            type="button"
+            onClick={() => navigate('/register')}
+          >
+            Crear cuenta
+          </button>
+        </div>
+
+      </section>
+    </main>
   )
 }
 
