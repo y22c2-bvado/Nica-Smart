@@ -10,6 +10,8 @@ const router = express.Router();
 // ==========================================
 
 const SHIPPING_COST = 150;
+const MAX_ITEMS = 100;
+const MAX_QUANTITY = 100;
 
 // ==========================================
 // VERIFICAR SESIÓN DEL CLIENTE
@@ -43,7 +45,6 @@ const verifyCustomer = async (req, res, next) => {
       }
     );
 
-    // Por ahora usamos el formato del JWT de Google.
     if (
       decoded.provider !== 'google' ||
       !decoded.sub ||
@@ -54,12 +55,12 @@ const verifyCustomer = async (req, res, next) => {
       });
     }
 
-    // Buscar al usuario autenticado en PostgreSQL
     const result = await pool.query(
       `
       SELECT id, google_id, name, email
       FROM google_users
-      WHERE id = $1 AND google_id = $2
+      WHERE id = $1
+        AND google_id = $2
       `,
       [decoded.sub, decoded.googleId]
     );
@@ -100,6 +101,7 @@ const verifyCustomer = async (req, res, next) => {
 
 router.post('/', verifyCustomer, async (req, res) => {
   let client;
+  let transactionStarted = false;
 
   try {
     const {
@@ -109,7 +111,7 @@ router.post('/', verifyCustomer, async (req, res) => {
     } = req.body || {};
 
     // ==========================================
-    // VALIDACIONES
+    // VALIDAR DATOS DE ENTREGA
     // ==========================================
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -118,7 +120,7 @@ router.post('/', verifyCustomer, async (req, res) => {
       });
     }
 
-    if (items.length > 100) {
+    if (items.length > MAX_ITEMS) {
       return res.status(400).json({
         message: 'Se superó el límite de productos del pedido.'
       });
@@ -146,30 +148,49 @@ router.post('/', verifyCustomer, async (req, res) => {
       });
     }
 
-    // Validar productos y cantidades antes de consultar.
+    // ==========================================
+    // VALIDAR PRODUCTOS Y CANTIDADES
+    // ==========================================
+
     const normalizedItems = [];
+    const productIds = new Set();
 
     for (const item of items) {
-      const productId = item?.product_id ?? item?.id;
+      const rawProductId = item?.product_id ?? item?.id;
+
+      const productId = Number(rawProductId);
       const quantity = Number(item?.quantity);
 
       if (
-        !Number.isSafeInteger(Number(productId)) ||
-        Number(productId) <= 0 ||
+        !Number.isSafeInteger(productId) ||
+        productId <= 0 ||
         !Number.isSafeInteger(quantity) ||
         quantity < 1 ||
-        quantity > 100
+        quantity > MAX_QUANTITY
       ) {
         return res.status(400).json({
           message: 'Hay productos o cantidades inválidas.'
         });
       }
 
+      if (productIds.has(productId)) {
+        return res.status(400).json({
+          message: 'El carrito contiene productos duplicados.'
+        });
+      }
+
+      productIds.add(productId);
+
       normalizedItems.push({
-        product_id: Number(productId),
+        product_id: productId,
         quantity
       });
     }
+
+    // Ordenar IDs para bloquear siempre en el mismo orden
+    normalizedItems.sort(
+      (a, b) => a.product_id - b.product_id
+    );
 
     // ==========================================
     // INICIAR TRANSACCIÓN
@@ -178,20 +199,22 @@ router.post('/', verifyCustomer, async (req, res) => {
     client = await pool.connect();
 
     await client.query('BEGIN');
+    transactionStarted = true;
 
     const validatedItems = [];
     let subtotalCents = 0;
 
     // ==========================================
-    // CONSULTAR PRECIOS REALES
+    // CONSULTAR PRECIOS Y EXISTENCIAS REALES
     // ==========================================
 
     for (const item of normalizedItems) {
       const productResult = await client.query(
         `
-        SELECT id, name, price
+        SELECT id, name, price, stock
         FROM products
         WHERE id = $1
+        FOR UPDATE
         `,
         [item.product_id]
       );
@@ -200,44 +223,62 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `El producto ${item.product_id} ya no está disponible.`
         );
+
         error.status = 400;
         throw error;
       }
 
       const product = productResult.rows[0];
       const price = Number(product.price);
+      const stock = Number(product.stock);
+
+      if (
+        !Number.isSafeInteger(stock) ||
+        stock < 0
+      ) {
+        const error = new Error(
+          `Las existencias del producto ${product.name} no son válidas.`
+        );
+
+        error.status = 400;
+        throw error;
+      }
+
+      if (stock < item.quantity) {
+        const error = new Error(
+          `No hay suficientes existencias de "${product.name}". Disponibles: ${stock}.`
+        );
+
+        error.status = 400;
+        throw error;
+      }
 
       if (!Number.isFinite(price) || price < 0) {
         const error = new Error(
-          `El producto ${item.product_id} tiene un precio inválido.`
+          `El producto ${product.name} tiene un precio inválido.`
         );
+
         error.status = 400;
         throw error;
       }
 
       const unitCents = Math.round(price * 100);
-
-      if (!Number.isSafeInteger(unitCents)) {
-        const error = new Error('Precio fuera del rango permitido.');
-        error.status = 400;
-        throw error;
-      }
-
       const lineCents = unitCents * item.quantity;
 
-      if (!Number.isSafeInteger(lineCents)) {
-        const error = new Error('Importe fuera del rango permitido.');
+      if (
+        !Number.isSafeInteger(unitCents) ||
+        !Number.isSafeInteger(lineCents) ||
+        !Number.isSafeInteger(subtotalCents + lineCents)
+      ) {
+        const error = new Error(
+          'El importe del pedido supera el límite permitido.'
+        );
+
         error.status = 400;
         throw error;
       }
 
       subtotalCents += lineCents;
-
-      if (!Number.isSafeInteger(subtotalCents)) {
-        const error = new Error('Total fuera del rango permitido.');
-        error.status = 400;
-        throw error;
-      }
 
       validatedItems.push({
         product_id: product.id,
@@ -248,15 +289,19 @@ router.post('/', verifyCustomer, async (req, res) => {
     }
 
     // ==========================================
-    // CALCULAR TOTAL EN EL SERVIDOR
+    // CALCULAR TOTAL DESDE EL BACKEND
     // ==========================================
 
     const subtotal = subtotalCents / 100;
     const shipping = SHIPPING_COST;
-    const total = (subtotalCents + SHIPPING_COST * 100) / 100;
+    const total = (
+      subtotalCents + SHIPPING_COST * 100
+    ) / 100;
 
-    // Los datos de identidad se obtienen de
-    // la cuenta verificada, no de req.body.
+    // ==========================================
+    // IDENTIDAD DEL CLIENTE
+    // ==========================================
+
     const customerName =
       req.customer.name || req.customer.email;
 
@@ -294,7 +339,7 @@ router.post('/', verifyCustomer, async (req, res) => {
     const orderId = orderResult.rows[0].id;
 
     // ==========================================
-    // GUARDAR PRODUCTOS DEL PEDIDO
+    // GUARDAR LOS PRODUCTOS DEL PEDIDO
     // ==========================================
 
     for (const item of validatedItems) {
@@ -317,13 +362,27 @@ router.post('/', verifyCustomer, async (req, res) => {
           item.quantity
         ]
       );
+
+      // Descontar existencias
+      await client.query(
+        `
+        UPDATE products
+        SET stock = stock - $1
+        WHERE id = $2
+        `,
+        [
+          item.quantity,
+          item.product_id
+        ]
+      );
     }
 
     // ==========================================
-    // CONFIRMAR TRANSACCIÓN
+    // CONFIRMAR PEDIDO
     // ==========================================
 
     await client.query('COMMIT');
+    transactionStarted = false;
 
     return res.status(201).json({
       message: 'Pedido registrado exitosamente.',
@@ -331,6 +390,7 @@ router.post('/', verifyCustomer, async (req, res) => {
       subtotal,
       shipping,
       total,
+      items: validatedItems,
       customer: {
         name: customerName,
         email: customerEmail
@@ -338,11 +398,14 @@ router.post('/', verifyCustomer, async (req, res) => {
     });
 
   } catch (error) {
-    if (client) {
+    if (client && transactionStarted) {
       try {
         await client.query('ROLLBACK');
       } catch (rollbackError) {
-        console.error('Error al revertir pedido:', rollbackError);
+        console.error(
+          'Error al revertir la transacción:',
+          rollbackError
+        );
       }
     }
 
@@ -372,26 +435,52 @@ router.get('/', verifyCustomer, async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        id,
-        customer_name,
-        customer_email,
-        customer_phone,
-        customer_address,
-        subtotal,
-        shipping,
-        total,
-        created_at
-      FROM orders
-      WHERE customer_email = $1
-      ORDER BY created_at DESC
+        o.id,
+        o.customer_name,
+        o.customer_email,
+        o.customer_phone,
+        o.customer_address,
+        o.subtotal,
+        o.shipping,
+        o.total,
+        o.created_at,
+
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'product_id', oi.product_id,
+                'product_name', oi.product_name,
+                'price', oi.price,
+                'quantity', oi.quantity,
+                'image', p.image
+              )
+              ORDER BY oi.product_id
+            )
+            FROM order_items oi
+            LEFT JOIN products p
+              ON p.id = oi.product_id
+            WHERE oi.order_id = o.id
+          ),
+          '[]'::json
+        ) AS items
+
+      FROM orders o
+
+      WHERE LOWER(o.customer_email) = LOWER($1)
+
+      ORDER BY o.created_at DESC, o.id DESC
       `,
       [req.customer.email]
     );
 
-    return res.json(result.rows);
+    return res.status(200).json(result.rows);
 
   } catch (error) {
-    console.error('Error consultando pedidos:', error);
+    console.error(
+      'Error consultando pedidos:',
+      error
+    );
 
     return res.status(500).json({
       message: 'No se pudieron consultar los pedidos.'
