@@ -1,0 +1,317 @@
+
+/* ==========================================
+   NICA S-MART - CHECKOUT
+========================================== */
+
+.checkout-page {
+  min-height: 80vh;
+  padding: 50px 20px 80px;
+  background: #f4f7fc;
+  color: #10244a;
+}
+
+.checkout-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ENCABEZADO */
+
+.checkout-heading {
+  margin-bottom: 32px;
+}
+
+.checkout-heading h1 {
+  font-size: 34px;
+  font-weight: 800;
+  color: #09204b;
+  margin-bottom: 10px;
+}
+
+.checkout-heading p {
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* DISTRIBUCIÓN */
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+
+/* TARJETAS */
+
+.checkout-card {
+  background: #ffffff;
+  padding: 32px;
+  border: 1px solid #e3eaf5;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(20, 45, 90, 0.06);
+}
+
+.checkout-card h2 {
+  font-size: 22px;
+  color: #10244a;
+  margin-bottom: 24px;
+}
+
+/* USUARIO */
+
+.checkout-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  background: #f0f5ff;
+}
+
+.checkout-user > span {
+  font-size: 30px;
+}
+
+.checkout-user strong {
+  display: block;
+  color: #10244a;
+  font-size: 16px;
+}
+
+.checkout-user p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* FORMULARIO */
+
+.checkout-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 24px;
+}
+
+.checkout-field label {
+  font-weight: 600;
+  color: #10244a;
+  font-size: 14px;
+}
+
+.checkout-field input,
+.checkout-field textarea {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: #10244a;
+  background: #ffffff;
+  border: 1px solid #cbd7eb;
+  border-radius: 10px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.checkout-field input:focus,
+.checkout-field textarea:focus {
+  border-color: #0861ed;
+  box-shadow: 0 0 0 3px rgba(8, 97, 237, 0.12);
+}
+
+.checkout-field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+/* BOTONES */
+
+.checkout-submit {
+  width: 100%;
+  background: #075ce5;
+  color: white;
+  border: none;
+  padding: 16px 20px;
+  border-radius: 11px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkout-submit:hover:not(:disabled) {
+  background: #004ac4;
+}
+
+.checkout-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkout-back {
+  width: 100%;
+  padding: 15px;
+  margin-top: 12px;
+  border: 1px solid #d6e0ef;
+  background: #ffffff;
+  color: #075ce5;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* RESUMEN */
+
+.checkout-product {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e7edf5;
+}
+
+.checkout-product img {
+  width: 75px;
+  height: 75px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #f5f7fb;
+}
+
+.checkout-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.checkout-product-info strong {
+  font-size: 14px;
+  color: #10244a;
+}
+
+.checkout-product-info small {
+  color: #64748b;
+}
+
+.checkout-product-info span {
+  font-weight: 700;
+  color: #075ce5;
+}
+
+.checkout-totals {
+  margin-top: 24px;
+}
+
+.checkout-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  color: #475569;
+}
+
+.checkout-totals strong {
+  color: #10244a;
+}
+
+.checkout-totals .checkout-grand-total {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #d8e2ef;
+  font-size: 20px;
+  font-weight: 800;
+  color: #10244a;
+}
+
+.checkout-grand-total strong {
+  color: #075ce5;
+}
+
+.checkout-note {
+  margin-top: 20px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ERRORES */
+
+.checkout-error {
+  background: #fff0f0;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+/* CONFIRMACIÓN EXITOSA */
+
+.checkout-success {
+  max-width: 600px;
+  margin: 30px auto;
+  text-align: center;
+}
+
+.checkout-success-icon {
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: #e2f8eb;
+  color: #15803d;
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.checkout-success h1 {
+  margin-bottom: 16px;
+  color: #10244a;
+}
+
+.checkout-success p {
+  margin-bottom: 22px;
+  color: #64748b;
+}
+
+.checkout-success h2 {
+  margin-bottom: 18px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 850px) {
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-page {
+    padding: 30px 15px 60px;
+  }
+
+  .checkout-heading h1 {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-card {
+    padding: 22px 16px;
+  }
+
+  .checkout-heading h1 {
+    font-size: 25px;
+  }
+
+  .checkout-product img {
+    width: 60px;
+    height: 60px;
+  }
+}
