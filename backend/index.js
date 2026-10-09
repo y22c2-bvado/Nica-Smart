@@ -4,10 +4,17 @@ const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
+// ==========================================
+// IMPORTACIÓN DE RUTAS
+// ==========================================
+
 const orderRoutes = require('./routes/orders');
 const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
 const authRoutes = require('./routes/auth');
+
+// NUEVA RUTA: AUTENTICACIÓN CON GOOGLE
+const googleAuthRoutes = require('./routes/googleAuth');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,6 +37,7 @@ app.disable('x-powered-by');
 // ==========================================
 // CONEXIÓN A POSTGRESQL
 // ==========================================
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -40,6 +48,7 @@ const pool = new Pool({
 // ==========================================
 // RUTA DE PRUEBA
 // ==========================================
+
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -61,26 +70,41 @@ app.get('/', async (req, res) => {
 // ==========================================
 // RUTAS DE PRODUCTOS
 // ==========================================
+
 app.use('/api/products', productRoutes);
 
 // ==========================================
 // RUTAS DE CATEGORÍAS
 // ==========================================
+
 app.use('/api/categories', categoryRoutes);
 
 // ==========================================
-// RUTAS DE AUTENTICACIÓN
+// AUTENTICACIÓN CON GOOGLE
 // ==========================================
+
+// Recibe el código OAuth enviado desde Login.jsx
+// POST http://localhost:3000/api/auth/google
+
+app.use('/api/auth/google', googleAuthRoutes);
+
+// ==========================================
+// AUTENTICACIÓN TRADICIONAL
+// ==========================================
+
+// Login y registro con correo y contraseña
 app.use('/api/auth', authRoutes);
 
 // ==========================================
 // RUTAS DE PEDIDOS
 // ==========================================
+
 app.use('/api/orders', orderRoutes);
 
 // ==========================================
 // RUTAS NO ENCONTRADAS
 // ==========================================
+
 app.use((req, res) => {
   res.status(404).json({
     error: 'Ruta no encontrada'
@@ -90,6 +114,7 @@ app.use((req, res) => {
 // ==========================================
 // MANEJO GENERAL DE ERRORES
 // ==========================================
+
 app.use((err, req, res, next) => {
   console.error('Error del servidor:', err);
 
@@ -113,6 +138,8 @@ app.use((err, req, res, next) => {
 // ==========================================
 // INICIAR SERVIDOR
 // ==========================================
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
+  console.log(`Google OAuth: POST /api/auth/google`);
 });
