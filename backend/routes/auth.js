@@ -266,7 +266,12 @@ router.post('/login', async (req, res) => {
         message: 'Servicio de autenticación no disponible.'
       });
     }
-
+    console.log('🔍 BACKEND - Recibido:', {
+      loginIdentifier,
+      password: password,
+      passwordLength: password.length,
+      passwordChars: [...password].map(c => c.charCodeAt(0))
+    })
     // ==========================================
     // BUSCAR USUARIO EN POSTGRESQL
     // ==========================================
@@ -286,15 +291,12 @@ router.post('/login', async (req, res) => {
         id,
         name,
         email,
-        username,
         password,
-        role,
-        is_blocked
+        role
       FROM users
       WHERE LOWER(email) = LOWER($1)
          OR (
-           LOWER(username) = LOWER($1)
-           AND UPPER(role) = 'ADMIN'
+           UPPER(role) = 'ADMIN'
          )
       LIMIT 1
       `,
@@ -317,10 +319,21 @@ router.post('/login', async (req, res) => {
     // VERIFICAR CONTRASEÑA CON BCRYPT
     // ==========================================
 
-    const validPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
+    
+ // 👇 AGREGA ESTO
+console.log('🔍 BACKEND - Diagnóstico completo:');
+console.log('   - DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':***@'));
+console.log('   - Hash que se está usando:', user.password);
+console.log('   - Longitud del hash:', user.password?.length);
+console.log('   - Email del usuario:', user.email);
+console.log('   - ID del usuario:', user.id);
+console.log('   - Contraseña enviada:', password);
+console.log('   - Contraseña (chars):', [...password].map(c => c.charCodeAt(0)));
+
+const validPassword = await bcrypt.compare(password, user.password);
+console.log('   - ¿Coincide?:', validPassword);
+
+    console.log('   ¿Coincide?:', validPassword)
 
     if (!validPassword) {
       return res.status(401).json({
@@ -332,12 +345,6 @@ router.post('/login', async (req, res) => {
     // VERIFICAR CUENTA BLOQUEADA
     // ==========================================
 
-    if (user.is_blocked === true) {
-      return res.status(403).json({
-        message:
-          'Tu cuenta está bloqueada. Contacta al administrador.'
-      });
-    }
 
     // ==========================================
     // GENERAR TOKEN JWT

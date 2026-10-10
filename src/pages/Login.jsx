@@ -180,7 +180,12 @@ function Login() {
       setError('El servidor no está configurado.')
       return
     }
-
+    console.log('🔍 FRONTEND - Enviando al backend:', {
+      identifier: identifier.trim(),
+      password: password,
+      passwordLength: password.length,
+      passwordChars: [...password].map(c => c.charCodeAt(0))
+    })
     setLoading(true)
 
     try {
