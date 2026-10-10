@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -41,6 +40,8 @@ function Admin() {
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState(null)
+  const [orders, setOrders] = useState([])
+  const [updatingOrderId, setUpdatingOrderId] = useState(null)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -107,15 +108,17 @@ function Admin() {
     setError('')
 
     try {
-      const [productData, userData, statsData] = await Promise.all([
+      const [productData, userData, statsData, orderData] = await Promise.all([
         adminRequest('/products'),
         adminRequest('/users'),
-        adminRequest('/stats')
+        adminRequest('/stats'),
+        adminRequest('/orders')
       ])
 
       setProducts(Array.isArray(productData) ? productData : [])
       setUsers(Array.isArray(userData) ? userData : [])
       setStats(statsData)
+      setOrders(Array.isArray(orderData) ? orderData : [])
 
     } catch (err) {
       setError(err.message || 'No se pudo cargar el panel.')
@@ -279,6 +282,38 @@ function Admin() {
 
     } catch (err) {
       setError(err.message || 'No se pudo actualizar la cuenta.')
+    }
+  }
+
+  // ==========================================
+  // ACTUALIZAR ESTADO DE UN PEDIDO
+  // ==========================================
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      setUpdatingOrderId(orderId)
+      setError('')
+      setNotice('')
+
+      await adminRequest(`/orders/${orderId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId
+            ? { ...order, status: newStatus }
+            : order
+        )
+      )
+
+      setNotice('Estado del pedido actualizado correctamente.')
+
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el estado del pedido.')
+    } finally {
+      setUpdatingOrderId(null)
     }
   }
 
@@ -495,7 +530,7 @@ function Admin() {
                     </div>
                     <span>Pedidos</span>
                     <strong>
-                      {stats?.orders?.total ?? 0}
+                      {stats?.orders?.total ?? orders.length}
                     </strong>
                     <small>Pedidos registrados</small>
                   </div>
@@ -989,19 +1024,129 @@ function Admin() {
                   </div>
                 </div>
 
-                <div className="adm-coming-soon">
-                  <FiShoppingCart size={42} />
+                {orders.length === 0 ? (
+                  <div className="adm-coming-soon">
+                    <FiShoppingCart size={42} />
 
-                  <h3>Gestión de pedidos</h3>
+                    <h3>No hay pedidos registrados</h3>
 
-                  <p>
-                    Ya contamos con el registro de compras.
-                    Para mostrar aquí los pedidos de todos
-                    los clientes, necesitamos crear una
-                    consulta exclusiva para administradores
-                    en el backend.
-                  </p>
-                </div>
+                    <p>
+                      Cuando los clientes realicen compras,
+                      aparecerán aquí automáticamente.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Cliente</th>
+                          <th>Contacto</th>
+                          <th>Fecha</th>
+                          <th>Productos</th>
+                          <th>Total</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id}>
+                            <td>
+                              <strong>#{order.id}</strong>
+                            </td>
+
+                            <td>
+                              <div className="adm-user-cell">
+                                <div className="adm-avatar">
+                                  {String(order.customer_name || '?')
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </div>
+
+                                <div>
+                                  <strong>{order.customer_name}</strong>
+                                  <small>{order.customer_email}</small>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div style={{ fontSize: '13px', lineHeight: 1.4 }}>
+                                <div>{order.customer_phone || '—'}</div>
+                                <small style={{ color: '#888' }}>
+                                  {order.customer_address || 'Sin dirección'}
+                                </small>
+                              </div>
+                            </td>
+
+                            <td>
+                              {new Date(order.created_at).toLocaleDateString('es-NI', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
+                            </td>
+
+                            <td>
+                              <ul
+                                style={{
+                                  margin: 0,
+                                  paddingLeft: '18px',
+                                  fontSize: '13px',
+                                  lineHeight: 1.6
+                                }}
+                              >
+                                {(order.items || []).map((item, index) => (
+                                  <li key={index}>
+                                    {item.quantity}× {item.product_name}
+                                  </li>
+                                ))}
+                              </ul>
+                            </td>
+
+                            <td>
+                              <strong style={{ color: '#4ade80' }}>
+                                {money(order.total)}
+                              </strong>
+                            </td>
+
+                            <td>
+                              <select
+                                value={order.status || 'pendiente'}
+                                onChange={(e) =>
+                                  handleUpdateOrderStatus(order.id, e.target.value)
+                                }
+                                disabled={updatingOrderId === order.id}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #444',
+                                  background:
+                                    order.status === 'pendiente' ? '#78350f' :
+                                    order.status === 'enviado' ? '#1e3a8a' :
+                                    order.status === 'entregado' ? '#14532d' :
+                                    '#7f1d1d',
+                                  color: '#fff',
+                                  cursor: updatingOrderId === order.id
+                                    ? 'wait'
+                                    : 'pointer',
+                                  fontSize: '13px'
+                                }}
+                              >
+                                <option value="pendiente">Pendiente</option>
+                                <option value="enviado">Enviado</option>
+                                <option value="entregado">Entregado</option>
+                                <option value="cancelado">Cancelado</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
               </section>
             )}

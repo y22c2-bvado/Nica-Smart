@@ -266,12 +266,6 @@ router.post('/login', async (req, res) => {
         message: 'Servicio de autenticación no disponible.'
       });
     }
-    console.log('🔍 BACKEND - Recibido:', {
-      loginIdentifier,
-      password: password,
-      passwordLength: password.length,
-      passwordChars: [...password].map(c => c.charCodeAt(0))
-    })
     // ==========================================
     // BUSCAR USUARIO EN POSTGRESQL
     // ==========================================
@@ -292,12 +286,10 @@ router.post('/login', async (req, res) => {
         name,
         email,
         password,
-        role
+        role,
+        is_blocked
       FROM users
       WHERE LOWER(email) = LOWER($1)
-         OR (
-           UPPER(role) = 'ADMIN'
-         )
       LIMIT 1
       `,
       [loginIdentifier]
@@ -319,21 +311,8 @@ router.post('/login', async (req, res) => {
     // VERIFICAR CONTRASEÑA CON BCRYPT
     // ==========================================
 
-    
- // 👇 AGREGA ESTO
-console.log('🔍 BACKEND - Diagnóstico completo:');
-console.log('   - DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':***@'));
-console.log('   - Hash que se está usando:', user.password);
-console.log('   - Longitud del hash:', user.password?.length);
-console.log('   - Email del usuario:', user.email);
-console.log('   - ID del usuario:', user.id);
-console.log('   - Contraseña enviada:', password);
-console.log('   - Contraseña (chars):', [...password].map(c => c.charCodeAt(0)));
 
-const validPassword = await bcrypt.compare(password, user.password);
-console.log('   - ¿Coincide?:', validPassword);
-
-    console.log('   ¿Coincide?:', validPassword)
+    const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
       return res.status(401).json({
@@ -345,6 +324,11 @@ console.log('   - ¿Coincide?:', validPassword);
     // VERIFICAR CUENTA BLOQUEADA
     // ==========================================
 
+    if (user.is_blocked) {
+  return res.status(403).json({
+    message: 'Tu cuenta está bloqueada. Contacta con el administrador.'
+  });
+}
 
     // ==========================================
     // GENERAR TOKEN JWT

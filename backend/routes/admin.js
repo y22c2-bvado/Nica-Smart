@@ -1,4 +1,3 @@
-
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
@@ -25,6 +24,14 @@ const isPositiveId = (value) => {
 
 const validateProduct = (data) => {
   const name = data.name?.trim();
+  const category = data.category?.trim() || '';
+
+  if (category.length > 100) {
+    throw httpError(
+      400,
+      'La categoría no puede superar 100 caracteres.'
+    );
+  }
   const description = data.description?.trim() || '';
   const image = data.image?.trim() || '';
   const price = Number(data.price);
@@ -56,22 +63,37 @@ const validateProduct = (data) => {
   }
 
   if (image) {
-    try {
-      const url = new URL(image);
+    const isHttpUrl = /^https?:\/\/.+/i.test(image);
 
-      if (!['http:', 'https:'].includes(url.protocol)) {
-        throw new Error('Protocolo inválido');
-      }
-    } catch {
+    const isLocalImage = /^\/Imagenes\/[a-zA-Z0-9_\-\/]+\.(jpg|jpeg|png|webp|gif|svg)$/i.test(image)
+      && !image.includes('..')
+      && !image.includes('\\');
+
+    if (!isHttpUrl && !isLocalImage) {
       throw httpError(
         400,
-        'La imagen debe ser una URL HTTP o HTTPS válida.'
+        'La imagen debe ser una URL HTTP/HTTPS válida o una ruta dentro de /Imagenes/.'
       );
+    }
+
+    if (isHttpUrl) {
+      try {
+        const url = new URL(image);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error('Protocolo inválido');
+        }
+      } catch {
+        throw httpError(
+          400,
+          'La imagen debe ser una URL HTTP/HTTPS válida.'
+        );
+      }
     }
   }
 
   return {
     name,
+    category,
     description,
     image: image || null,
     price,
@@ -178,13 +200,8 @@ const requireAdmin = async (req, res, next) => {
   }
 };
 
-// Todas las rutas de este archivo requieren ADMIN.
-router.use(requireAdmin);
 
-// ==========================================
-// ESTADÍSTICAS DEL PANEL
-// GET /api/admin/stats
-// ==========================================
+router.use(requireAdmin);
 
 router.get('/stats', async (req, res) => {
   try {
@@ -229,10 +246,6 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// ==========================================
-// LISTAR PRODUCTOS
-// GET /api/admin/products
-// ==========================================
 
 router.get('/products', async (req, res) => {
   try {
@@ -255,10 +268,6 @@ router.get('/products', async (req, res) => {
   }
 });
 
-// ==========================================
-// CREAR PRODUCTO
-// POST /api/admin/products
-// ==========================================
 
 router.post('/products', async (req, res) => {
   try {
@@ -268,16 +277,18 @@ router.post('/products', async (req, res) => {
       `
       INSERT INTO products (
         name,
+        category,
         description,
         price,
         stock,
         image
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
       `,
       [
         product.name,
+        product.category,
         product.description,
         product.price,
         product.stock,
@@ -302,10 +313,6 @@ router.post('/products', async (req, res) => {
   }
 });
 
-// ==========================================
-// EDITAR PRODUCTO
-// PUT /api/admin/products/:id
-// ==========================================
 
 router.put('/products/:id', async (req, res) => {
   try {
@@ -322,15 +329,17 @@ router.put('/products/:id', async (req, res) => {
       UPDATE products
       SET
         name = $1,
-        description = $2,
-        price = $3,
-        stock = $4,
-        image = $5
-      WHERE id = $6
+        category = $2,
+        description = $3,
+        price = $4,
+        stock = $5,
+        image = $6
+      WHERE id = $7
       RETURNING *
       `,
       [
         product.name,
+        product.category,
         product.description,
         product.price,
         product.stock,
@@ -362,10 +371,6 @@ router.put('/products/:id', async (req, res) => {
   }
 });
 
-// ==========================================
-// ELIMINAR PRODUCTO
-// DELETE /api/admin/products/:id
-// ==========================================
 
 router.delete('/products/:id', async (req, res) => {
   try {
@@ -550,6 +555,124 @@ router.delete('/users/:id', async (req, res) => {
 
     return res.status(500).json({
       message: 'No se pudo eliminar el usuario.'
+    });
+  }
+});
+
+// ==========================================
+// LISTAR TODOS LOS PEDIDOS
+// GET /api/admin/orders
+// ==========================================
+
+router.get('/orders', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        o.id,
+        o.user_id,
+        o.customer_name,
+        o.customer_email,
+        o.customer_phone,
+        o.customer_address,
+        o.subtotal,
+        o.shipping,
+        o.total,
+        o.status,
+        o.created_at,
+
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'product_id', oi.product_id,
+                'product_name', oi.product_name,
+                'price', oi.price,
+                'quantity', oi.quantity,
+                'image', p.image
+              )
+              ORDER BY oi.product_id
+            )
+            FROM order_items oi
+            LEFT JOIN products p
+              ON p.id = oi.product_id
+            WHERE oi.order_id = o.id
+          ),
+          '[]'::json
+        ) AS items
+
+      FROM orders o
+
+      ORDER BY o.created_at DESC, o.id DESC
+      `
+    );
+
+    return res.json(result.rows);
+
+  } catch (error) {
+    console.error('Error consultando pedidos:', error);
+
+    return res.status(500).json({
+      message: 'No se pudieron consultar los pedidos.'
+    });
+  }
+});
+
+// ==========================================
+// ACTUALIZAR ESTADO DE UN PEDIDO
+// PATCH /api/admin/orders/:id/status
+// ==========================================
+
+router.patch('/orders/:id/status', async (req, res) => {
+  try {
+    if (!isPositiveId(req.params.id)) {
+      return res.status(400).json({
+        message: 'ID del pedido inválido.'
+      });
+    }
+
+    const validStatuses = [
+      'pendiente',
+      'enviado',
+      'entregado',
+      'cancelado'
+    ];
+
+    const status = String(req.body?.status || '').toLowerCase();
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        message:
+          'Estado no válido. Usa: pendiente, enviado, entregado o cancelado.'
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE orders
+      SET status = $1
+      WHERE id = $2
+      RETURNING id, status
+      `,
+      [status, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: 'Pedido no encontrado.'
+      });
+    }
+
+    return res.json({
+      message: 'Estado del pedido actualizado correctamente.',
+      order: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error actualizando pedido:', error);
+
+    return res.status(500).json({
+      message: 'No se pudo actualizar el estado del pedido.'
     });
   }
 });

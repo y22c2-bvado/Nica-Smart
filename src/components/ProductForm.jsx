@@ -4,10 +4,29 @@ import { FiImage, FiSave, FiX } from 'react-icons/fi'
 
 const emptyForm = {
   name: '',
+  category: '',
   description: '',
   price: '',
   stock: '',
   image: ''
+}
+
+function isValidImage(value) {
+  if (!value) return true
+
+  if (value.startsWith('/Imagenes/')) {
+    return !value.includes('..') &&
+      !value.includes('\\') &&
+      !/[?#]/.test(value)
+  }
+
+  try {
+    const url = new URL(value)
+
+    return ['http:', 'https:'].includes(url.protocol)
+  } catch {
+    return false
+  }
 }
 
 function ProductForm({
@@ -24,6 +43,7 @@ function ProductForm({
     if (product) {
       setForm({
         name: product.name || '',
+        category: product.category || '',
         description: product.description || '',
         price: String(product.price ?? ''),
         stock: String(product.stock ?? ''),
@@ -55,6 +75,7 @@ function ProductForm({
     setError('')
 
     const name = form.name.trim()
+    const category = form.category.trim()
     const description = form.description.trim()
     const price = Number(form.price)
     const stock = Number(form.stock)
@@ -62,6 +83,16 @@ function ProductForm({
 
     if (!name || name.length > 150) {
       setError('Ingresa un nombre de hasta 150 caracteres.')
+      return
+    }
+
+    if (category.length > 100) {
+      setError('La categoría no puede superar 100 caracteres.')
+      return
+    }
+
+    if (description.length > 3000) {
+      setError('La descripción no puede superar 3000 caracteres.')
       return
     }
 
@@ -79,25 +110,20 @@ function ProductForm({
       !Number.isSafeInteger(stock) ||
       stock < 0
     ) {
-      setError('El stock debe ser un número entero positivo o cero.')
+      setError('El stock debe ser un entero mayor o igual a cero.')
       return
     }
 
-    if (image) {
-      try {
-        const url = new URL(image)
-
-        if (!['http:', 'https:'].includes(url.protocol)) {
-          throw new Error('URL inválida')
-        }
-      } catch {
-        setError('Ingresa una URL de imagen válida.')
-        return
-      }
+    if (!isValidImage(image)) {
+      setError(
+        'Ingresa una URL HTTP/HTTPS válida o una ruta dentro de /Imagenes/.'
+      )
+      return
     }
 
     onSubmit({
       name,
+      category,
       description,
       price,
       stock,
@@ -107,14 +133,12 @@ function ProductForm({
 
   return (
     <form className="adm-product-form" onSubmit={handleSubmit}>
-
       <div className="adm-form-fields">
 
         <div className="adm-field">
           <label htmlFor="adm-name">
             Nombre del producto
           </label>
-
           <input
             id="adm-name"
             type="text"
@@ -129,10 +153,25 @@ function ProductForm({
         </div>
 
         <div className="adm-field">
+          <label htmlFor="adm-category">
+            Categoría
+          </label>
+          <input
+            id="adm-category"
+            type="text"
+            placeholder="Ej. Audio, Cargadores, Gaming"
+            value={form.category}
+            onChange={(event) =>
+              updateField('category', event.target.value)
+            }
+            maxLength={100}
+          />
+        </div>
+
+        <div className="adm-field">
           <label htmlFor="adm-description">
             Descripción
           </label>
-
           <textarea
             id="adm-description"
             placeholder="Describe las características del producto..."
@@ -146,12 +185,10 @@ function ProductForm({
         </div>
 
         <div className="adm-form-two-columns">
-
           <div className="adm-field">
             <label htmlFor="adm-price">
               Precio en córdobas (C$)
             </label>
-
             <input
               id="adm-price"
               type="number"
@@ -170,7 +207,6 @@ function ProductForm({
             <label htmlFor="adm-stock">
               Cantidad disponible
             </label>
-
             <input
               id="adm-stock"
               type="number"
@@ -184,27 +220,24 @@ function ProductForm({
               required
             />
           </div>
-
         </div>
 
         <div className="adm-field">
           <label htmlFor="adm-image">
-            URL de la fotografía
+            URL o ruta de la fotografía
           </label>
-
           <input
             id="adm-image"
-            type="url"
-            placeholder="https://ejemplo.com/producto.jpg"
+            type="text"
+            placeholder="/Imagenes/producto.jpg"
             value={form.image}
             onChange={(event) =>
               updateField('image', event.target.value)
             }
           />
-
           <small>
-            Actualmente puedes utilizar enlaces de imágenes.
-            La subida desde tu computadora se añadirá después.
+            Acepta enlaces HTTP/HTTPS y rutas dentro de /Imagenes/.
+            Las fotografías deben existir para mostrarse.
           </small>
         </div>
 
@@ -215,7 +248,6 @@ function ProductForm({
         )}
 
         <div className="adm-form-actions">
-
           <button
             type="button"
             className="adm-btn adm-btn-outline"
@@ -232,16 +264,13 @@ function ProductForm({
             disabled={loading}
           >
             <FiSave />
-
             {loading
               ? 'Guardando...'
               : product
                 ? 'Guardar cambios'
                 : 'Agregar producto'}
           </button>
-
         </div>
-
       </div>
 
       <div className="adm-form-preview">
@@ -261,6 +290,8 @@ function ProductForm({
 
         <h4>{form.name || 'Nombre del producto'}</h4>
 
+        {form.category && <small>{form.category}</small>}
+
         <strong>
           C$ {Number(form.price || 0).toLocaleString('es-NI', {
             minimumFractionDigits: 2,
@@ -273,11 +304,8 @@ function ProductForm({
             'La descripción del producto aparecerá aquí.'}
         </p>
 
-        <span>
-          Stock: {form.stock || '0'}
-        </span>
+        <span>Stock: {form.stock || '0'}</span>
       </div>
-
     </form>
   )
 }

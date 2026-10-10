@@ -17,6 +17,7 @@ const MAX_QUANTITY = 100;
 // VERIFICAR SESIÓN DEL CLIENTE
 // ==========================================
 
+
 const verifyCustomer = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization || '';
@@ -45,25 +46,56 @@ const verifyCustomer = async (req, res, next) => {
       }
     );
 
-    if (
-      decoded.provider !== 'google' ||
-      !decoded.sub ||
-      !decoded.googleId
-    ) {
+    // Aceptar únicamente los proveedores admitidos.
+    if (!['google', 'local'].includes(decoded.provider)) {
       return res.status(401).json({
         message: 'El tipo de sesión no está habilitado para compras.'
       });
     }
 
-    const result = await pool.query(
-      `
-      SELECT id, google_id, name, email
-      FROM google_users
-      WHERE id = $1
-        AND google_id = $2
-      `,
-      [decoded.sub, decoded.googleId]
-    );
+    let result;
+
+    // ==========================================
+    // CLIENTE REGISTRADO CON GOOGLE
+    // ==========================================
+
+    if (decoded.provider === 'google') {
+      if (!decoded.sub || !decoded.googleId) {
+        return res.status(401).json({
+          message: 'La sesión de Google no es válida.'
+        });
+      }
+
+      result = await pool.query(
+        `
+        SELECT id, google_id, name, email
+        FROM google_users
+        WHERE id = $1
+          AND google_id = $2
+        `,
+        [decoded.sub, decoded.googleId]
+      );
+
+    // ==========================================
+    // CLIENTE REGISTRADO CON CORREO Y CONTRASEÑA
+    // ==========================================
+
+    } else {
+      if (!decoded.sub) {
+        return res.status(401).json({
+          message: 'La sesión del cliente no es válida.'
+        });
+      }
+
+      result = await pool.query(
+        `
+        SELECT id, name, email
+        FROM users
+        WHERE id = $1
+        `,
+        [decoded.sub]
+      );
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({
@@ -73,7 +105,7 @@ const verifyCustomer = async (req, res, next) => {
 
     req.customer = result.rows[0];
 
-    next();
+    return next();
 
   } catch (error) {
     if (
@@ -93,7 +125,6 @@ const verifyCustomer = async (req, res, next) => {
     });
   }
 };
-
 // ==========================================
 // CREAR PEDIDO
 // POST /api/orders

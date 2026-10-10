@@ -5,8 +5,8 @@ const db = require('./config/db');
 
 const verificar = async () => {
   try {
-    const email = 'adminuser123@gmail.com';
-    const passwordAProbar = 'vado0904$'; // La misma que pusiste en el reset
+    const email = 'admin@nica-smart.com';
+    const passwordAProbar = 'Admin123$'; // La misma que pusiste en el reset
 
     const { rows } = await db.query(
       'SELECT id, name, email, password, role FROM users WHERE LOWER(email) = LOWER($1)',

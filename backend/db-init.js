@@ -42,6 +42,19 @@ const createUsersTable = `
   );
 `;
 
+const createPasswordResetTokensTable = `
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_password_reset_user
+  ON password_reset_tokens (user_id);
+`;
+
 const insertAdminUser = `
   INSERT INTO users (name, email, password, role)
   VALUES ('Admin', 'admin@nica-smart.com', 'admin123', 'admin')
@@ -126,6 +139,19 @@ async function init() {
     console.log('🔧 Creando tabla order_items...');
     await pool.query(createOrderItemsTable);
     console.log('✅ Tabla order_items creada');
+
+   
+console.log('🔧 Creando tabla users...');
+await pool.query(createUsersTable);
+console.log('✅ Tabla users creada (o ya existía)');
+
+console.log('🔧 Creando tabla password_reset_tokens...');
+await pool.query(createPasswordResetTokensTable);
+console.log('✅ Tabla password_reset_tokens creada (o ya existía)');
+
+console.log('🔧 Creando tabla google_users...');
+await pool.query(createGoogleUsersTable);
+console.log('✅ Tabla google_users creada (o ya existía)');
 
     const { rows } = await pool.query(
       'SELECT COUNT(*) FROM products'
