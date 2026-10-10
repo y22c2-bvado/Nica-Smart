@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useCart } from '../context/CartContext'
@@ -8,11 +8,12 @@ import '../styles/header.css'
 
 function Header() {
   const { cartCount, cartTotal } = useCart()
-
   const navigate = useNavigate()
 
   const [user, setUser] = useState(null)
   const [showMenu, setShowMenu] = useState(false)
+
+  const accountRef = useRef(null)
 
   // ==========================================
   // CARGAR USUARIO AUTENTICADO
@@ -25,18 +26,17 @@ function Header() {
 
       if (!token || !storedUser) {
         setUser(null)
+        setShowMenu(false)
         return
       }
 
       try {
         const parsedUser = JSON.parse(storedUser)
-
-        // Revisar que el token no haya expirado.
-        // La validación de su firma corresponde al backend.
         const parts = token.split('.')
 
         if (parts.length !== 3) {
           setUser(null)
+          setShowMenu(false)
           return
         }
 
@@ -59,13 +59,18 @@ function Header() {
           !parsedUser?.email
         ) {
           setUser(null)
+          setShowMenu(false)
           return
         }
 
+        // Esta información es solo visual.
+        // La autorización real la comprueba el backend.
         setUser(parsedUser)
+
       } catch (error) {
         console.error('Error leyendo sesión:', error)
         setUser(null)
+        setShowMenu(false)
       }
     }
 
@@ -83,6 +88,35 @@ function Header() {
   }, [])
 
   // ==========================================
+  // CERRAR MENÚ AL HACER CLIC FUERA
+  // ==========================================
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (
+        accountRef.current &&
+        !accountRef.current.contains(event.target)
+      ) {
+        setShowMenu(false)
+      }
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
+
+  // ==========================================
   // CERRAR SESIÓN
   // ==========================================
 
@@ -96,21 +130,28 @@ function Header() {
 
     window.dispatchEvent(new Event('auth-change'))
 
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   // ==========================================
-  // NOMBRE DEL CLIENTE
+  // INFORMACIÓN VISUAL DEL USUARIO
   // ==========================================
 
   const userName =
     user?.name?.trim() ||
+    user?.username ||
     user?.email?.split('@')[0] ||
     'Cliente'
 
+  const isAdmin =
+    user?.provider === 'local' &&
+    String(user?.role || '').toUpperCase() === 'ADMIN'
+
   return (
     <>
-      {/* BARRA SUPERIOR */}
+      {/* ==================================
+          BARRA SUPERIOR
+      ================================== */}
 
       <div className="topbar">
         <div>
@@ -123,7 +164,9 @@ function Header() {
         </div>
       </div>
 
-      {/* ENCABEZADO */}
+      {/* ==================================
+          ENCABEZADO
+      ================================== */}
 
       <header className="header">
 
@@ -138,9 +181,7 @@ function Header() {
             S-MART
           </div>
 
-          <span>
-            TECH STORE
-          </span>
+          <span>TECH STORE</span>
         </div>
 
         {/* BUSCADOR */}
@@ -149,24 +190,28 @@ function Header() {
           <input
             type="text"
             placeholder="Buscar productos..."
+            aria-label="Buscar productos"
           />
 
-          <button type="button">
+          <button
+            type="button"
+            aria-label="Buscar"
+          >
             🔍
           </button>
         </div>
 
-        {/* OPCIONES DEL ENCABEZADO */}
+        {/* ==================================
+            OPCIONES DEL ENCABEZADO
+        ================================== */}
 
         <div className="header-options">
 
-          {/* ==================================
-              CUENTA DEL CLIENTE
-          ================================== */}
+          {/* CUENTA */}
 
           {user ? (
-
             <div
+              ref={accountRef}
               className="header-option account-link"
               style={{
                 position: 'relative',
@@ -196,12 +241,13 @@ function Header() {
                 )}
               </div>
 
-              {/* NOMBRE Y ESTADO DE SESIÓN */}
+              {/* NOMBRE Y SESIÓN */}
 
               <button
                 type="button"
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => setShowMenu((previous) => !previous)}
                 aria-expanded={showMenu}
+                aria-haspopup="menu"
                 aria-label="Opciones de mi cuenta"
                 style={{
                   border: 'none',
@@ -251,10 +297,11 @@ function Header() {
                   </small>
 
                 </div>
-
               </button>
 
-              {/* MENÚ DESPLEGABLE */}
+              {/* ==================================
+                  MENÚ DESPLEGABLE
+              ================================== */}
 
               {showMenu && (
                 <div
@@ -277,6 +324,8 @@ function Header() {
                   }}
                 >
 
+                  {/* PERFIL */}
+
                   <Link
                     to="/profile"
                     onClick={() => setShowMenu(false)}
@@ -284,12 +333,21 @@ function Header() {
                     Mi perfil
                   </Link>
 
+                  {/* PEDIDOS */}
+
                   <Link
                     to="/orders"
                     onClick={() => setShowMenu(false)}
                   >
                     Mis pedidos
                   </Link>
+
+                  {/* No mostramos ningún acceso
+                      administrativo en el Header.
+                      El administrador entra
+                      automáticamente desde Login.jsx. */}
+
+                  {/* CERRAR SESIÓN */}
 
                   <button
                     type="button"
@@ -310,30 +368,22 @@ function Header() {
               )}
 
             </div>
-
           ) : (
 
-            /* CUANDO EL CLIENTE NO HA INICIADO SESIÓN */
+            /* USUARIO SIN SESIÓN */
 
             <Link
               to="/login"
               className="header-option account-link"
             >
-
               <div className="option-icon">
                 👤
               </div>
 
               <div className="account-info">
-                <small>
-                  Mi cuenta
-                </small>
-
-                <strong>
-                  Iniciar sesión
-                </strong>
+                <small>Mi cuenta</small>
+                <strong>Iniciar sesión</strong>
               </div>
-
             </Link>
 
           )}
@@ -346,25 +396,21 @@ function Header() {
             to="/cart"
             className="header-option cart-link"
           >
-
             <div className="option-icon">
               🛒
             </div>
 
             <div>
-              <small>
-                Carrito
-              </small>
+              <small>Carrito</small>
 
               <strong>
-                C$ {cartTotal.toLocaleString()}
+                C$ {Number(cartTotal || 0).toLocaleString('es-NI')}
               </strong>
             </div>
 
             <span className="cart-count">
               {cartCount}
             </span>
-
           </Link>
 
         </div>
