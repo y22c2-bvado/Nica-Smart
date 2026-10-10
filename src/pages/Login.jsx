@@ -14,6 +14,10 @@ const API_URL = (
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
 ).trim().replace(/\/$/, '')
 
+// ==========================================
+// COMPONENTE LOGIN
+// ==========================================
+
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -31,7 +35,7 @@ function Login() {
   // ESTADOS DEL FORMULARIO
   // ==========================================
 
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -41,10 +45,10 @@ function Login() {
   const [error, setError] = useState('')
 
   // ==========================================
-  // GUARDAR SESIÓN DEL CLIENTE
+  // GUARDAR SESIÓN
   // ==========================================
 
-  const saveSession = (data) => {
+  const saveSession = (data, sessionRemembered = false) => {
     const token = data?.token || data?.access_token
     const user = data?.user
 
@@ -65,14 +69,16 @@ function Login() {
       )
     }
 
-    // Guardar el perfil completo que mostrará Header.jsx
     const userData = {
       id: user.id,
+
       name:
         typeof user.name === 'string' && user.name.trim()
           ? user.name.trim()
           : user.email.split('@')[0],
+
       email: user.email.trim(),
+      username: user.username || null,
       picture: user.picture || null,
       role: user.role || 'USER',
       provider: user.provider || 'local'
@@ -81,43 +87,55 @@ function Login() {
     // Guardar sesión
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('rememberMe', String(rememberMe))
+    localStorage.setItem(
+      'rememberMe',
+      String(sessionRemembered)
+    )
 
-    // Actualizar el encabezado sin recargar
+    // Actualizar el encabezado
     window.dispatchEvent(new Event('auth-change'))
 
-    // Regresar al carrito si llegó desde allí
-    navigate(from, {
+    // Redirección según el rol confirmado por el backend
+    const isAdmin =
+      userData.provider === 'local' &&
+      String(userData.role).toUpperCase() === 'ADMIN'
+
+    navigate(isAdmin ? '/admin' : from, {
       replace: true
     })
   }
 
   // ==========================================
-  // VALIDAR CORREO
+  // VALIDAR CORREO O NOMBRE DE USUARIO
   // ==========================================
 
-  const validateEmail = (value) => {
-    const cleanEmail = value.trim()
+  const validateIdentifier = (value) => {
+    const cleanValue = value.trim()
 
-    const emailRegex =
-      /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-
-    const controlRegex = /[\x00-\x1F\x7F]/
-
-    if (!cleanEmail) {
-      return 'El correo electrónico es obligatorio.'
+    if (!cleanValue) {
+      return 'Ingresa tu correo electrónico o usuario.'
     }
 
-    if (cleanEmail.length > 254) {
-      return 'El correo electrónico es demasiado largo.'
+    if (cleanValue.length > 254) {
+      return 'El correo o usuario es demasiado largo.'
     }
 
-    if (controlRegex.test(cleanEmail)) {
-      return 'El correo contiene caracteres no permitidos.'
+    if (/[\x00-\x1F\x7F]/.test(cleanValue)) {
+      return 'El correo o usuario contiene caracteres no permitidos.'
     }
 
-    if (!emailRegex.test(cleanEmail)) {
-      return 'Ingresa un correo electrónico válido.'
+    if (cleanValue.includes('@')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+      if (!emailRegex.test(cleanValue)) {
+        return 'Ingresa un correo electrónico válido.'
+      }
+    } else {
+      const usernameRegex = /^[a-zA-Z0-9_.-]{3,60}$/
+
+      if (!usernameRegex.test(cleanValue)) {
+        return 'Ingresa un nombre de usuario válido.'
+      }
     }
 
     return null
@@ -128,8 +146,6 @@ function Login() {
   // ==========================================
 
   const validatePassword = (value) => {
-    const controlRegex = /[\x00-\x1F\x7F]/
-
     if (!value) {
       return 'La contraseña es obligatoria.'
     }
@@ -138,15 +154,11 @@ function Login() {
       return 'La contraseña no puede superar los 128 caracteres.'
     }
 
-    if (controlRegex.test(value)) {
-      return 'La contraseña contiene caracteres no permitidos.'
-    }
-
     return null
   }
 
   // ==========================================
-  // LOGIN CON CORREO Y CONTRASEÑA
+  // LOGIN CON CORREO O USUARIO
   // ==========================================
 
   const handleSubmit = async (event) => {
@@ -156,11 +168,11 @@ function Login() {
 
     setError('')
 
-    const emailError = validateEmail(email)
+    const identifierError = validateIdentifier(identifier)
     const passwordError = validatePassword(password)
 
-    if (emailError || passwordError) {
-      setError(emailError || passwordError)
+    if (identifierError || passwordError) {
+      setError(identifierError || passwordError)
       return
     }
 
@@ -176,12 +188,15 @@ function Login() {
         `${API_URL}/api/auth/login`,
         {
           method: 'POST',
+
           headers: {
             'Content-Type': 'application/json'
           },
+
           body: JSON.stringify({
-            email: email.trim(),
-            password
+            identifier: identifier.trim(),
+            password,
+            rememberMe
           })
         }
       )
@@ -191,16 +206,14 @@ function Login() {
       if (!response.ok) {
         throw new Error(
           response.status === 401
-            ? 'Correo o contraseña incorrectos.'
+            ? 'Usuario, correo o contraseña incorrectos.'
             : data.message ||
               data.error ||
               'No se pudo iniciar sesión.'
         )
       }
 
-      // Guardar token Y datos del usuario
-      saveSession(data)
-
+      saveSession(data, rememberMe)
     } catch (err) {
       console.error('Error de autenticación:', err)
 
@@ -209,7 +222,6 @@ function Login() {
           ? 'No se pudo conectar al servidor. Verifica que Express esté funcionando.'
           : err.message || 'Error al iniciar sesión.'
       )
-
     } finally {
       setLoading(false)
     }
@@ -229,9 +241,7 @@ function Login() {
 
       try {
         if (!API_URL) {
-          throw new Error(
-            'El servidor no está configurado.'
-          )
+          throw new Error('El servidor no está configurado.')
         }
 
         if (!response.code) {
@@ -240,15 +250,16 @@ function Login() {
           )
         }
 
-        // Enviar código OAuth a Express
         const result = await fetch(
           `${API_URL}/api/auth/google`,
           {
             method: 'POST',
+
             headers: {
               'Content-Type': 'application/json',
               'X-Requested-With': 'XmlHttpRequest'
             },
+
             body: JSON.stringify({
               code: response.code
             })
@@ -260,14 +271,13 @@ function Login() {
         if (!result.ok) {
           throw new Error(
             data.message ||
-            data.error ||
-            'No se pudo autenticar con Google.'
+              data.error ||
+              'No se pudo autenticar con Google.'
           )
         }
 
-        // Guarda JWT, nombre, correo y foto de Google
-        saveSession(data)
-
+        // Conservar acceso con Google
+        saveSession(data, false)
       } catch (err) {
         console.error('Error Google:', err)
 
@@ -277,7 +287,6 @@ function Login() {
             : err.message ||
               'Error al iniciar sesión con Google.'
         )
-
       } finally {
         setGoogleLoading(false)
       }
@@ -307,7 +316,7 @@ function Login() {
   })
 
   // ==========================================
-  // BOTÓN GOOGLE
+  // BOTÓN DE GOOGLE
   // ==========================================
 
   const handleGoogleLogin = () => {
@@ -316,9 +325,7 @@ function Login() {
     setError('')
 
     if (!import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()) {
-      setError(
-        'Falta configurar el Client ID de Google.'
-      )
+      setError('Falta configurar el Client ID de Google.')
       return
     }
 
@@ -327,12 +334,11 @@ function Login() {
       return
     }
 
-    // Abrir popup directamente con el clic
     googleLogin()
   }
 
   // ==========================================
-  // FACEBOOK - PENDIENTE
+  // FACEBOOK: PENDIENTE
   // ==========================================
 
   const handleFacebookLogin = () => {
@@ -341,16 +347,27 @@ function Login() {
     )
   }
 
+  // ==========================================
+  // RECUPERAR CONTRASEÑA
+  // ==========================================
+
+  const handleForgotPassword = () => {
+    navigate('/forgot-password')
+  }
+
   return (
     <main className="login-page">
 
       {/* FONDO DECORATIVO */}
-      <div className="login-bg-shape login-bg-shape-left"></div>
-      <div className="login-bg-shape login-bg-shape-right"></div>
+
+      <div className="login-bg-shape login-bg-shape-left" />
+      <div className="login-bg-shape login-bg-shape-right" />
+
+      {/* DECORACIÓN IZQUIERDA */}
 
       <div className="login-side login-side-left">
         <div className="shopping-bag">
-          <div className="bag-handle"></div>
+          <div className="bag-handle" />
 
           <div className="bag-body">
             <span className="bag-cart">🛒</span>
@@ -358,22 +375,26 @@ function Login() {
         </div>
       </div>
 
+      {/* DECORACIÓN DERECHA */}
+
       <div className="login-side login-side-right">
         <div className="plant-box">
-          <div className="plant"></div>
-          <div className="pot"></div>
+          <div className="plant" />
+          <div className="pot" />
         </div>
 
         <div className="laptop-box">
-          <div className="laptop-screen"></div>
-          <div className="laptop-base"></div>
+          <div className="laptop-screen" />
+          <div className="laptop-base" />
         </div>
       </div>
 
       {/* TARJETA PRINCIPAL */}
+
       <section className="login-card">
 
         {/* LOGO */}
+
         <div className="brand-block">
           <div className="brand-row">
             <span className="brand-cart">🛒</span>
@@ -389,12 +410,17 @@ function Login() {
         </div>
 
         {/* ENCABEZADO */}
+
         <div className="login-heading">
           <h1>Iniciar sesión</h1>
-          <p>Ingresa tus datos para continuar.</p>
+
+          <p>
+            Ingresa tus datos para continuar.
+          </p>
         </div>
 
         {/* MENSAJES DE ERROR */}
+
         {error && (
           <div className="login-error" role="alert">
             {error}
@@ -402,37 +428,40 @@ function Login() {
         )}
 
         {/* FORMULARIO */}
+
         <form
           className="login-form"
           onSubmit={handleSubmit}
         >
 
-          {/* CORREO */}
+          {/* CORREO O USUARIO */}
+
           <div className="form-group">
-            <label htmlFor="email">
-              Correo electrónico
+            <label htmlFor="identifier">
+              Correo electrónico o usuario
             </label>
 
             <div className="input-wrapper">
               <span className="input-icon">✉</span>
 
               <input
-                id="email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={email}
+                id="identifier"
+                type="text"
+                placeholder="Correo electrónico o usuario"
+                value={identifier}
                 onChange={(e) => {
-                  setEmail(e.target.value)
+                  setIdentifier(e.target.value)
                   setError('')
                 }}
                 maxLength={254}
-                autoComplete="email"
+                autoComplete="username"
                 required
               />
             </div>
           </div>
 
           {/* CONTRASEÑA */}
+
           <div className="form-group">
             <label htmlFor="password">
               Contraseña
@@ -473,8 +502,8 @@ function Login() {
           </div>
 
           {/* OPCIONES */}
-          <div className="login-options">
 
+          <div className="login-options">
             <label className="remember-box">
               <input
                 type="checkbox"
@@ -490,18 +519,14 @@ function Login() {
             <button
               type="button"
               className="forgot-link"
-              onClick={() =>
-                setError(
-                  'La recuperación de contraseña estará disponible próximamente.'
-                )
-              }
+              onClick={handleForgotPassword}
             >
               ¿Olvidaste tu contraseña?
             </button>
-
           </div>
 
           {/* BOTÓN PRINCIPAL */}
+
           <button
             type="submit"
             className="login-button"
@@ -521,14 +546,17 @@ function Login() {
         </form>
 
         {/* DIVISOR */}
+
         <div className="divider">
           <span>o continúa con</span>
         </div>
 
         {/* BOTONES SOCIALES */}
+
         <div className="social-buttons">
 
           {/* GOOGLE */}
+
           <button
             type="button"
             className="social-button"
@@ -545,14 +573,17 @@ function Login() {
                 fill="#EA4335"
                 d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
               />
+
               <path
                 fill="#4285F4"
                 d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.28 5.48-4.82 7.18l7.73 6C44.36 38.03 46.98 31.88 46.98 24.55z"
               />
+
               <path
                 fill="#FBBC05"
                 d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.88 23.88 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"
               />
+
               <path
                 fill="#34A853"
                 d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
@@ -567,6 +598,7 @@ function Login() {
           </button>
 
           {/* FACEBOOK */}
+
           <button
             type="button"
             className="social-button"
@@ -579,6 +611,7 @@ function Login() {
         </div>
 
         {/* CREAR CUENTA */}
+
         <div className="register-box">
           <span>¿No tienes una cuenta?</span>
 

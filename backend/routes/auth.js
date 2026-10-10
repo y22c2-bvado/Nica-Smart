@@ -49,6 +49,10 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body || {};
 
+    // ==========================================
+    // VALIDAR TIPOS
+    // ==========================================
+
     if (
       typeof name !== 'string' ||
       typeof email !== 'string' ||
@@ -102,9 +106,14 @@ router.post('/register', async (req, res) => {
       Buffer.byteLength(password, 'utf8') > 72
     ) {
       return res.status(400).json({
-        message: 'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
+        message:
+          'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
       });
     }
+
+    // ==========================================
+    // VERIFICAR JWT
+    // ==========================================
 
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({
@@ -113,7 +122,7 @@ router.post('/register', async (req, res) => {
     }
 
     // ==========================================
-    // COMPROBAR SI EL CORREO YA EXISTE
+    // VERIFICAR CORREO EXISTENTE
     // ==========================================
 
     const existingUser = await pool.query(
@@ -128,7 +137,8 @@ router.post('/register', async (req, res) => {
 
     if (existingUser.rows.length > 0) {
       return res.status(409).json({
-        message: 'Ya existe una cuenta con este correo electrónico.'
+        message:
+          'Ya existe una cuenta con este correo electrónico.'
       });
     }
 
@@ -139,8 +149,11 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // ==========================================
-    // INSERTAR CLIENTE
+    // CREAR USUARIO NORMAL
     // ==========================================
+
+    // El registro público nunca permite crear
+    // administradores ni elegir el rol.
 
     const result = await pool.query(
       `
@@ -150,20 +163,22 @@ router.post('/register', async (req, res) => {
         password,
         role
       )
-      VALUES ($1, $2, $3, $4)
+      VALUES ($1, $2, $3, 'USER')
       RETURNING id, name, email, role
       `,
       [
         cleanName,
         cleanEmail,
-        hashedPassword,
-        'USER'
+        hashedPassword
       ]
     );
 
     const user = result.rows[0];
 
-    // Registro con sesión inicial de 2 horas.
+    // ==========================================
+    // GENERAR SESIÓN
+    // ==========================================
+
     const token = generateToken(user);
 
     return res.status(201).json({
@@ -181,7 +196,8 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     if (error.code === '23505') {
       return res.status(409).json({
-        message: 'Ya existe una cuenta con este correo electrónico.'
+        message:
+          'Ya existe una cuenta con este correo electrónico.'
       });
     }
 
@@ -201,23 +217,41 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const {
+      identifier,
       email,
       password,
       rememberMe = false
     } = req.body || {};
 
     // ==========================================
-    // VALIDAR ENTRADA
+    // ACEPTAR CORREO O USUARIO
+    // ==========================================
+
+    // Se conserva "email" para compatibilidad
+    // con versiones anteriores de Login.jsx.
+
+    const loginIdentifier =
+      typeof identifier === 'string'
+        ? identifier.trim()
+        : typeof email === 'string'
+          ? email.trim()
+          : '';
+
+    // ==========================================
+    // VALIDAR DATOS
     // ==========================================
 
     if (
-      typeof email !== 'string' ||
+      !loginIdentifier ||
+      loginIdentifier.length > 254 ||
+      /[\x00-\x1F\x7F]/.test(loginIdentifier) ||
       typeof password !== 'string' ||
-      !email.trim() ||
-      !password
+      !password ||
+      password.length > 128
     ) {
       return res.status(400).json({
-        message: 'Correo y contraseña son obligatorios.'
+        message:
+          'Ingresa un correo o usuario y una contraseña válidos.'
       });
     }
 
@@ -237,31 +271,50 @@ router.post('/login', async (req, res) => {
     // BUSCAR USUARIO EN POSTGRESQL
     // ==========================================
 
+    // Clientes:
+    //   Inician sesión utilizando su correo.
+    //
+    // Administradores:
+    //   Pueden utilizar correo o username.
+    //
+    // El username solamente se acepta
+    // si la cuenta tiene rol ADMIN.
+
     const result = await pool.query(
       `
       SELECT
         id,
         name,
         email,
+        username,
         password,
-        role
+        role,
+        is_blocked
       FROM users
       WHERE LOWER(email) = LOWER($1)
+         OR (
+           LOWER(username) = LOWER($1)
+           AND UPPER(role) = 'ADMIN'
+         )
       LIMIT 1
       `,
-      [email.trim()]
+      [loginIdentifier]
     );
+
+    // ==========================================
+    // CUENTA NO ENCONTRADA
+    // ==========================================
 
     if (result.rows.length === 0) {
       return res.status(401).json({
-        message: 'Correo o contraseña incorrectos.'
+        message: 'Usuario o contraseña incorrectos.'
       });
     }
 
     const user = result.rows[0];
 
     // ==========================================
-    // VALIDAR CONTRASEÑA
+    // VERIFICAR CONTRASEÑA CON BCRYPT
     // ==========================================
 
     const validPassword = await bcrypt.compare(
@@ -271,15 +324,30 @@ router.post('/login', async (req, res) => {
 
     if (!validPassword) {
       return res.status(401).json({
-        message: 'Correo o contraseña incorrectos.'
+        message: 'Usuario o contraseña incorrectos.'
       });
     }
 
     // ==========================================
-    // GENERAR SESIÓN
+    // VERIFICAR CUENTA BLOQUEADA
+    // ==========================================
+
+    if (user.is_blocked === true) {
+      return res.status(403).json({
+        message:
+          'Tu cuenta está bloqueada. Contacta al administrador.'
+      });
+    }
+
+    // ==========================================
+    // GENERAR TOKEN JWT
     // ==========================================
 
     const token = generateToken(user, rememberMe);
+
+    // ==========================================
+    // RESPUESTA DEL SERVIDOR
+    // ==========================================
 
     return res.status(200).json({
       message: 'Inicio de sesión exitoso.',
@@ -289,6 +357,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        username: user.username || null,
         role: user.role,
         provider: 'local'
       }

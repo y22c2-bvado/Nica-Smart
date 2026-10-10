@@ -7,23 +7,42 @@ import {
   Route,
 } from 'react-router-dom'
 
+// ==========================================
+// PÁGINAS PRINCIPALES
+// ==========================================
+
 import Home from './pages/Home'
-import Login from './pages/Login'
-import Register from './pages/Register'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
-import Cart from './pages/Cart'
-import Admin from './pages/Admin'
 import ProductDetail from './pages/ProductDetail'
 
-// PÁGINA DE CONFIRMACIÓN DE COMPRA
+// ==========================================
+// AUTENTICACIÓN Y REGISTRO
+// ==========================================
+
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+
+// ==========================================
+// CARRITO Y COMPRAS
+// ==========================================
+
+import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
-
-// PERFIL DEL CLIENTE
-import Profile from './pages/Profile'
-
-// HISTORIAL DE PEDIDOS
 import MyOrders from './pages/MyOrders'
+
+// ==========================================
+// PERFIL Y ADMINISTRACIÓN
+// ==========================================
+
+import Profile from './pages/Profile'
+import Admin from './pages/Admin'
+
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
 
 function App() {
   return (
@@ -48,6 +67,18 @@ function App() {
           element={<Register />}
         />
 
+        {/* OLVIDÉ MI CONTRASEÑA */}
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        {/* RESTABLECER CONTRASEÑA */}
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
+
         {/* PRODUCTOS */}
         <Route
           path="/products"
@@ -60,7 +91,13 @@ function App() {
           element={<Categories />}
         />
 
-        {/* CARRITO */}
+        {/* DETALLE DEL PRODUCTO */}
+        <Route
+          path="/product/:id"
+          element={<ProductDetail />}
+        />
+
+        {/* CARRITO DE COMPRAS */}
         <Route
           path="/cart"
           element={<Cart />}
@@ -88,12 +125,6 @@ function App() {
         <Route
           path="/admin"
           element={<Admin />}
-        />
-
-        {/* DETALLE DEL PRODUCTO */}
-        <Route
-          path="/product/:id"
-          element={<ProductDetail />}
         />
 
       </Routes>
