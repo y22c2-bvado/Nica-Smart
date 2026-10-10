@@ -8,8 +8,6 @@ const path = require('path');
 // CONFIGURACIÓN DE VARIABLES DE ENTORNO
 // ==========================================
 
-// Cargar siempre el archivo backend/.env
-// independientemente de dónde se ejecute Node.js.
 require('dotenv').config({
   path: path.join(__dirname, '.env')
 });
@@ -18,8 +16,6 @@ require('dotenv').config({
 // DIAGNÓSTICO DE GOOGLE OAUTH
 // ==========================================
 
-// Muestra solamente si las variables existen.
-// No imprime contraseñas ni claves privadas.
 if (process.env.NODE_ENV !== 'production') {
   console.log('Configuración Google OAuth:', {
     GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
@@ -33,13 +29,23 @@ if (process.env.NODE_ENV !== 'production') {
 // IMPORTACIÓN DE RUTAS
 // ==========================================
 
-const orderRoutes = require('./routes/orders');
 const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
-const authRoutes = require('./routes/auth');
 
-// AUTENTICACIÓN CON GOOGLE
+const authRoutes = require('./routes/auth');
 const googleAuthRoutes = require('./routes/googleAuth');
+
+const orderRoutes = require('./routes/orders');
+
+// NUEVO: PANEL DE ADMINISTRACIÓN
+const adminRoutes = require('./routes/admin');
+
+// NUEVO: RECUPERACIÓN DE CONTRASEÑA
+const passwordResetRoutes = require('./routes/passwordReset');
+
+// ==========================================
+// INICIALIZAR EXPRESS
+// ==========================================
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,16 +54,16 @@ const port = process.env.PORT || 3000;
 // CONFIGURACIÓN DE SEGURIDAD
 // ==========================================
 
-// Permitir solicitudes del frontend
+app.disable('x-powered-by');
+
+// Permitir solicitudes del frontend.
+// Más adelante restringiremos los orígenes
+// al dominio de NICA S-MART.
 app.use(cors());
 
-// Limitar el tamaño de los JSON recibidos
 app.use(express.json({
   limit: '10kb'
 }));
-
-// Evitar exponer información sobre Express
-app.disable('x-powered-by');
 
 // ==========================================
 // CONEXIÓN A POSTGRESQL
@@ -72,28 +78,29 @@ const pool = new Pool({
 
 // ==========================================
 // RUTA DE PRUEBA
+// GET /
 // ==========================================
 
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
 
-    res.json({
+    return res.json({
       message: 'Backend Nica-Smart funcionando 🚀',
       db_time: result.rows[0].now
     });
 
-  } catch (err) {
-    console.error('Error de PostgreSQL:', err);
+  } catch (error) {
+    console.error('Error de PostgreSQL:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Error conectando a la base de datos'
     });
   }
 });
 
 // ==========================================
-// RUTAS DE PRODUCTOS
+// RUTAS PÚBLICAS DE PRODUCTOS
 // ==========================================
 
 app.use('/api/products', productRoutes);
@@ -108,30 +115,41 @@ app.use('/api/categories', categoryRoutes);
 // AUTENTICACIÓN CON GOOGLE
 // ==========================================
 
-// POST http://localhost:3000/api/auth/google
-// Recibe el código OAuth desde Login.jsx.
-
 app.use('/api/auth/google', googleAuthRoutes);
 
 // ==========================================
-// AUTENTICACIÓN TRADICIONAL
+// REGISTRO Y LOGIN CON CORREO
 // ==========================================
 
-// Login y registro con correo y contraseña
 app.use('/api/auth', authRoutes);
 
 // ==========================================
-// RUTAS DE PEDIDOS
+// RECUPERACIÓN DE CONTRASEÑAS
+// ==========================================
+
+app.use('/api/auth', passwordResetRoutes);
+
+// ==========================================
+// PEDIDOS DE CLIENTES
 // ==========================================
 
 app.use('/api/orders', orderRoutes);
+
+// ==========================================
+// ADMINISTRACIÓN
+// ==========================================
+
+// Todas las rutas deben estar protegidas
+// por requireAdmin dentro de admin.js.
+
+app.use('/api/admin', adminRoutes);
 
 // ==========================================
 // RUTAS NO ENCONTRADAS
 // ==========================================
 
 app.use((req, res) => {
-  res.status(404).json({
+  return res.status(404).json({
     error: 'Ruta no encontrada'
   });
 });
@@ -155,7 +173,7 @@ app.use((err, req, res, next) => {
     });
   }
 
-  res.status(500).json({
+  return res.status(500).json({
     error: 'Error interno del servidor'
   });
 });
@@ -166,5 +184,14 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
-  console.log('Google OAuth: POST /api/auth/google');
+
+  console.log('Rutas disponibles:');
+  console.log('Productos: /api/products');
+  console.log('Categorías: /api/categories');
+  console.log('Login: /api/auth/login');
+  console.log('Registro: /api/auth/register');
+  console.log('Google: /api/auth/google');
+  console.log('Recuperación: /api/auth/forgot-password');
+  console.log('Pedidos: /api/orders');
+  console.log('Administración: /api/admin');
 });

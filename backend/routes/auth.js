@@ -10,13 +10,16 @@ const pool = require('../config/db');
 // CONFIGURACIÓN DE SEGURIDAD
 // ==========================================
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_ISSUER = 'nica-smart';
+const JWT_AUDIENCE = 'nica-smart-web';
 
 // ==========================================
 // GENERAR TOKEN JWT
 // ==========================================
 
-const generateToken = (user) => {
+const generateToken = (user, rememberMe = false) => {
+  const JWT_SECRET = process.env.JWT_SECRET;
+
   if (!JWT_SECRET) {
     throw new Error('JWT_SECRET no está configurado.');
   }
@@ -29,9 +32,9 @@ const generateToken = (user) => {
     },
     JWT_SECRET,
     {
-      expiresIn: '2h',
-      issuer: 'nica-smart',
-      audience: 'nica-smart-web',
+      expiresIn: rememberMe ? '7d' : '2h',
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
       algorithm: 'HS256'
     }
   );
@@ -46,10 +49,6 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body || {};
 
-    // ==========================================
-    // VALIDAR DATOS
-    // ==========================================
-
     if (
       typeof name !== 'string' ||
       typeof email !== 'string' ||
@@ -63,10 +62,11 @@ router.post('/register', async (req, res) => {
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    if (
-      cleanName.length < 2 ||
-      cleanName.length > 80
-    ) {
+    // ==========================================
+    // VALIDAR NOMBRE
+    // ==========================================
+
+    if (cleanName.length < 2 || cleanName.length > 80) {
       return res.status(400).json({
         message: 'El nombre debe tener entre 2 y 80 caracteres.'
       });
@@ -78,7 +78,10 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Acepta correos de diferentes proveedores
+    // ==========================================
+    // VALIDAR CORREO
+    // ==========================================
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
@@ -90,29 +93,27 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // ==========================================
+    // VALIDAR CONTRASEÑA
+    // ==========================================
+
     if (
       password.length < 8 ||
-      password.length > 72
+      Buffer.byteLength(password, 'utf8') > 72
     ) {
       return res.status(400).json({
-        message: 'La contraseña debe tener entre 8 y 72 caracteres.'
+        message: 'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
       });
     }
 
-    // ==========================================
-    // VERIFICAR CONFIGURACIÓN JWT
-    // ==========================================
-
-    if (!JWT_SECRET) {
-      console.error('Falta configurar JWT_SECRET');
-
+    if (!process.env.JWT_SECRET) {
       return res.status(503).json({
         message: 'Servicio de autenticación no disponible.'
       });
     }
 
     // ==========================================
-    // VERIFICAR SI YA EXISTE EL CORREO
+    // COMPROBAR SI EL CORREO YA EXISTE
     // ==========================================
 
     const existingUser = await pool.query(
@@ -135,13 +136,10 @@ router.post('/register', async (req, res) => {
     // CIFRAR CONTRASEÑA
     // ==========================================
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      12
-    );
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // ==========================================
-    // REGISTRAR USUARIO EN POSTGRESQL
+    // INSERTAR CLIENTE
     // ==========================================
 
     const result = await pool.query(
@@ -153,7 +151,6 @@ router.post('/register', async (req, res) => {
         role
       )
       VALUES ($1, $2, $3, $4)
-
       RETURNING id, name, email, role
       `,
       [
@@ -166,15 +163,8 @@ router.post('/register', async (req, res) => {
 
     const user = result.rows[0];
 
-    // ==========================================
-    // GENERAR SESIÓN AUTOMÁTICAMENTE
-    // ==========================================
-
+    // Registro con sesión inicial de 2 horas.
     const token = generateToken(user);
-
-    // ==========================================
-    // RESPONDER AL FRONTEND
-    // ==========================================
 
     return res.status(201).json({
       message: 'Cuenta creada exitosamente.',
@@ -189,7 +179,6 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    // Correo duplicado en PostgreSQL
     if (error.code === '23505') {
       return res.status(409).json({
         message: 'Ya existe una cuenta con este correo electrónico.'
@@ -205,16 +194,20 @@ router.post('/register', async (req, res) => {
 });
 
 // ==========================================
-// INICIAR SESIÓN CON CORREO Y CONTRASEÑA
+// INICIAR SESIÓN
 // POST /api/auth/login
 // ==========================================
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const {
+      email,
+      password,
+      rememberMe = false
+    } = req.body || {};
 
     // ==========================================
-    // VALIDAR DATOS RECIBIDOS
+    // VALIDAR ENTRADA
     // ==========================================
 
     if (
@@ -228,9 +221,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (!JWT_SECRET) {
-      console.error('Falta configurar JWT_SECRET');
+    if (typeof rememberMe !== 'boolean') {
+      return res.status(400).json({
+        message: 'La opción Recordarme no es válida.'
+      });
+    }
 
+    if (!process.env.JWT_SECRET) {
       return res.status(503).json({
         message: 'Servicio de autenticación no disponible.'
       });
@@ -264,7 +261,7 @@ router.post('/login', async (req, res) => {
     const user = result.rows[0];
 
     // ==========================================
-    // VALIDAR CONTRASEÑA CIFRADA
+    // VALIDAR CONTRASEÑA
     // ==========================================
 
     const validPassword = await bcrypt.compare(
@@ -279,18 +276,15 @@ router.post('/login', async (req, res) => {
     }
 
     // ==========================================
-    // GENERAR TOKEN JWT
+    // GENERAR SESIÓN
     // ==========================================
 
-    const token = generateToken(user);
-
-    // ==========================================
-    // RESPONDER AL FRONTEND
-    // ==========================================
+    const token = generateToken(user, rememberMe);
 
     return res.status(200).json({
       message: 'Inicio de sesión exitoso.',
       token,
+      rememberMe,
       user: {
         id: user.id,
         name: user.name,
