@@ -1,4 +1,3 @@
-// backend/migrar-passwords.js
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const db = require('./config/db');

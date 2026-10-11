@@ -123,10 +123,13 @@ async function init() {
     await pool.query(createUsersTable);
     console.log('✅ Tabla users creada (o ya existía)');
 
-    // NUEVO: TABLA PARA INICIO DE SESIÓN CON GOOGLE
     console.log('🔧 Creando tabla google_users...');
     await pool.query(createGoogleUsersTable);
     console.log('✅ Tabla google_users creada (o ya existía)');
+
+    console.log('🔧 Creando tabla password_reset_tokens...');
+    await pool.query(createPasswordResetTokensTable);
+    console.log('✅ Tabla password_reset_tokens creada (o ya existía)');
 
     console.log('👤 Insertando usuario admin...');
     await pool.query(insertAdminUser);
@@ -139,19 +142,6 @@ async function init() {
     console.log('🔧 Creando tabla order_items...');
     await pool.query(createOrderItemsTable);
     console.log('✅ Tabla order_items creada');
-
-   
-console.log('🔧 Creando tabla users...');
-await pool.query(createUsersTable);
-console.log('✅ Tabla users creada (o ya existía)');
-
-console.log('🔧 Creando tabla password_reset_tokens...');
-await pool.query(createPasswordResetTokensTable);
-console.log('✅ Tabla password_reset_tokens creada (o ya existía)');
-
-console.log('🔧 Creando tabla google_users...');
-await pool.query(createGoogleUsersTable);
-console.log('✅ Tabla google_users creada (o ya existía)');
 
     const { rows } = await pool.query(
       'SELECT COUNT(*) FROM products'

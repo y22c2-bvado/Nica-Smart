@@ -1,10 +1,6 @@
-// backend/eliminar-usuario.js
 require('dotenv').config();
 const db = require('./config/db');
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
 
 const emailAEliminar = 'adminuser123@gmail.com'; // 👈 El usuario a eliminar
 

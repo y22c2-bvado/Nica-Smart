@@ -324,11 +324,20 @@ router.post('/login', async (req, res) => {
     // VERIFICAR CUENTA BLOQUEADA
     // ==========================================
 
-    if (user.is_blocked) {
-  return res.status(403).json({
-    message: 'Tu cuenta está bloqueada. Contacta con el administrador.'
-  });
-}
+   const accountStatus = await pool.query(
+      'SELECT is_blocked FROM users WHERE id = $1',
+      [user.id]
+    );
+
+    if (
+      accountStatus.rows.length === 0 ||
+      accountStatus.rows[0].is_blocked
+    ) {
+      return res.status(403).json({
+        message: 'Esta cuenta está bloqueada o no está disponible.'
+      });
+    }
+
 
     // ==========================================
     // GENERAR TOKEN JWT
