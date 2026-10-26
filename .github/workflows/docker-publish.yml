@@ -28,13 +28,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # --- PASO DE DEBUG ---
+      - name: Ver contenido real del Dockerfile en el servidor
+        run: |
+          echo "=== BUSCANDO DOCKERFILE EN LA CARPETA BACKEND ==="
+          cat ./backend/Dockerfile
+          echo "=== FIN DEL ARCHIVO ==="
+
       # --- BACKEND ---
       - name: Build and push Backend image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: Dockerfile # <-- Ruta relativa al contexto
+          file: Dockerfile 
           push: true
+          no-cache: true # <-- Forzamos a que no use caché
           tags: |
             ghcr.io/y22c2-bvado/nica-smart-backend:latest
             ghcr.io/y22c2-bvado/nica-smart-backend:${{ github.ref_name }}
@@ -44,8 +52,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile # <-- Ruta relativa al contexto
+          file: Dockerfile 
           push: true
+          no-cache: true
           build-args: |
             VITE_API_URL=http://localhost:3000
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
