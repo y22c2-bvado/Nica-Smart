@@ -1,7 +1,7 @@
 name: CI Docker 
 on: 
   push: 
-    branches: [master] 
+    branches: [main, YaderDX, y22c2-bvado] 
 permissions: 
   contents: read 
   packages: write 
