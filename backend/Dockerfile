@@ -1,13 +1,15 @@
-FROM node:22-alpine
+# Imagen base: nginx sobre Alpine Linux (liviana, ~20 MB)
+FROM nginx:1.27-alpine
 
-WORKDIR /app
+# Railway inyecta la variable PORT; en local usamos 80 por defecto
+ENV PORT=80
 
-COPY package*.json ./
+# Plantilla de configuración: nginx reemplaza ${PORT} al arrancar el contenedor
+COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
 
-RUN npm ci
+# Archivos estáticos de la app
+COPY index.html github.html test.html /usr/share/nginx/html/
+COPY css/ /usr/share/nginx/html/css/
+COPY js/ /usr/share/nginx/html/js/
 
-COPY . .
-
-EXPOSE 3000
-
-CMD ["npm", "start"]
+EXPOSE 80
