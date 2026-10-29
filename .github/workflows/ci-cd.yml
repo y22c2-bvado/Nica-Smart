@@ -74,9 +74,9 @@ jobs:
     steps:
       - name: Redesplegar el servicio en Railways (descarga la nueva imagen :latest)
         run: railway redeploy --service ${{ secrets.RAILWAY_SERVICE_ID }} --yes
-
+        
   # ---------- CD: redesplegar en Render ----------
-   deploy-render:
+  deploy-render:
     needs: build-test-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
