@@ -23,14 +23,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 2. Construir la imagen
-        run: docker build -t pokemondemo:test .
+        run: docker build -t smart-nica-db:test .
 
       - name: 3. Prueba sencilla (levantar y hacer curl)
         run: |
           docker run -d --name app -p 8080:80 pokemondemo:test
           sleep 3
-          curl -sf http://localhost:8080 | grep -q "PokéAPI"
-          echo "✅ La app responde y contiene 'PokéAPI'"
+          curl -sf http://localhost:8080 | grep -q "Smart-Nica"
+          echo "✅ La app responde y contiene 'Smart-Nica'"
 
       - name: 4. Logs del contenedor (solo si falló)
         if: failure()
