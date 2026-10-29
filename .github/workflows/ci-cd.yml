@@ -29,8 +29,8 @@ jobs:
         run: |
           docker run -d --name app -p 8080:80 smart-nica-db:test
           sleep 3
-          curl -sf http://localhost:8080 | grep -q "Smart-Nica"
-          echo "✅ La app responde y contiene 'Smart-Nica'"
+          curl -sf http://localhost:8080 | grep -q "nica-smart"
+          echo "✅ La app responde y contiene 'nica-smart'"
 
       - name: 4. Logs del contenedor (solo si falló)
         if: failure()
