@@ -27,7 +27,7 @@ jobs:
 
       - name: 3. Prueba sencilla (levantar y hacer curl)
         run: |
-          docker run -d --name app -p 8080:80 pokemondemo:test
+          docker run -d --name app -p 8080:80 smart-nica-db:test
           sleep 3
           curl -sf http://localhost:8080 | grep -q "Smart-Nica"
           echo "✅ La app responde y contiene 'Smart-Nica'"
