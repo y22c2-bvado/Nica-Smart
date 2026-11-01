@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -118,12 +117,15 @@ function Admin() {
         throw new Error('Debes iniciar sesión.')
       }
 
+      // Detectar si el body es FormData para no forzar el Content-Type
+      const isFormData = options.body instanceof FormData
+
       const response = await fetch(
         `${API_URL}/api/admin${endpoint}`,
         {
           ...options,
           headers: {
-            ...(options.body
+            ...(options.body && !isFormData
               ? { 'Content-Type': 'application/json' }
               : {}),
             Authorization: `Bearer ${token}`,
@@ -282,13 +284,14 @@ function Admin() {
     try {
       // El producto se guarda en PostgreSQL
       // mediante la API de administración.
+      // Al enviar FormData, NO usamos JSON.stringify
       await adminRequest(
         isEditing
           ? `/products/${editingProduct.id}`
           : '/products',
         {
           method: isEditing ? 'PUT' : 'POST',
-          body: JSON.stringify(formData)
+          body: formData 
         }
       )
 
