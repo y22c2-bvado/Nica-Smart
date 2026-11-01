@@ -17,6 +17,12 @@ import Categories from './pages/Categories'
 import ProductDetail from './pages/ProductDetail'
 
 // ==========================================
+// PROMOCIONES AUTOMÁTICAS
+// ==========================================
+
+import Promotions from './pages/Promotions'
+
+// ==========================================
 // AUTENTICACIÓN Y REGISTRO
 // ==========================================
 
@@ -26,10 +32,11 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
 // ==========================================
-// CARRITO Y COMPRAS
+// CARRITOS Y COMPRAS
 // ==========================================
 
 import Cart from './pages/Cart'
+import PromoCart from './pages/PromoCart'
 import Checkout from './pages/Checkout'
 import MyOrders from './pages/MyOrders'
 
@@ -55,6 +62,18 @@ function App() {
           element={<Home />}
         />
 
+        {/* PROMOCIONES DE TEMPORADA */}
+        <Route
+          path="/promotions"
+          element={<Promotions />}
+        />
+
+        {/* CARRITO PROMOCIONAL */}
+        <Route
+          path="/promo-cart"
+          element={<PromoCart />}
+        />
+
         {/* INICIO DE SESIÓN */}
         <Route
           path="/login"
@@ -67,7 +86,7 @@ function App() {
           element={<Register />}
         />
 
-        {/* OLVIDÉ MI CONTRASEÑA */}
+        {/* RECUPERAR CONTRASEÑA */}
         <Route
           path="/forgot-password"
           element={<ForgotPassword />}
@@ -79,7 +98,7 @@ function App() {
           element={<ResetPassword />}
         />
 
-        {/* PRODUCTOS */}
+        {/* CATÁLOGO DE PRODUCTOS */}
         <Route
           path="/products"
           element={<Products />}
@@ -91,13 +110,13 @@ function App() {
           element={<Categories />}
         />
 
-        {/* DETALLE DEL PRODUCTO */}
+        {/* DETALLE DE PRODUCTO */}
         <Route
           path="/product/:id"
           element={<ProductDetail />}
         />
 
-        {/* CARRITO DE COMPRAS */}
+        {/* CARRITO NORMAL */}
         <Route
           path="/cart"
           element={<Cart />}
