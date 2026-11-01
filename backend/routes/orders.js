@@ -1,22 +1,39 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { randomUUID } = require('crypto');
 const pool = require('../config/db');
 
 const router = express.Router();
 
 // ==========================================
-// CONFIGURACIÓN
+// CONFIGURACIÓN GENERAL
 // ==========================================
 
 const SHIPPING_COST = 150;
 const MAX_ITEMS = 100;
 const MAX_QUANTITY = 100;
 
+const PAYMENT_METHODS = [
+  'tarjeta_simulada',
+  'transferencia_simulada'
+];
+
+const PAYMENT_TEST_CODES = [
+  'APROBAR',
+  'RECHAZAR'
+];
+
+// Identificadores autorizados por el simulador.
+// No corresponden a cuentas bancarias reales.
+const TEST_CARDS = {
+  VISA_TEST: 'visa',
+  MASTERCARD_TEST: 'mastercard'
+};
+
 // ==========================================
 // VERIFICAR SESIÓN DEL CLIENTE
 // ==========================================
-
 
 const verifyCustomer = async (req, res, next) => {
   try {
@@ -46,7 +63,6 @@ const verifyCustomer = async (req, res, next) => {
       }
     );
 
-    // Aceptar únicamente los proveedores admitidos.
     if (!['google', 'local'].includes(decoded.provider)) {
       return res.status(401).json({
         message: 'El tipo de sesión no está habilitado para compras.'
@@ -54,10 +70,6 @@ const verifyCustomer = async (req, res, next) => {
     }
 
     let result;
-
-    // ==========================================
-    // CLIENTE REGISTRADO CON GOOGLE
-    // ==========================================
 
     if (decoded.provider === 'google') {
       if (!decoded.sub || !decoded.googleId) {
@@ -70,16 +82,10 @@ const verifyCustomer = async (req, res, next) => {
         `
         SELECT id, google_id, name, email
         FROM google_users
-        WHERE id = $1
-          AND google_id = $2
+        WHERE id = $1 AND google_id = $2
         `,
         [decoded.sub, decoded.googleId]
       );
-
-    // ==========================================
-    // CLIENTE REGISTRADO CON CORREO Y CONTRASEÑA
-    // ==========================================
-
     } else {
       if (!decoded.sub) {
         return res.status(401).json({
@@ -104,7 +110,6 @@ const verifyCustomer = async (req, res, next) => {
     }
 
     req.customer = result.rows[0];
-
     return next();
 
   } catch (error) {
@@ -114,7 +119,7 @@ const verifyCustomer = async (req, res, next) => {
       error.name === 'NotBeforeError'
     ) {
       return res.status(401).json({
-        message: 'Tu sesión expiró o no es válida. Inicia sesión nuevamente.'
+        message: 'Tu sesión expiró o no es válida.'
       });
     }
 
@@ -125,8 +130,103 @@ const verifyCustomer = async (req, res, next) => {
     });
   }
 };
+
 // ==========================================
-// CREAR PEDIDO
+// RF-12: VALIDACIÓN DE PAGO SIMULADO
+// ==========================================
+
+function validateSimulatedPayment(body) {
+  const {
+    payment_method,
+    payment_test_code,
+    payment_card_brand,
+    payment_test_card
+  } = body;
+
+  if (!PAYMENT_METHODS.includes(payment_method)) {
+    return {
+      error: 'Selecciona un método de pago válido.'
+    };
+  }
+
+  if (!PAYMENT_TEST_CODES.includes(payment_test_code)) {
+    return {
+      error: 'El resultado de simulación no es válido.'
+    };
+  }
+
+  // No recibir ni almacenar datos sensibles.
+  const forbiddenFields = [
+    'card_number',
+    'cardNumber',
+    'cvv',
+    'card_cvv',
+    'cardCvv',
+    'card_expiration',
+    'cardExpiration'
+  ];
+
+  if (
+    forbiddenFields.some((field) =>
+      Object.prototype.hasOwnProperty.call(body, field)
+    )
+  ) {
+    return {
+      error: 'No envíes números de tarjeta, vencimientos ni CVV.'
+    };
+  }
+
+  if (payment_method === 'transferencia_simulada') {
+    if (
+      payment_card_brand != null ||
+      payment_test_card != null
+    ) {
+      return {
+        error: 'La transferencia no requiere datos de tarjeta.'
+      };
+    }
+
+    return {
+      cardBrand: null,
+      paymentMethod: payment_method,
+      testCode: payment_test_code
+    };
+  }
+
+  // Validar una tarjeta ficticia mediante identificador.
+  // El backend no confía solo en la marca que envía React.
+  if (
+    typeof payment_test_card !== 'string' ||
+    !Object.prototype.hasOwnProperty.call(
+      TEST_CARDS,
+      payment_test_card
+    )
+  ) {
+    return {
+      error: 'Selecciona una tarjeta de demostración válida.'
+    };
+  }
+
+  const detectedBrand = TEST_CARDS[payment_test_card];
+
+  if (
+    typeof payment_card_brand !== 'string' ||
+    payment_card_brand.toLowerCase() !== detectedBrand
+  ) {
+    return {
+      error: 'La marca de tarjeta no coincide con la tarjeta de prueba.'
+    };
+  }
+
+  return {
+    cardBrand: detectedBrand,
+    paymentMethod: payment_method,
+    testCode: payment_test_code
+  };
+}
+
+// ==========================================
+// RF-12: CREAR PEDIDO Y SIMULAR PAGO
 // POST /api/orders
 // ==========================================
 
@@ -142,7 +242,7 @@ router.post('/', verifyCustomer, async (req, res) => {
     } = req.body || {};
 
     // ==========================================
-    // VALIDAR DATOS DE ENTREGA
+    // VALIDAR ENTREGA
     // ==========================================
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -153,7 +253,7 @@ router.post('/', verifyCustomer, async (req, res) => {
 
     if (items.length > MAX_ITEMS) {
       return res.status(400).json({
-        message: 'Se superó el límite de productos del pedido.'
+        message: 'Se superó el límite de productos.'
       });
     }
 
@@ -180,6 +280,18 @@ router.post('/', verifyCustomer, async (req, res) => {
     }
 
     // ==========================================
+    // VALIDAR PAGO
+    // ==========================================
+
+    const payment = validateSimulatedPayment(req.body);
+
+    if (payment.error) {
+      return res.status(400).json({
+        message: payment.error
+      });
+    }
+
+    // ==========================================
     // VALIDAR PRODUCTOS Y CANTIDADES
     // ==========================================
 
@@ -187,9 +299,9 @@ router.post('/', verifyCustomer, async (req, res) => {
     const productIds = new Set();
 
     for (const item of items) {
-      const rawProductId = item?.product_id ?? item?.id;
-
-      const productId = Number(rawProductId);
+      const productId = Number(
+        item?.product_id ?? item?.id
+      );
       const quantity = Number(item?.quantity);
 
       if (
@@ -218,10 +330,21 @@ router.post('/', verifyCustomer, async (req, res) => {
       });
     }
 
-    // Ordenar IDs para bloquear siempre en el mismo orden
     normalizedItems.sort(
       (a, b) => a.product_id - b.product_id
     );
+
+    // ==========================================
+    // SIMULACIÓN DE PAGO RECHAZADO
+    // ==========================================
+
+    if (payment.testCode === 'RECHAZAR') {
+      return res.status(402).json({
+        message: 'Pago simulado rechazado. No se creó el pedido.',
+        payment_status: 'rechazado_simulado',
+        simulated: true
+      });
+    }
 
     // ==========================================
     // INICIAR TRANSACCIÓN
@@ -236,7 +359,7 @@ router.post('/', verifyCustomer, async (req, res) => {
     let subtotalCents = 0;
 
     // ==========================================
-    // CONSULTAR PRECIOS Y EXISTENCIAS REALES
+    // CONSULTAR PRECIOS Y STOCK
     // ==========================================
 
     for (const item of normalizedItems) {
@@ -254,7 +377,6 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `El producto ${item.product_id} ya no está disponible.`
         );
-
         error.status = 400;
         throw error;
       }
@@ -268,9 +390,8 @@ router.post('/', verifyCustomer, async (req, res) => {
         stock < 0
       ) {
         const error = new Error(
-          `Las existencias del producto ${product.name} no son válidas.`
+          `Las existencias de "${product.name}" no son válidas.`
         );
-
         error.status = 400;
         throw error;
       }
@@ -279,16 +400,14 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `No hay suficientes existencias de "${product.name}". Disponibles: ${stock}.`
         );
-
         error.status = 400;
         throw error;
       }
 
       if (!Number.isFinite(price) || price < 0) {
         const error = new Error(
-          `El producto ${product.name} tiene un precio inválido.`
+          `El producto "${product.name}" tiene un precio inválido.`
         );
-
         error.status = 400;
         throw error;
       }
@@ -304,7 +423,6 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           'El importe del pedido supera el límite permitido.'
         );
-
         error.status = 400;
         throw error;
       }
@@ -320,14 +438,24 @@ router.post('/', verifyCustomer, async (req, res) => {
     }
 
     // ==========================================
-    // CALCULAR TOTAL DESDE EL BACKEND
+    // CALCULAR TOTAL DESDE EL SERVIDOR
     // ==========================================
 
     const subtotal = subtotalCents / 100;
     const shipping = SHIPPING_COST;
-    const total = (
-      subtotalCents + SHIPPING_COST * 100
-    ) / 100;
+
+    const totalCents =
+      subtotalCents + SHIPPING_COST * 100;
+
+    if (!Number.isSafeInteger(totalCents)) {
+      const error = new Error(
+        'El total del pedido supera el límite permitido.'
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    const total = totalCents / 100;
 
     // ==========================================
     // IDENTIDAD DEL CLIENTE
@@ -337,6 +465,13 @@ router.post('/', verifyCustomer, async (req, res) => {
       req.customer.name || req.customer.email;
 
     const customerEmail = req.customer.email;
+
+    // ==========================================
+    // REFERENCIA DE PAGO SIMULADO
+    // ==========================================
+
+    const paymentReference = `SIM-${randomUUID()}`;
+    const paymentStatus = 'aprobado_simulado';
 
     // ==========================================
     // GUARDAR PEDIDO
@@ -351,9 +486,16 @@ router.post('/', verifyCustomer, async (req, res) => {
         customer_address,
         subtotal,
         shipping,
-        total
+        total,
+        payment_method,
+        payment_status,
+        payment_reference,
+        payment_card_brand
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10, $11
+      )
       RETURNING id
       `,
       [
@@ -363,14 +505,18 @@ router.post('/', verifyCustomer, async (req, res) => {
         customer_address.trim(),
         subtotal,
         shipping,
-        total
+        total,
+        payment.paymentMethod,
+        paymentStatus,
+        paymentReference,
+        payment.cardBrand
       ]
     );
 
     const orderId = orderResult.rows[0].id;
 
     // ==========================================
-    // GUARDAR LOS PRODUCTOS DEL PEDIDO
+    // GUARDAR PRODUCTOS Y DESCONTAR INVENTARIO
     // ==========================================
 
     for (const item of validatedItems) {
@@ -394,17 +540,13 @@ router.post('/', verifyCustomer, async (req, res) => {
         ]
       );
 
-      // Descontar existencias
       await client.query(
         `
         UPDATE products
         SET stock = stock - $1
         WHERE id = $2
         `,
-        [
-          item.quantity,
-          item.product_id
-        ]
+        [item.quantity, item.product_id]
       );
     }
 
@@ -416,12 +558,17 @@ router.post('/', verifyCustomer, async (req, res) => {
     transactionStarted = false;
 
     return res.status(201).json({
-      message: 'Pedido registrado exitosamente.',
+      message: 'Pago simulado aprobado y pedido registrado.',
       orderId,
       subtotal,
       shipping,
       total,
       items: validatedItems,
+      payment_method: payment.paymentMethod,
+      payment_status: paymentStatus,
+      payment_reference: paymentReference,
+      payment_card_brand: payment.cardBrand,
+      simulated: true,
       customer: {
         name: customerName,
         email: customerEmail
@@ -474,6 +621,11 @@ router.get('/', verifyCustomer, async (req, res) => {
         o.subtotal,
         o.shipping,
         o.total,
+        o.status,
+        o.payment_method,
+        o.payment_status,
+        o.payment_reference,
+        o.payment_card_brand,
         o.created_at,
 
         COALESCE(
@@ -497,9 +649,7 @@ router.get('/', verifyCustomer, async (req, res) => {
         ) AS items
 
       FROM orders o
-
       WHERE LOWER(o.customer_email) = LOWER($1)
-
       ORDER BY o.created_at DESC, o.id DESC
       `,
       [req.customer.email]
@@ -508,10 +658,7 @@ router.get('/', verifyCustomer, async (req, res) => {
     return res.status(200).json(result.rows);
 
   } catch (error) {
-    console.error(
-      'Error consultando pedidos:',
-      error
-    );
+    console.error('Error consultando pedidos:', error);
 
     return res.status(500).json({
       message: 'No se pudieron consultar los pedidos.'

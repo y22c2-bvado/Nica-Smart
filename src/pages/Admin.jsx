@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import {
   FiMenu,
   FiRefreshCw,
@@ -13,7 +15,9 @@ import {
   FiSearch,
   FiLock,
   FiUnlock,
-  FiArrowLeft
+  FiArrowLeft,
+  FiExternalLink,
+  FiClock
 } from 'react-icons/fi'
 
 import AdminSidebar from '../components/AdminSidebar'
@@ -32,15 +36,53 @@ const money = (value) =>
     maximumFractionDigits: 2
   })}`
 
+const getProductCreatedAt = (product) => {
+  const raw = product.created_at ?? product.createdAt
+  if (!raw) return null
+
+  const time = Date.parse(raw)
+  return Number.isFinite(time) ? time : null
+}
+
+const formatDate = (value) => {
+  if (!value) return 'Sin fecha registrada'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Fecha no disponible'
+  }
+
+  return new Intl.DateTimeFormat('es-NI', {
+    timeZone: 'America/Managua',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date)
+}
+
+const getProductImage = (product) => {
+  const raw =
+    product.image_url ||
+    product.image ||
+    product.images?.[0]?.url ||
+    product.images?.[0] ||
+    null
+
+  return typeof raw === 'string' ? raw : null
+}
+
 function Admin() {
   const navigate = useNavigate()
 
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState(null)
   const [orders, setOrders] = useState([])
+
   const [updatingOrderId, setUpdatingOrderId] = useState(null)
 
   const [loading, setLoading] = useState(true)
@@ -51,6 +93,8 @@ function Admin() {
   const [search, setSearch] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
 
+  const [recentLimit, setRecentLimit] = useState(5)
+
   const storedUser = (() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null')
@@ -59,48 +103,52 @@ function Admin() {
     }
   })()
 
-  const isAdmin = storedUser?.role?.toUpperCase() === 'ADMIN'
+  const isAdmin =
+    String(storedUser?.role || '').toUpperCase() === 'ADMIN'
 
   // ==========================================
   // PETICIONES PROTEGIDAS
   // ==========================================
 
-  const adminRequest = useCallback(async (endpoint, options = {}) => {
-    const token = localStorage.getItem('token')
+  const adminRequest = useCallback(
+    async (endpoint, options = {}) => {
+      const token = localStorage.getItem('token')
 
-    if (!token) {
-      throw new Error('Debes iniciar sesión.')
-    }
-
-    const response = await fetch(
-      `${API_URL}/api/admin${endpoint}`,
-      {
-        ...options,
-        headers: {
-          ...(options.body
-            ? { 'Content-Type': 'application/json' }
-            : {}),
-          Authorization: `Bearer ${token}`,
-          ...options.headers
-        }
+      if (!token) {
+        throw new Error('Debes iniciar sesión.')
       }
-    )
 
-    const data = await response.json().catch(() => ({}))
-
-    if (!response.ok) {
-      throw new Error(
-        data.message ||
-        data.error ||
-        `Error del servidor (${response.status})`
+      const response = await fetch(
+        `${API_URL}/api/admin${endpoint}`,
+        {
+          ...options,
+          headers: {
+            ...(options.body
+              ? { 'Content-Type': 'application/json' }
+              : {}),
+            Authorization: `Bearer ${token}`,
+            ...options.headers
+          }
+        }
       )
-    }
 
-    return data
-  }, [])
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          data.error ||
+          `Error del servidor (${response.status})`
+        )
+      }
+
+      return data
+    },
+    []
+  )
 
   // ==========================================
-  // CARGAR INFORMACIÓN REAL
+  // CARGAR DATOS
   // ==========================================
 
   const loadData = useCallback(async () => {
@@ -108,20 +156,39 @@ function Admin() {
     setError('')
 
     try {
-      const [productData, userData, statsData, orderData] = await Promise.all([
+      const [
+        productData,
+        userData,
+        statsData,
+        orderData
+      ] = await Promise.all([
         adminRequest('/products'),
         adminRequest('/users'),
         adminRequest('/stats'),
         adminRequest('/orders')
       ])
 
-      setProducts(Array.isArray(productData) ? productData : [])
-      setUsers(Array.isArray(userData) ? userData : [])
-      setStats(statsData)
-      setOrders(Array.isArray(orderData) ? orderData : [])
+      setProducts(
+        Array.isArray(productData) ? productData : []
+      )
 
+      setUsers(
+        Array.isArray(userData) ? userData : []
+      )
+
+      setStats(statsData)
+
+      setOrders(
+        Array.isArray(orderData) ? orderData : []
+      )
+
+      return true
     } catch (err) {
-      setError(err.message || 'No se pudo cargar el panel.')
+      setError(
+        err.message || 'No se pudo cargar el panel.'
+      )
+
+      return false
     } finally {
       setLoading(false)
     }
@@ -136,12 +203,47 @@ function Admin() {
   }, [isAdmin, loadData])
 
   // ==========================================
+  // PRODUCTOS RECIÉN AGREGADOS
+  // ==========================================
+
+  const sortedNewProducts = useMemo(() => {
+    return [...products]
+      .filter((product) =>
+        getProductCreatedAt(product) !== null
+      )
+      .sort((a, b) =>
+        getProductCreatedAt(b) -
+        getProductCreatedAt(a)
+      )
+  }, [products])
+
+  const recentProducts = useMemo(() => {
+    return sortedNewProducts.slice(0, recentLimit)
+  }, [sortedNewProducts, recentLimit])
+
+  const newProductsLast30Days = useMemo(() => {
+    const now = Date.now()
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000
+
+    return sortedNewProducts.filter((product) => {
+      const created = getProductCreatedAt(product)
+
+      return (
+        created !== null &&
+        created <= now &&
+        now - created <= thirtyDays
+      )
+    })
+  }, [sortedNewProducts])
+
+  // ==========================================
   // CAMBIAR SECCIÓN
   // ==========================================
 
   const changeSection = (section) => {
     setActiveSection(section)
     setSidebarOpen(false)
+    setSearch('')
     setError('')
     setNotice('')
 
@@ -165,17 +267,21 @@ function Admin() {
   }
 
   // ==========================================
-  // CREAR O EDITAR PRODUCTO
+  // AGREGAR O EDITAR PRODUCTO
   // ==========================================
 
   const handleSaveProduct = async (formData) => {
+    if (saving) return
+
     setSaving(true)
     setError('')
     setNotice('')
 
-    try {
-      const isEditing = Boolean(editingProduct)
+    const isEditing = Boolean(editingProduct)
 
+    try {
+      // El producto se guarda en PostgreSQL
+      // mediante la API de administración.
       await adminRequest(
         isEditing
           ? `/products/${editingProduct.id}`
@@ -186,25 +292,27 @@ function Admin() {
         }
       )
 
-      setNotice(
-        isEditing
-          ? 'Producto actualizado correctamente.'
-          : 'Producto agregado correctamente.'
-      )
-
       setEditingProduct(null)
       setActiveSection('products')
 
-      await loadData()
+      // Actualizar la información del panel.
+      const refreshed = await loadData()
 
-      setNotice(
-        isEditing
-          ? 'Producto actualizado correctamente.'
-          : 'Producto agregado correctamente.'
-      )
-
+      if (refreshed) {
+        setNotice(
+          isEditing
+            ? 'Producto actualizado correctamente.'
+            : 'Producto agregado correctamente. Estará disponible en Nuevos ingresos si la API pública lo devuelve con su fecha de creación.'
+        )
+      } else {
+        setNotice(
+          'Producto guardado, pero no se pudo actualizar el panel. Utiliza el botón Actualizar.'
+        )
+      }
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el producto.')
+      setError(
+        err.message || 'No se pudo guardar el producto.'
+      )
     } finally {
       setSaving(false)
     }
@@ -229,11 +337,15 @@ function Admin() {
         method: 'DELETE'
       })
 
-      await loadData()
-      setNotice('Producto eliminado correctamente.')
+      const refreshed = await loadData()
 
+      if (refreshed) {
+        setNotice('Producto eliminado correctamente.')
+      }
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar el producto.')
+      setError(
+        err.message || 'No se pudo eliminar el producto.'
+      )
     }
   }
 
@@ -267,38 +379,50 @@ function Admin() {
       setError('')
       setNotice('')
 
-      await adminRequest(`/users/${user.id}/block`, {
-        method: 'PATCH',
-        body: JSON.stringify({ blocked })
-      })
-
-      await loadData()
-
-      setNotice(
-        blocked
-          ? 'Usuario bloqueado correctamente.'
-          : 'Usuario desbloqueado correctamente.'
+      await adminRequest(
+        `/users/${user.id}/block`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ blocked })
+        }
       )
 
+      const refreshed = await loadData()
+
+      if (refreshed) {
+        setNotice(
+          blocked
+            ? 'Usuario bloqueado correctamente.'
+            : 'Usuario desbloqueado correctamente.'
+        )
+      }
     } catch (err) {
-      setError(err.message || 'No se pudo actualizar la cuenta.')
+      setError(
+        err.message || 'No se pudo actualizar la cuenta.'
+      )
     }
   }
 
   // ==========================================
-  // ACTUALIZAR ESTADO DE UN PEDIDO
+  // ACTUALIZAR ESTADO DE PEDIDO
   // ==========================================
 
-  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+  const handleUpdateOrderStatus = async (
+    orderId,
+    newStatus
+  ) => {
     try {
       setUpdatingOrderId(orderId)
       setError('')
       setNotice('')
 
-      await adminRequest(`/orders/${orderId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: newStatus })
-      })
+      await adminRequest(
+        `/orders/${orderId}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: newStatus })
+        }
+      )
 
       setOrders((prev) =>
         prev.map((order) =>
@@ -308,10 +432,14 @@ function Admin() {
         )
       )
 
-      setNotice('Estado del pedido actualizado correctamente.')
-
+      setNotice(
+        'Estado del pedido actualizado correctamente.'
+      )
     } catch (err) {
-      setError(err.message || 'No se pudo actualizar el estado del pedido.')
+      setError(
+        err.message ||
+        'No se pudo actualizar el estado del pedido.'
+      )
     } finally {
       setUpdatingOrderId(null)
     }
@@ -336,28 +464,34 @@ function Admin() {
         method: 'DELETE'
       })
 
-      await loadData()
-      setNotice('Usuario eliminado correctamente.')
+      const refreshed = await loadData()
 
+      if (refreshed) {
+        setNotice('Usuario eliminado correctamente.')
+      }
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar el usuario.')
+      setError(
+        err.message || 'No se pudo eliminar el usuario.'
+      )
     }
   }
 
   // ==========================================
-  // FILTRAR PRODUCTOS Y USUARIOS
+  // FILTROS
   // ==========================================
 
-  const filteredProducts = products.filter((product) =>
-    String(product.name || '')
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const filteredProducts = products.filter(
+    (product) =>
+      String(product.name || '')
+        .toLowerCase()
+        .includes(search.toLowerCase())
   )
 
-  const filteredUsers = users.filter((user) =>
-    `${user.name || ''} ${user.email || ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      `${user.name || ''} ${user.email || ''}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
   )
 
   const lowStockProducts = products.filter(
@@ -367,14 +501,16 @@ function Admin() {
   const sectionTitles = {
     dashboard: 'Panel principal',
     products: 'Gestión de productos',
-    'add-product': editingProduct ? 'Editar producto' : 'Nuevo producto',
+    'add-product': editingProduct
+      ? 'Editar producto'
+      : 'Nuevo producto',
     inventory: 'Inventario',
     users: 'Gestión de usuarios',
     orders: 'Pedidos'
   }
 
   // ==========================================
-  // PROTECCIÓN VISUAL
+  // ACCESO RESTRINGIDO
   // ==========================================
 
   if (!isAdmin) {
@@ -382,11 +518,12 @@ function Admin() {
       <main className="admin-access-page">
         <div className="admin-access-card">
           <FiLock size={42} />
+
           <h1>Acceso restringido</h1>
 
           <p>
-            Necesitas una cuenta de administrador para
-            acceder a este panel.
+            Necesitas una cuenta de administrador
+            para acceder a este panel.
           </p>
 
           <button
@@ -403,7 +540,6 @@ function Admin() {
 
   return (
     <div className="adm-layout">
-
       <AdminSidebar
         activeSection={activeSection}
         onSectionChange={changeSection}
@@ -414,14 +550,9 @@ function Admin() {
 
       <main className="adm-main">
 
-        {/* ==================================
-            ENCABEZADO
-        ================================== */}
-
+        {/* ENCABEZADO */}
         <header className="adm-header">
-
           <div className="adm-header-left">
-
             <button
               type="button"
               className="adm-menu-toggle"
@@ -437,14 +568,14 @@ function Admin() {
               </span>
 
               <h1>
-                {sectionTitles[activeSection] || 'Administración'}
+                {sectionTitles[activeSection] ||
+                  'Administración'}
               </h1>
 
               <p>
                 Gestiona tu tienda de forma sencilla y segura.
               </p>
             </div>
-
           </div>
 
           <button
@@ -456,18 +587,24 @@ function Admin() {
             <FiRefreshCw />
             Actualizar
           </button>
-
         </header>
 
+        {/* MENSAJES */}
         {error && (
-          <div className="adm-alert adm-alert-error" role="alert">
+          <div
+            className="adm-alert adm-alert-error"
+            role="alert"
+          >
             <FiAlertTriangle />
             <span>{error}</span>
           </div>
         )}
 
         {notice && (
-          <div className="adm-alert adm-alert-success" role="status">
+          <div
+            className="adm-alert adm-alert-success"
+            role="status"
+          >
             {notice}
           </div>
         )}
@@ -479,7 +616,6 @@ function Admin() {
         )}
 
         {!loading && (
-
           <div className="adm-content">
 
             {/* ==================================
@@ -489,16 +625,18 @@ function Admin() {
             {activeSection === 'dashboard' && (
               <>
                 <section className="adm-stats">
-
                   <div className="adm-stat-card">
                     <div className="adm-stat-icon blue">
                       <FiPackage />
                     </div>
                     <span>Productos</span>
                     <strong>
-                      {stats?.products?.total ?? products.length}
+                      {stats?.products?.total ??
+                        products.length}
                     </strong>
-                    <small>Registrados en el catálogo</small>
+                    <small>
+                      Registrados en el catálogo
+                    </small>
                   </div>
 
                   <div className="adm-stat-card">
@@ -510,7 +648,9 @@ function Admin() {
                       {stats?.products?.low_stock ??
                         lowStockProducts.length}
                     </strong>
-                    <small>Productos con 5 unidades o menos</small>
+                    <small>
+                      Productos con 5 unidades o menos
+                    </small>
                   </div>
 
                   <div className="adm-stat-card">
@@ -519,9 +659,12 @@ function Admin() {
                     </div>
                     <span>Usuarios registrados</span>
                     <strong>
-                      {stats?.users?.total ?? users.length}
+                      {stats?.users?.total ??
+                        users.length}
                     </strong>
-                    <small>Clientes con cuenta tradicional</small>
+                    <small>
+                      Clientes con cuenta tradicional
+                    </small>
                   </div>
 
                   <div className="adm-stat-card">
@@ -530,27 +673,30 @@ function Admin() {
                     </div>
                     <span>Pedidos</span>
                     <strong>
-                      {stats?.orders?.total ?? orders.length}
+                      {stats?.orders?.total ??
+                        orders.length}
                     </strong>
                     <small>Pedidos registrados</small>
                   </div>
-
                 </section>
 
+                {/* ACCIONES RÁPIDAS */}
                 <section className="adm-panel">
-
                   <div className="adm-panel-heading">
                     <div>
                       <h2>Acciones rápidas</h2>
-                      <p>Accede a las operaciones frecuentes.</p>
+                      <p>
+                        Accede a las operaciones frecuentes.
+                      </p>
                     </div>
                   </div>
 
                   <div className="adm-quick-grid">
-
                     <button
                       type="button"
-                      onClick={() => changeSection('add-product')}
+                      onClick={() =>
+                        changeSection('add-product')
+                      }
                     >
                       <FiPlus />
                       <span>Agregar producto</span>
@@ -558,7 +704,9 @@ function Admin() {
 
                     <button
                       type="button"
-                      onClick={() => changeSection('products')}
+                      onClick={() =>
+                        changeSection('products')
+                      }
                     >
                       <FiPackage />
                       <span>Gestionar productos</span>
@@ -566,7 +714,9 @@ function Admin() {
 
                     <button
                       type="button"
-                      onClick={() => changeSection('inventory')}
+                      onClick={() =>
+                        changeSection('inventory')
+                      }
                     >
                       <FiAlertTriangle />
                       <span>Ver inventario</span>
@@ -574,22 +724,181 @@ function Admin() {
 
                     <button
                       type="button"
-                      onClick={() => changeSection('users')}
+                      onClick={() =>
+                        changeSection('users')
+                      }
                     >
                       <FiUsers />
                       <span>Administrar usuarios</span>
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate('/new')
+                      }
+                    >
+                      <FiExternalLink />
+                      <span>Ver Nuevos ingresos</span>
+                    </button>
                   </div>
-
                 </section>
 
+                {/* NUEVOS PRODUCTOS */}
                 <section className="adm-panel">
+                  <div className="adm-panel-heading">
+                    <div>
+                      <h2>
+                        <FiClock
+                          style={{
+                            verticalAlign: 'middle',
+                            marginRight: 8
+                          }}
+                        />
+                        Últimos productos agregados
+                      </h2>
 
+                      <p>
+                        Productos ordenados por su fecha
+                        de registro en PostgreSQL.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-primary"
+                      onClick={() => navigate('/new')}
+                    >
+                      <FiExternalLink />
+                      Ver tienda
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: 14,
+                      marginBottom: 18
+                    }}
+                  >
+                    <strong>
+                      Nuevos en los últimos 30 días: {
+                        newProductsLast30Days.length
+                      }
+                    </strong>
+
+                    <label>
+                      Mostrar:{' '}
+                      <select
+                        value={recentLimit}
+                        onChange={(e) =>
+                          setRecentLimit(Number(e.target.value))
+                        }
+                      >
+                        <option value={5}>
+                          Últimos 5
+                        </option>
+                        <option value={10}>
+                          Últimos 10
+                        </option>
+                        <option value={20}>
+                          Últimos 20
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {recentProducts.length === 0 ? (
+                    <p className="adm-empty">
+                      No hay productos con fecha de
+                      creación disponible. Comprueba
+                      que la API incluya created_at.
+                    </p>
+                  ) : (
+                    <div className="adm-table-wrap">
+                      <table className="adm-table">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Fecha de registro</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {recentProducts.map((product) => {
+                            const image =
+                              getProductImage(product)
+
+                            return (
+                              <tr key={product.id}>
+                                <td>
+                                  <div className="adm-product-cell">
+                                    <div className="adm-product-image">
+                                      {image ? (
+                                        <img
+                                          src={image}
+                                          alt={product.name}
+                                        />
+                                      ) : (
+                                        <FiPackage />
+                                      )}
+                                    </div>
+
+                                    <div>
+                                      <strong>
+                                        {product.name}
+                                      </strong>
+                                      <small>
+                                        Producto #{product.id}
+                                      </small>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  {money(product.price)}
+                                </td>
+
+                                <td>
+                                  {formatDate(
+                                    product.created_at ??
+                                    product.createdAt
+                                  )}
+                                </td>
+
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="adm-btn adm-btn-outline"
+                                    onClick={() =>
+                                      handleEditProduct(product)
+                                    }
+                                  >
+                                    <FiEdit2 />
+                                    Editar
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+
+                {/* INVENTARIO BAJO */}
+                <section className="adm-panel">
                   <div className="adm-panel-heading">
                     <div>
                       <h2>Productos con bajo stock</h2>
-                      <p>Artículos que requieren atención.</p>
+                      <p>
+                        Artículos que requieren atención.
+                      </p>
                     </div>
                   </div>
 
@@ -623,9 +932,12 @@ function Admin() {
                                 <button
                                   type="button"
                                   className="adm-btn adm-btn-outline"
-                                  onClick={() => handleEditProduct(product)}
+                                  onClick={() =>
+                                    handleEditProduct(product)
+                                  }
                                 >
-                                  <FiEdit2 /> Editar
+                                  <FiEdit2 />
+                                  Editar
                                 </button>
                               </td>
                             </tr>
@@ -634,30 +946,31 @@ function Admin() {
                       </table>
                     </div>
                   )}
-
                 </section>
               </>
             )}
 
             {/* ==================================
-                PRODUCTOS
+                GESTIÓN DE PRODUCTOS
             ================================== */}
 
             {activeSection === 'products' && (
               <section className="adm-panel">
-
                 <div className="adm-panel-heading">
                   <div>
                     <h2>Catálogo de productos</h2>
                     <p>
-                      Modifica nombres, imágenes, precios y descripciones.
+                      Gestiona nombres, precios,
+                      imágenes y descripciones.
                     </p>
                   </div>
 
                   <button
                     type="button"
                     className="adm-btn adm-btn-primary"
-                    onClick={() => changeSection('add-product')}
+                    onClick={() =>
+                      changeSection('add-product')
+                    }
                   >
                     <FiPlus />
                     Nuevo producto
@@ -666,11 +979,14 @@ function Admin() {
 
                 <div className="adm-search">
                   <FiSearch />
+
                   <input
                     type="search"
                     placeholder="Buscar producto..."
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(e) =>
+                      setSearch(e.target.value)
+                    }
                   />
                 </div>
 
@@ -681,74 +997,93 @@ function Admin() {
                         <th>Producto</th>
                         <th>Precio</th>
                         <th>Stock</th>
+                        <th>Fecha de creación</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      {filteredProducts.map((product) => (
-                        <tr key={product.id}>
+                      {filteredProducts.map((product) => {
+                        const image =
+                          getProductImage(product)
 
-                          <td>
-                            <div className="adm-product-cell">
-                              <div className="adm-product-image">
-                                {product.image ? (
-                                  <img
-                                    src={product.image}
-                                    alt={product.name}
-                                  />
-                                ) : (
-                                  <FiPackage />
-                                )}
+                        return (
+                          <tr key={product.id}>
+                            <td>
+                              <div className="adm-product-cell">
+                                <div className="adm-product-image">
+                                  {image ? (
+                                    <img
+                                      src={image}
+                                      alt={product.name}
+                                    />
+                                  ) : (
+                                    <FiPackage />
+                                  )}
+                                </div>
+
+                                <div>
+                                  <strong>
+                                    {product.name}
+                                  </strong>
+                                  <small>
+                                    Producto #{product.id}
+                                  </small>
+                                </div>
                               </div>
+                            </td>
 
-                              <div>
-                                <strong>{product.name}</strong>
-                                <small>Producto #{product.id}</small>
+                            <td>
+                              {money(product.price)}
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  Number(product.stock) <= 5
+                                    ? 'adm-stock-low'
+                                    : 'adm-stock-ok'
+                                }
+                              >
+                                {product.stock} disponibles
+                              </span>
+                            </td>
+
+                            <td>
+                              {formatDate(
+                                product.created_at ??
+                                product.createdAt
+                              )}
+                            </td>
+
+                            <td>
+                              <div className="adm-row-actions">
+                                <button
+                                  type="button"
+                                  className="adm-icon-button"
+                                  onClick={() =>
+                                    handleEditProduct(product)
+                                  }
+                                  title="Editar"
+                                >
+                                  <FiEdit2 />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="adm-icon-button danger"
+                                  onClick={() =>
+                                    handleDeleteProduct(product)
+                                  }
+                                  title="Eliminar"
+                                >
+                                  <FiTrash2 />
+                                </button>
                               </div>
-                            </div>
-                          </td>
-
-                          <td>{money(product.price)}</td>
-
-                          <td>
-                            <span
-                              className={
-                                Number(product.stock) <= 5
-                                  ? 'adm-stock-low'
-                                  : 'adm-stock-ok'
-                              }
-                            >
-                              {product.stock} disponibles
-                            </span>
-                          </td>
-
-                          <td>
-                            <div className="adm-row-actions">
-                              <button
-                                type="button"
-                                className="adm-icon-button"
-                                onClick={() => handleEditProduct(product)}
-                                aria-label={`Editar ${product.name}`}
-                                title="Editar producto"
-                              >
-                                <FiEdit2 />
-                              </button>
-
-                              <button
-                                type="button"
-                                className="adm-icon-button danger"
-                                onClick={() => handleDeleteProduct(product)}
-                                aria-label={`Eliminar ${product.name}`}
-                                title="Eliminar producto"
-                              >
-                                <FiTrash2 />
-                              </button>
-                            </div>
-                          </td>
-
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -758,17 +1093,15 @@ function Admin() {
                     No se encontraron productos.
                   </p>
                 )}
-
               </section>
             )}
 
             {/* ==================================
-                NUEVO PRODUCTO / EDITAR
+                AGREGAR O EDITAR PRODUCTO
             ================================== */}
 
             {activeSection === 'add-product' && (
               <section className="adm-panel">
-
                 <div className="adm-panel-heading">
                   <div>
                     <h2>
@@ -778,14 +1111,18 @@ function Admin() {
                     </h2>
 
                     <p>
-                      Los cambios se guardarán en PostgreSQL.
+                      El producto se guardará en PostgreSQL.
+                      Para aparecer en Nuevos ingresos,
+                      debe tener fecha de creación.
                     </p>
                   </div>
 
                   <button
                     type="button"
                     className="adm-btn adm-btn-outline"
-                    onClick={() => changeSection('products')}
+                    onClick={() =>
+                      changeSection('products')
+                    }
                   >
                     <FiArrowLeft />
                     Volver
@@ -795,10 +1132,11 @@ function Admin() {
                 <ProductForm
                   product={editingProduct}
                   onSubmit={handleSaveProduct}
-                  onCancel={() => changeSection('products')}
+                  onCancel={() =>
+                    changeSection('products')
+                  }
                   loading={saving}
                 />
-
               </section>
             )}
 
@@ -808,12 +1146,11 @@ function Admin() {
 
             {activeSection === 'inventory' && (
               <section className="adm-panel">
-
                 <div className="adm-panel-heading">
                   <div>
                     <h2>Control de inventario</h2>
                     <p>
-                      Consulta y ajusta las existencias disponibles.
+                      Consulta y ajusta las existencias.
                     </p>
                   </div>
                 </div>
@@ -855,7 +1192,9 @@ function Admin() {
                             <button
                               type="button"
                               className="adm-btn adm-btn-outline"
-                              onClick={() => handleEditProduct(product)}
+                              onClick={() =>
+                                handleEditProduct(product)
+                              }
                             >
                               <FiEdit2 />
                               Actualizar
@@ -866,7 +1205,6 @@ function Admin() {
                     </tbody>
                   </table>
                 </div>
-
               </section>
             )}
 
@@ -876,12 +1214,11 @@ function Admin() {
 
             {activeSection === 'users' && (
               <section className="adm-panel">
-
                 <div className="adm-panel-heading">
                   <div>
                     <h2>Usuarios registrados</h2>
                     <p>
-                      Gestiona las cuentas locales de clientes.
+                      Gestiona las cuentas de clientes.
                     </p>
                   </div>
                 </div>
@@ -893,7 +1230,9 @@ function Admin() {
                     type="search"
                     placeholder="Buscar por nombre o correo..."
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(e) =>
+                      setSearch(e.target.value)
+                    }
                   />
                 </div>
 
@@ -911,11 +1250,11 @@ function Admin() {
                     <tbody>
                       {filteredUsers.map((user) => {
                         const isProtected =
-                          user.role?.toUpperCase() === 'ADMIN'
+                          String(user.role || '')
+                            .toUpperCase() === 'ADMIN'
 
                         return (
                           <tr key={user.id}>
-
                             <td>
                               <div className="adm-user-cell">
                                 <div className="adm-avatar">
@@ -925,8 +1264,12 @@ function Admin() {
                                 </div>
 
                                 <div>
-                                  <strong>{user.name}</strong>
-                                  <small>{user.email}</small>
+                                  <strong>
+                                    {user.name}
+                                  </strong>
+                                  <small>
+                                    {user.email}
+                                  </small>
                                 </div>
                               </div>
                             </td>
@@ -949,21 +1292,17 @@ function Admin() {
 
                             <td>
                               <div className="adm-row-actions">
-
                                 <button
                                   type="button"
                                   className="adm-icon-button"
                                   disabled={isProtected}
-                                  onClick={() => handleBlockUser(user)}
+                                  onClick={() =>
+                                    handleBlockUser(user)
+                                  }
                                   title={
                                     user.is_blocked
                                       ? 'Desbloquear'
                                       : 'Bloquear'
-                                  }
-                                  aria-label={
-                                    user.is_blocked
-                                      ? `Desbloquear a ${user.name}`
-                                      : `Bloquear a ${user.name}`
                                   }
                                 >
                                   {user.is_blocked
@@ -975,16 +1314,15 @@ function Admin() {
                                   type="button"
                                   className="adm-icon-button danger"
                                   disabled={isProtected}
-                                  onClick={() => handleDeleteUser(user)}
+                                  onClick={() =>
+                                    handleDeleteUser(user)
+                                  }
                                   title="Eliminar usuario"
-                                  aria-label={`Eliminar a ${user.name}`}
                                 >
                                   <FiTrash2 />
                                 </button>
-
                               </div>
                             </td>
-
                           </tr>
                         )
                       })}
@@ -1001,10 +1339,9 @@ function Admin() {
                 <p className="adm-help">
                   Las cuentas de Google se almacenan en
                   google_users y todavía no aparecen aquí.
-                  Los bloqueos requieren controles adicionales
-                  en login y compras para ser efectivos.
+                  Los bloqueos requieren controles
+                  adicionales en login y compras.
                 </p>
-
               </section>
             )}
 
@@ -1014,7 +1351,6 @@ function Admin() {
 
             {activeSection === 'orders' && (
               <section className="adm-panel">
-
                 <div className="adm-panel-heading">
                   <div>
                     <h2>Gestión de pedidos</h2>
@@ -1031,7 +1367,7 @@ function Admin() {
                     <h3>No hay pedidos registrados</h3>
 
                     <p>
-                      Cuando los clientes realicen compras,
+                      Cuando los clientes compren,
                       aparecerán aquí automáticamente.
                     </p>
                   </div>
@@ -1060,85 +1396,108 @@ function Admin() {
                             <td>
                               <div className="adm-user-cell">
                                 <div className="adm-avatar">
-                                  {String(order.customer_name || '?')
+                                  {String(
+                                    order.customer_name || '?'
+                                  )
                                     .charAt(0)
                                     .toUpperCase()}
                                 </div>
 
                                 <div>
-                                  <strong>{order.customer_name}</strong>
-                                  <small>{order.customer_email}</small>
+                                  <strong>
+                                    {order.customer_name}
+                                  </strong>
+
+                                  <small>
+                                    {order.customer_email}
+                                  </small>
                                 </div>
                               </div>
                             </td>
 
                             <td>
-                              <div style={{ fontSize: '13px', lineHeight: 1.4 }}>
-                                <div>{order.customer_phone || '—'}</div>
-                                <small style={{ color: '#888' }}>
-                                  {order.customer_address || 'Sin dirección'}
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  lineHeight: 1.4
+                                }}
+                              >
+                                <div>
+                                  {order.customer_phone || '—'}
+                                </div>
+
+                                <small>
+                                  {order.customer_address ||
+                                    'Sin dirección'}
                                 </small>
                               </div>
                             </td>
 
                             <td>
-                              {new Date(order.created_at).toLocaleDateString('es-NI', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric'
-                              })}
+                              {formatDate(order.created_at)}
                             </td>
 
                             <td>
                               <ul
                                 style={{
                                   margin: 0,
-                                  paddingLeft: '18px',
-                                  fontSize: '13px',
+                                  paddingLeft: 18,
+                                  fontSize: 13,
                                   lineHeight: 1.6
                                 }}
                               >
-                                {(order.items || []).map((item, index) => (
-                                  <li key={index}>
-                                    {item.quantity}× {item.product_name}
-                                  </li>
-                                ))}
+                                {(order.items || []).map(
+                                  (item, index) => (
+                                    <li key={index}>
+                                      {item.quantity}×{' '}
+                                      {item.product_name}
+                                    </li>
+                                  )
+                                )}
                               </ul>
                             </td>
 
                             <td>
-                              <strong style={{ color: '#4ade80' }}>
+                              <strong>
                                 {money(order.total)}
                               </strong>
                             </td>
 
                             <td>
                               <select
-                                value={order.status || 'pendiente'}
-                                onChange={(e) =>
-                                  handleUpdateOrderStatus(order.id, e.target.value)
+                                value={
+                                  order.status || 'pendiente'
                                 }
-                                disabled={updatingOrderId === order.id}
+                                onChange={(e) =>
+                                  handleUpdateOrderStatus(
+                                    order.id,
+                                    e.target.value
+                                  )
+                                }
+                                disabled={
+                                  updatingOrderId === order.id
+                                }
                                 style={{
                                   padding: '6px 10px',
-                                  borderRadius: '6px',
+                                  borderRadius: 6,
                                   border: '1px solid #444',
-                                  background:
-                                    order.status === 'pendiente' ? '#78350f' :
-                                    order.status === 'enviado' ? '#1e3a8a' :
-                                    order.status === 'entregado' ? '#14532d' :
-                                    '#7f1d1d',
+                                  background: '#1e3a8a',
                                   color: '#fff',
-                                  cursor: updatingOrderId === order.id
-                                    ? 'wait'
-                                    : 'pointer',
-                                  fontSize: '13px'
+                                  fontSize: 13
                                 }}
                               >
-                                <option value="pendiente">Pendiente</option>
-                                <option value="enviado">Enviado</option>
-                                <option value="entregado">Entregado</option>
-                                <option value="cancelado">Cancelado</option>
+                                <option value="pendiente">
+                                  Pendiente
+                                </option>
+                                <option value="enviado">
+                                  Enviado
+                                </option>
+                                <option value="entregado">
+                                  Entregado
+                                </option>
+                                <option value="cancelado">
+                                  Cancelado
+                                </option>
                               </select>
                             </td>
                           </tr>
@@ -1147,13 +1506,11 @@ function Admin() {
                     </table>
                   </div>
                 )}
-
               </section>
             )}
 
           </div>
         )}
-
       </main>
     </div>
   )
