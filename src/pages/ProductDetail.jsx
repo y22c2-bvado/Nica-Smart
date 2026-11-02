@@ -146,13 +146,34 @@ function ProductDetail() {
 
         <section className="product-detail-info">
 
-          <p className="detail-category">
-            {product.category}
-          </p>
+          {/* MOSTRAR MARCA Y CATEGORÍA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+            {product.brand && (
+              <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0755d7', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {product.brand}
+              </span>
+            )}
+            
+            <p className="detail-category" style={{ margin: 0 }}>
+              {product.category}
+            </p>
+          </div>
 
           <h1>
             {product.name}
           </h1>
+
+          {/* ENLACE A LA PÁGINA DE LA MARCA */}
+          {product.brand_url && (
+            <a 
+              href={product.brand_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ display: 'inline-block', fontSize: '13px', color: '#0755d7', textDecoration: 'underline', marginBottom: '15px' }}
+            >
+              Visitar sitio web de {product.brand || 'la marca'} ↗
+            </a>
+          )}
 
           <div className="detail-rating">
             ★★★★★

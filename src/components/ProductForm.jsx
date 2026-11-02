@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { FiImage, FiSave, FiX, FiUploadCloud, FiTrash2 } from 'react-icons/fi'
 
-// Se elimina 'image' de aquí porque ahora manejamos archivos
 const emptyForm = {
   name: '',
   category: '',
   description: '',
   price: '',
   original_price: '',
-  stock: ''
+  stock: '',
+  brand: '',
+  brand_url: ''
 }
 
 function ProductForm({
@@ -36,7 +37,9 @@ function ProductForm({
           product.original_price != null
             ? String(product.original_price)
             : '',
-        stock: String(product.stock ?? '')
+        stock: String(product.stock ?? ''),
+        brand: product.brand || '',
+        brand_url: product.brand_url || ''
       })
       
       // Cargar imágenes existentes si estamos editando
@@ -53,10 +56,11 @@ function ProductForm({
     setError('')
   }, [product])
 
-  const updateField = (field, value) => {
+  const updateField = (event) => {
+    const { name, value } = event.target;
     setForm((previous) => ({
       ...previous,
-      [field]: value
+      [name]: value
     }))
     setError('')
   }
@@ -107,6 +111,8 @@ function ProductForm({
 
     const name = form.name.trim()
     const category = form.category.trim()
+    const brand = form.brand.trim()
+    const brand_url = form.brand_url.trim()
     const description = form.description.trim()
     const price = Number(form.price)
     const stock = Number(form.stock)
@@ -118,6 +124,11 @@ function ProductForm({
 
     if (category.length > 100) {
       setError('La categoría no puede superar 100 caracteres.')
+      return
+    }
+
+    if (brand.length > 120) {
+      setError('La marca no puede superar 120 caracteres.')
       return
     }
 
@@ -171,13 +182,15 @@ function ProductForm({
       return
     }
 
-    // CONSTRUIR FORMDATA PARA ENVIAR IMÁGENES
+    // CONSTRUIR FORMDATA PARA ENVIAR IMÁGENES Y MARCA
     const formData = new FormData()
     formData.append('name', name)
     formData.append('category', category)
     formData.append('description', description)
     formData.append('price', price)
     formData.append('stock', stock)
+    formData.append('brand', brand)
+    formData.append('brand_url', brand_url)
     
     if (original_price !== null) {
       formData.append('original_price', original_price)
@@ -207,14 +220,47 @@ function ProductForm({
           <input
             id="adm-name"
             type="text"
+            name="name"
             placeholder="Ej. Audífonos inalámbricos"
             value={form.name}
-            onChange={(event) =>
-              updateField('name', event.target.value)
-            }
+            onChange={updateField}
             maxLength={150}
             required
           />
+        </div>
+
+        <div className="adm-form-two-columns">
+          <div className="adm-field">
+            <label htmlFor="adm-brand">
+              Marca del producto
+            </label>
+            <input
+              id="adm-brand"
+              type="text"
+              name="brand"
+              placeholder="Ej. MSI, Logitech, Razer"
+              value={form.brand}
+              onChange={updateField}
+              maxLength={120}
+            />
+          </div>
+
+          <div className="adm-field">
+            <label htmlFor="adm-brand-url">
+              Página web de la marca
+            </label>
+            <input
+              id="adm-brand-url"
+              type="url"
+              name="brand_url"
+              placeholder="https://www.msi.com"
+              value={form.brand_url}
+              onChange={updateField}
+            />
+            <small>
+              Se mostrará en la página de Marcas.
+            </small>
+          </div>
         </div>
 
         <div className="adm-field">
@@ -224,11 +270,10 @@ function ProductForm({
           <input
             id="adm-category"
             type="text"
+            name="category"
             placeholder="Ej. Audio, Cargadores, Gaming"
             value={form.category}
-            onChange={(event) =>
-              updateField('category', event.target.value)
-            }
+            onChange={updateField}
             maxLength={100}
           />
         </div>
@@ -239,11 +284,10 @@ function ProductForm({
           </label>
           <textarea
             id="adm-description"
+            name="description"
             placeholder="Describe las características del producto..."
             value={form.description}
-            onChange={(event) =>
-              updateField('description', event.target.value)
-            }
+            onChange={updateField}
             maxLength={3000}
             rows={6}
           />
@@ -257,11 +301,10 @@ function ProductForm({
             <input
               id="adm-price"
               type="number"
+              name="price"
               placeholder="0.00"
               value={form.price}
-              onChange={(event) =>
-                updateField('price', event.target.value)
-              }
+              onChange={updateField}
               min="0"
               step="0.01"
               required
@@ -278,11 +321,10 @@ function ProductForm({
             <input
               id="adm-original-price"
               type="number"
+              name="original_price"
               placeholder="Opcional. Ej. 2200"
               value={form.original_price}
-              onChange={(event) =>
-                updateField('original_price', event.target.value)
-              }
+              onChange={updateField}
               min="0"
               step="0.01"
             />
@@ -299,18 +341,17 @@ function ProductForm({
           <input
             id="adm-stock"
             type="number"
+            name="stock"
             placeholder="0"
             value={form.stock}
-            onChange={(event) =>
-              updateField('stock', event.target.value)
-            }
+            onChange={updateField}
             min="0"
             step="1"
             required
           />
         </div>
 
-        {/* NUEVO INPUT DE IMÁGENES */}
+        {/* INPUT DE IMÁGENES */}
         <div className="adm-field">
           <label htmlFor="adm-images">
             Fotografías del producto (Máximo 4)
@@ -324,7 +365,7 @@ function ProductForm({
               accept="image/jpeg, image/png, image/webp"
               onChange={handleFileChange}
               disabled={loading}
-              style={{ display: 'none' }} // Ocultamos el input por defecto
+              style={{ display: 'none' }}
             />
             <button
               type="button"
@@ -413,6 +454,12 @@ function ProductForm({
         </div>
 
         <h4>{form.name || 'Nombre del producto'}</h4>
+
+        {form.brand && (
+          <strong style={{ color: '#0755d7', display: 'block', marginBottom: '5px' }}>
+            {form.brand}
+          </strong>
+        )}
 
         {form.category && <small>{form.category}</small>}
 

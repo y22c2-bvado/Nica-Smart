@@ -9,13 +9,14 @@ const mapProduct = (row) => {
     price: toNum(row.price),
     original_price: toNum(row.original_price),
     stock: toNum(row.stock),
-    images: row.images || [], // Asegura que siempre haya un array
+    images: row.images || [], 
   };
 };
 
 const FIELDS = `
   id, name, category, description,
-  price, original_price, stock, images, created_at
+  price, original_price, stock, images, 
+  brand, brand_url, created_at
 `;
 
 const Product = {
@@ -46,14 +47,15 @@ const Product = {
     const {
       name, category = null, description = null,
       price, original_price = null, stock = 0, images = [],
+      brand = null, brand_url = null,
     } = data;
 
     const { rows } = await db.query(
       `INSERT INTO products
-         (name, category, description, price, original_price, stock, images)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (name, category, description, price, original_price, stock, images, brand, brand_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING ${FIELDS}`,
-      [name, category, description, price, original_price, stock, images]
+      [name, category, description, price, original_price, stock, images, brand, brand_url]
     );
     return mapProduct(rows[0]);
   },
@@ -62,15 +64,17 @@ const Product = {
     const {
       name, category = null, description = null,
       price, original_price = null, stock = 0, images = [],
+      brand = null, brand_url = null,
     } = data;
 
     const { rows } = await db.query(
       `UPDATE products
           SET name = $1, category = $2, description = $3,
-              price = $4, original_price = $5, stock = $6, images = $7
-        WHERE id = $8
+              price = $4, original_price = $5, stock = $6, images = $7,
+              brand = $8, brand_url = $9
+        WHERE id = $10
         RETURNING ${FIELDS}`,
-      [name, category, description, price, original_price, stock, images, id]
+      [name, category, description, price, original_price, stock, images, brand, brand_url, id]
     );
     return mapProduct(rows[0]);
   },

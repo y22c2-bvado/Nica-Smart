@@ -1,0 +1,151 @@
+.brands-page {
+  min-height: 100vh;
+  background: #f6f8fc;
+  padding-bottom: 70px;
+}
+
+.brands-hero {
+  padding: 65px 24px;
+  background: linear-gradient(135deg, #0755d7, #09295f);
+  color: #fff;
+  text-align: center;
+}
+
+.brands-hero > span {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.brands-hero h1 {
+  font-size: clamp(34px, 5vw, 56px);
+  margin: 14px 0;
+  font-weight: 900;
+}
+
+.brands-hero p {
+  max-width: 650px;
+  margin: auto;
+  line-height: 1.7;
+}
+
+.brands-container {
+  width: min(1350px, 92%);
+  margin: 45px auto 0;
+}
+
+.brands-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.brands-toolbar h2 {
+  margin: 0 0 6px;
+  color: #09295f;
+}
+
+.brands-toolbar p {
+  margin: 0;
+  color: #64748b;
+}
+
+.brands-toolbar input {
+  width: min(350px, 100%);
+  padding: 13px 15px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: white;
+}
+
+.brands-list {
+  display: grid;
+  gap: 35px;
+}
+
+.brands-section {
+  background: #fff;
+  border: 1px solid #e5eaf2;
+  padding: 28px;
+  border-radius: 18px;
+}
+
+.brands-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
+.brands-eyebrow {
+  color: #0755d7;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.brands-section-header h2 {
+  font-size: 30px;
+  font-weight: 900;
+  color: #09295f;
+  margin: 6px 0;
+}
+
+.brands-section-header p {
+  color: #64748b;
+  margin: 0;
+}
+
+.brands-website,
+.brands-footer-link a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #0755d7;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  transition: background 0.2s ease;
+}
+
+.brands-website:hover,
+.brands-footer-link a:hover {
+  background: #003eab;
+}
+
+.brands-empty {
+  text-align: center;
+  background: white;
+  padding: 50px 20px;
+  border-radius: 14px;
+}
+
+.brands-footer-link {
+  margin-top: 30px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .brands-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .brands-toolbar input {
+    width: 100%;
+  }
+
+  .brands-section {
+    padding: 18px;
+  }
+
+  .brands-hero {
+    padding: 45px 20px;
+  }
+}

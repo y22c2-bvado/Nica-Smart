@@ -22,9 +22,15 @@ const isPositiveId = (value) => {
 const validateProduct = (data) => {
   const name = data.name?.trim();
   const category = data.category?.trim() || '';
+  const brand = data.brand?.trim() || '';
+  const brand_url = data.brand_url?.trim() || '';
 
   if (category.length > 100) {
     throw httpError(400, 'La categoría no puede superar 100 caracteres.');
+  }
+
+  if (brand.length > 120) {
+    throw httpError(400, 'La marca no puede superar 120 caracteres.');
   }
 
   const description = data.description?.trim() || '';
@@ -72,7 +78,9 @@ const validateProduct = (data) => {
     description,
     price,
     original_price,
-    stock
+    stock,
+    brand: brand || null,
+    brand_url: brand_url || null
   };
 };
 
@@ -164,13 +172,14 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// GET: Leer productos (Incluimos brand y brand_url)
 router.get('/products', async (req, res) => {
   try {
     const result = await pool.query(
       `
       SELECT
         id, name, category, description,
-        price, original_price, stock, images, created_at
+        price, original_price, stock, images, brand, brand_url, created_at
       FROM products
       ORDER BY created_at DESC, id DESC
       `
@@ -182,6 +191,7 @@ router.get('/products', async (req, res) => {
   }
 });
 
+// POST: Crear producto con imágenes y marca
 router.post('/products', upload.array('images', 4), async (req, res) => {
   try {
     const product = validateProduct(req.body || {});
@@ -191,9 +201,9 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO products (
-        name, category, description, price, original_price, stock, images
+        name, category, description, price, original_price, stock, images, brand, brand_url
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
       `,
       [
@@ -203,7 +213,9 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
         product.price,
         product.original_price,
         product.stock,
-        imageUrls // <-- Guardamos el ARRAY de rutas
+        imageUrls,
+        product.brand,
+        product.brand_url
       ]
     );
 
@@ -220,6 +232,7 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
   }
 });
 
+// PUT: Actualizar producto con imágenes y marca
 router.put('/products/:id', upload.array('images', 4), async (req, res) => {
   try {
     if (!isPositiveId(req.params.id)) {
@@ -245,8 +258,9 @@ router.put('/products/:id', upload.array('images', 4), async (req, res) => {
       UPDATE products
       SET
         name = $1, category = $2, description = $3,
-        price = $4, original_price = $5, stock = $6, images = $7
-      WHERE id = $8
+        price = $4, original_price = $5, stock = $6, images = $7,
+        brand = $8, brand_url = $9
+      WHERE id = $10
       RETURNING *
       `,
       [
@@ -256,7 +270,9 @@ router.put('/products/:id', upload.array('images', 4), async (req, res) => {
         product.price,
         product.original_price,
         product.stock,
-        imageUrls, // <-- Guardamos el ARRAY
+        imageUrls,
+        product.brand,
+        product.brand_url,
         req.params.id
       ]
     );

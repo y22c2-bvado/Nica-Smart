@@ -54,6 +54,13 @@ function ProductCard({ product }) {
       </Link>
 
       <div className="product-card-content">
+        {/* Mostrar la marca si existe */}
+        {product.brand && (
+          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#0755d7', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>
+            {product.brand}
+          </span>
+        )}
+        
         <p className="product-category">{product.category}</p>
 
         <Link to={`/product/${product.id}`} className="product-name-link">

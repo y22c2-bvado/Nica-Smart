@@ -17,6 +17,9 @@ const createProductsTable = `
     image TEXT,
     images TEXT[] DEFAULT '{}',
     description TEXT,
+    brand VARCHAR(120),
+    brand_url TEXT,
+    is_new BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `;
@@ -130,7 +133,6 @@ const migrateAddCreatedAt = `
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
 `;
 
-// --- NUEVAS MIGRACIONES PARA IMÁGENES ---
 const migrateAddImagesArray = `
   ALTER TABLE products
   ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
@@ -142,7 +144,43 @@ const migrateOldImageToImages = `
   WHERE image IS NOT NULL 
     AND (images IS NULL OR cardinality(images) = 0);
 `;
-// ----------------------------------------
+
+const migrateAddIsNew = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS is_new BOOLEAN NOT NULL DEFAULT FALSE;
+`;
+
+const migrateAddBrand = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS brand VARCHAR(120);
+`;
+
+const migrateAddBrandUrl = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS brand_url TEXT;
+`;
+
+const createBrandIndex = `
+  CREATE INDEX IF NOT EXISTS idx_products_brand ON products (brand);
+`;
+
+const createMarkNewFunction = `
+  CREATE OR REPLACE FUNCTION marcar_producto_nuevo()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      NEW.is_new := TRUE;
+      RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`;
+
+const createNewProductTrigger = `
+  DROP TRIGGER IF EXISTS trigger_producto_nuevo ON products;
+  CREATE TRIGGER trigger_producto_nuevo
+  BEFORE INSERT ON products
+  FOR EACH ROW
+  EXECUTE FUNCTION marcar_producto_nuevo();
+`;
 
 const applySeasonPromotions = [
   `
@@ -164,6 +202,18 @@ const applySeasonPromotions = [
     AND price = 650
   `,
 ];
+
+const assignBrandsToSeedData = [
+  `UPDATE products SET brand = 'Apple', brand_url = 'https://www.apple.com' WHERE name ILIKE '%AirPods%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Xiaomi', brand_url = 'https://www.mi.com' WHERE name ILIKE '%Audífonos Bluetooth%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Anker', brand_url = 'https://www.anker.com' WHERE (name ILIKE '%Cargador%' OR name ILIKE '%Power Bank%') AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Samsung', brand_url = 'https://www.samsung.com' WHERE name ILIKE '%Smartwatch%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Logitech', brand_url = 'https://www.logitech.com' WHERE (name ILIKE '%Mouse%' OR name ILIKE '%Teclado%') AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Razer', brand_url = 'https://www.razer.com' WHERE name ILIKE '%Control Inalámbrico%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'JBL', brand_url = 'https://www.jbl.com' WHERE name ILIKE '%Bocina%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'MSI', brand_url = 'https://www.msi.com' WHERE name ILIKE '%MSI%' AND brand IS NULL;`
+];
+// -----------------------------------------------------------------------
 
 async function init() {
   try {
@@ -207,7 +257,6 @@ async function init() {
     await pool.query(migrateAddCreatedAt);
     console.log('✅ Columna created_at lista');
 
-    // --- EJECUCIÓN DE NUEVAS MIGRACIONES ---
     console.log('🖼️ Verificando columna images (Array)...');
     await pool.query(migrateAddImagesArray);
     console.log('✅ Columna images lista');
@@ -215,21 +264,38 @@ async function init() {
     console.log('🔄 Migrando imagen antigua al nuevo array...');
     await pool.query(migrateOldImageToImages);
     console.log('✅ Imágenes migradas');
-    // ---------------------------------------
 
-    const { rows } = await pool.query(
-      'SELECT COUNT(*) FROM products'
-    );
+    console.log('🆕 Verificando columna is_new...');
+    await pool.query(migrateAddIsNew);
+    console.log('✅ Columna is_new lista');
+
+    console.log('🏷️ Verificando columna brand (Marca)...');
+    await pool.query(migrateAddBrand);
+    console.log('✅ Columna brand lista');
+
+    console.log('🔗 Verificando columna brand_url (Web de marca)...');
+    await pool.query(migrateAddBrandUrl);
+    console.log('✅ Columna brand_url lista');
+
+    console.log('⚡ Creando índice para búsquedas por marca...');
+    await pool.query(createBrandIndex);
+    console.log('✅ Índice de marca listo');
+
+    const { rows } = await pool.query('SELECT COUNT(*) FROM products');
 
     if (parseInt(rows[0].count) === 0) {
       console.log('📦 Insertando productos...');
       await pool.query(insertSeedData);
-      console.log('✅ 20 productos insertados');
+      console.log('✅ 20 productos insertados (marcados como NO nuevos)');
     } else {
-      console.log(
-        `ℹ️ Ya hay ${rows[0].count} productos, no se insertaron duplicados`
-      );
+      console.log(`ℹ️ Ya hay ${rows[0].count} productos, no se insertaron duplicados`);
     }
+
+    console.log('🏷️ Asignando marcas a los productos del catálogo...');
+    for (const sql of assignBrandsToSeedData) {
+      await pool.query(sql);
+    }
+    console.log('✅ Marcas asignadas correctamente');
 
     console.log('🎃 Aplicando promociones de temporada...');
     for (const sql of applySeasonPromotions) {
@@ -237,21 +303,38 @@ async function init() {
     }
     console.log('✅ Promociones aplicadas');
 
-    const totalProducts = await pool.query(
-      'SELECT COUNT(*) FROM products'
-    );
-    const totalUsers = await pool.query(
-      'SELECT COUNT(*) FROM users'
-    );
+    console.log('🖥️ Marcando monitor MSI (ID 41) como nuevo si existe...');
+    await pool.query(`
+      UPDATE products SET is_new = TRUE
+      WHERE id = 41 AND name ILIKE '%MSI%'
+    `);
+    console.log('✅ Verificación de MSI completada');
+
+    // ⚠️ IMPORTANTE: El trigger se crea AL FINAL para no marcar los 20 productos semilla como nuevos
+    console.log('⚡ Configurando sistema automático de nuevos ingresos...');
+    await pool.query(createMarkNewFunction);
+    await pool.query(createNewProductTrigger);
+    console.log('✅ Trigger activo: Los productos que agregues desde el Admin serán nuevos');
+
+    const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
+    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
     const withDiscount = await pool.query(
       `SELECT COUNT(*) FROM products
        WHERE original_price IS NOT NULL
          AND original_price > price`
     );
+    const newProducts = await pool.query(
+      'SELECT COUNT(*) FROM products WHERE is_new = TRUE'
+    );
+    const productsWithBrand = await pool.query(
+      'SELECT COUNT(*) FROM products WHERE brand IS NOT NULL'
+    );
 
     console.log(`📊 Total de productos: ${totalProducts.rows[0].count}`);
     console.log(`📊 Total de usuarios: ${totalUsers.rows[0].count}`);
     console.log(`📊 Productos con descuento activo: ${withDiscount.rows[0].count}`);
+    console.log(`📊 Productos marcados como nuevos: ${newProducts.rows[0].count}`);
+    console.log(`📊 Productos con marca asignada: ${productsWithBrand.rows[0].count}`);
 
     process.exit(0);
 
