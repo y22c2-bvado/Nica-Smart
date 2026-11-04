@@ -1,4 +1,3 @@
-
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -408,11 +407,239 @@ const ORDER_SELECT_SQL = `
     ON dc.order_id = o.id
 `;
 
-// ==========================================
+
+// =========================================================================
+// ⚠️ RUTAS DE ADMINISTRADOR (DEBEN IR PRIMERO PARA EVITAR CONFLICTOS)
+// =========================================================================
+
+// LISTA ADMINISTRATIVA DE PEDIDOS
+// GET /api/orders/admin/all
+router.get(
+  '/admin/all',
+  verifyCustomer,
+  verifyAdmin,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `
+        ${ORDER_SELECT_SQL}
+        ORDER BY o.created_at DESC, o.id DESC
+        `
+      );
+
+      return res.json(result.rows);
+
+    } catch (error) {
+      console.error(
+        'Error consultando pedidos administrativos:',
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          'No se pudieron cargar los pedidos.'
+      });
+    }
+  }
+);
+
+// ACTUALIZAR ESTADO COMO ADMINISTRADOR
+// PATCH /api/orders/admin/:id/status
+router.patch(
+  '/admin/:id/status',
+  verifyCustomer,
+  verifyAdmin,
+  async (req, res) => {
+    const orderId = Number(req.params.id);
+
+    const newStatus = String(
+      req.body?.status || ''
+    ).trim().toLowerCase();
+
+    if (
+      !Number.isSafeInteger(orderId) ||
+      orderId <= 0
+    ) {
+      return res.status(400).json({
+        message: 'Pedido inválido.'
+      });
+    }
+
+    if (!ORDER_STATUSES.includes(newStatus)) {
+      return res.status(400).json({
+        message: 'Estado de pedido inválido.'
+      });
+    }
+
+    let client;
+    let transactionStarted = false;
+
+    try {
+      client = await pool.connect();
+
+      await client.query('BEGIN');
+      transactionStarted = true;
+
+      const current = await client.query(
+        `
+        SELECT
+          id,
+          status,
+          shipped_at,
+          delivered_at,
+          delivery_confirmed_at
+        FROM orders
+        WHERE id = $1
+        FOR UPDATE
+        `,
+        [orderId]
+      );
+
+      if (!current.rows.length) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+
+        return res.status(404).json({
+          message: 'Pedido no encontrado.'
+        });
+      }
+
+      const order = current.rows[0];
+
+      if (order.delivery_confirmed_at) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+
+        return res.status(409).json({
+          message:
+            'El cliente ya confirmó la entrega. El estado no puede modificarse desde esta operación.'
+        });
+      }
+
+      if (
+        newStatus === 'cancelado' &&
+        (
+          order.shipped_at ||
+          order.delivered_at
+        )
+      ) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+
+        return res.status(409).json({
+          message:
+            'No podés cancelar un pedido que ya fue enviado.'
+        });
+      }
+
+      const rank = {
+        pendiente: 1,
+        preparando: 2,
+        enviado: 3,
+        entregado: 4
+      };
+
+      if (
+        newStatus !== 'cancelado' &&
+        order.status !== 'cancelado' &&
+        rank[newStatus] < rank[order.status]
+      ) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+
+        return res.status(409).json({
+          message:
+            'No podés retroceder el progreso de la entrega.'
+        });
+      }
+
+      if (
+        order.status === 'cancelado' &&
+        newStatus !== 'cancelado'
+      ) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+
+        return res.status(409).json({
+          message:
+            'No podés reactivar un pedido cancelado desde esta operación.'
+        });
+      }
+
+      const result = await client.query(
+        `
+        UPDATE orders
+        SET
+          status = $1,
+
+          shipped_at = CASE
+            WHEN $1 IN ('enviado', 'entregado')
+            THEN COALESCE(shipped_at, NOW())
+            ELSE shipped_at
+          END,
+
+          delivered_at = CASE
+            WHEN $1 = 'entregado'
+            THEN COALESCE(delivered_at, NOW())
+            ELSE delivered_at
+          END
+
+        WHERE id = $2
+
+        RETURNING
+          id,
+          status,
+          shipped_at,
+          delivered_at,
+          delivery_confirmed_at
+        `,
+        [newStatus, orderId]
+      );
+
+      await client.query('COMMIT');
+      transactionStarted = false;
+
+      return res.json({
+        message:
+          'Estado del pedido actualizado correctamente.',
+        order: result.rows[0]
+      });
+
+    } catch (error) {
+      if (client && transactionStarted) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error(
+            'Error al revertir actualización:',
+            rollbackError
+          );
+        }
+      }
+
+      console.error(
+        'Error actualizando pedido:',
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          'No se pudo actualizar el estado.'
+      });
+
+    } finally {
+      client?.release();
+    }
+  }
+);
+
+
+// =========================================================================
+// RUTAS DE CLIENTE (SIEMPRE DEBAJO DE LAS DE ADMIN)
+// =========================================================================
+
 // CREAR PEDIDO
 // POST /api/orders
-// ==========================================
-
 router.post('/', verifyCustomer, async (req, res) => {
   let client;
   let transactionStarted = false;
@@ -718,11 +945,8 @@ router.post('/', verifyCustomer, async (req, res) => {
   }
 });
 
-// ==========================================
 // CONSULTAR PEDIDOS DEL CLIENTE
 // GET /api/orders
-// ==========================================
-
 router.get('/', verifyCustomer, async (req, res) => {
   try {
     const result = await pool.query(
@@ -745,11 +969,8 @@ router.get('/', verifyCustomer, async (req, res) => {
   }
 });
 
-// ==========================================
 // CONSULTAR UN PEDIDO DEL CLIENTE
 // GET /api/orders/:id
-// ==========================================
-
 router.get('/:id', verifyCustomer, async (req, res) => {
   const orderId = Number(req.params.id);
 
@@ -786,18 +1007,8 @@ router.get('/:id', verifyCustomer, async (req, res) => {
   }
 });
 
-// ==========================================
 // CONFIRMAR RECEPCIÓN DEL CLIENTE
-//
 // POST /api/orders/:id/confirm-delivery
-//
-// FormData:
-// photo: archivo JPG, PNG o WEBP
-//
-// El cliente confirma que recibió el producto.
-// La foto se guarda en PostgreSQL.
-// ==========================================
-
 router.post(
   '/:id/confirm-delivery',
   verifyCustomer,
@@ -977,14 +1188,8 @@ router.post(
   }
 );
 
-// ==========================================
 // VER FOTO DE RECEPCIÓN
-//
 // GET /api/orders/:id/proof
-//
-// Solo el propietario o un administrador.
-// ==========================================
-
 router.get(
   '/:id/proof',
   verifyCustomer,
@@ -1050,246 +1255,6 @@ router.get(
         message:
           'No se pudo consultar la fotografía.'
       });
-    }
-  }
-);
-
-// ==========================================
-// LISTA ADMINISTRATIVA DE PEDIDOS
-//
-// GET /api/orders/admin/all
-//
-// Incluye horas y confirmaciones.
-// ==========================================
-
-router.get(
-  '/admin/all',
-  verifyCustomer,
-  verifyAdmin,
-  async (req, res) => {
-    try {
-      const result = await pool.query(
-        `
-        ${ORDER_SELECT_SQL}
-        ORDER BY o.created_at DESC, o.id DESC
-        `
-      );
-
-      return res.json(result.rows);
-
-    } catch (error) {
-      console.error(
-        'Error consultando pedidos administrativos:',
-        error
-      );
-
-      return res.status(500).json({
-        message:
-          'No se pudieron cargar los pedidos.'
-      });
-    }
-  }
-);
-
-// ==========================================
-// ACTUALIZAR ESTADO COMO ADMINISTRADOR
-//
-// PATCH /api/orders/admin/:id/status
-//
-// Al enviar se registra shipped_at.
-// Al entregar se registra delivered_at.
-// La confirmación del cliente es independiente.
-// ==========================================
-
-router.patch(
-  '/admin/:id/status',
-  verifyCustomer,
-  verifyAdmin,
-  async (req, res) => {
-    const orderId = Number(req.params.id);
-
-    const newStatus = String(
-      req.body?.status || ''
-    ).trim().toLowerCase();
-
-    if (
-      !Number.isSafeInteger(orderId) ||
-      orderId <= 0
-    ) {
-      return res.status(400).json({
-        message: 'Pedido inválido.'
-      });
-    }
-
-    if (!ORDER_STATUSES.includes(newStatus)) {
-      return res.status(400).json({
-        message: 'Estado de pedido inválido.'
-      });
-    }
-
-    let client;
-    let transactionStarted = false;
-
-    try {
-      client = await pool.connect();
-
-      await client.query('BEGIN');
-      transactionStarted = true;
-
-      const current = await client.query(
-        `
-        SELECT
-          id,
-          status,
-          shipped_at,
-          delivered_at,
-          delivery_confirmed_at
-        FROM orders
-        WHERE id = $1
-        FOR UPDATE
-        `,
-        [orderId]
-      );
-
-      if (!current.rows.length) {
-        await client.query('ROLLBACK');
-        transactionStarted = false;
-
-        return res.status(404).json({
-          message: 'Pedido no encontrado.'
-        });
-      }
-
-      const order = current.rows[0];
-
-      if (order.delivery_confirmed_at) {
-        await client.query('ROLLBACK');
-        transactionStarted = false;
-
-        return res.status(409).json({
-          message:
-            'El cliente ya confirmó la entrega. El estado no puede modificarse desde esta operación.'
-        });
-      }
-
-      // No cancelar pedidos que ya salieron
-      // para entrega o fueron entregados.
-
-      if (
-        newStatus === 'cancelado' &&
-        (
-          order.shipped_at ||
-          order.delivered_at
-        )
-      ) {
-        await client.query('ROLLBACK');
-        transactionStarted = false;
-
-        return res.status(409).json({
-          message:
-            'No podés cancelar un pedido que ya fue enviado.'
-        });
-      }
-
-      // Evitar volver a estados anteriores.
-
-      const rank = {
-        pendiente: 1,
-        preparando: 2,
-        enviado: 3,
-        entregado: 4
-      };
-
-      if (
-        newStatus !== 'cancelado' &&
-        order.status !== 'cancelado' &&
-        rank[newStatus] < rank[order.status]
-      ) {
-        await client.query('ROLLBACK');
-        transactionStarted = false;
-
-        return res.status(409).json({
-          message:
-            'No podés retroceder el progreso de la entrega.'
-        });
-      }
-
-      if (
-        order.status === 'cancelado' &&
-        newStatus !== 'cancelado'
-      ) {
-        await client.query('ROLLBACK');
-        transactionStarted = false;
-
-        return res.status(409).json({
-          message:
-            'No podés reactivar un pedido cancelado desde esta operación.'
-        });
-      }
-
-      const result = await client.query(
-        `
-        UPDATE orders
-        SET
-          status = $1,
-
-          shipped_at = CASE
-            WHEN $1 IN ('enviado', 'entregado')
-            THEN COALESCE(shipped_at, NOW())
-            ELSE shipped_at
-          END,
-
-          delivered_at = CASE
-            WHEN $1 = 'entregado'
-            THEN COALESCE(delivered_at, NOW())
-            ELSE delivered_at
-          END
-
-        WHERE id = $2
-
-        RETURNING
-          id,
-          status,
-          shipped_at,
-          delivered_at,
-          delivery_confirmed_at
-        `,
-        [newStatus, orderId]
-      );
-
-      await client.query('COMMIT');
-      transactionStarted = false;
-
-      return res.json({
-        message:
-          'Estado del pedido actualizado correctamente.',
-        order: result.rows[0]
-      });
-
-    } catch (error) {
-      if (client && transactionStarted) {
-        try {
-          await client.query('ROLLBACK');
-        } catch (rollbackError) {
-          console.error(
-            'Error al revertir actualización:',
-            rollbackError
-          );
-        }
-      }
-
-      console.error(
-        'Error actualizando pedido:',
-        error
-      );
-
-      return res.status(500).json({
-        message:
-          'No se pudo actualizar el estado.'
-      });
-
-    } finally {
-      client?.release();
     }
   }
 );

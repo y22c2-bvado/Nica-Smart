@@ -10,13 +10,14 @@ const mapProduct = (row) => {
     original_price: toNum(row.original_price),
     stock: toNum(row.stock),
     images: row.images || [], 
+    is_new: row.is_new 
   };
 };
 
 const FIELDS = `
   id, name, category, description,
   price, original_price, stock, images, 
-  brand, brand_url, created_at
+  brand, brand_url, is_new, created_at
 `;
 
 const Product = {
@@ -47,15 +48,15 @@ const Product = {
     const {
       name, category = null, description = null,
       price, original_price = null, stock = 0, images = [],
-      brand = null, brand_url = null,
+      brand = null, brand_url = null, is_new = true // Recibimos is_new
     } = data;
 
     const { rows } = await db.query(
       `INSERT INTO products
-         (name, category, description, price, original_price, stock, images, brand, brand_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         (name, category, description, price, original_price, stock, images, brand, brand_url, is_new)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING ${FIELDS}`,
-      [name, category, description, price, original_price, stock, images, brand, brand_url]
+      [name, category, description, price, original_price, stock, images, brand, brand_url, is_new]
     );
     return mapProduct(rows[0]);
   },
@@ -64,17 +65,17 @@ const Product = {
     const {
       name, category = null, description = null,
       price, original_price = null, stock = 0, images = [],
-      brand = null, brand_url = null,
+      brand = null, brand_url = null, is_new = false // Recibimos is_new (por defecto false si no viene)
     } = data;
 
     const { rows } = await db.query(
       `UPDATE products
           SET name = $1, category = $2, description = $3,
               price = $4, original_price = $5, stock = $6, images = $7,
-              brand = $8, brand_url = $9
-        WHERE id = $10
+              brand = $8, brand_url = $9, is_new = $10
+        WHERE id = $11
         RETURNING ${FIELDS}`,
-      [name, category, description, price, original_price, stock, images, brand, brand_url, id]
+      [name, category, description, price, original_price, stock, images, brand, brand_url, is_new, id]
     );
     return mapProduct(rows[0]);
   },

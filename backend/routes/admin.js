@@ -24,6 +24,9 @@ const validateProduct = (data) => {
   const category = data.category?.trim() || '';
   const brand = data.brand?.trim() || '';
   const brand_url = data.brand_url?.trim() || '';
+  
+  // <-- NUEVO: Capturamos el estado is_new (viene como string desde FormData)
+  const is_new = data.is_new === 'true' || data.is_new === true;
 
   if (category.length > 100) {
     throw httpError(400, 'La categoría no puede superar 100 caracteres.');
@@ -80,7 +83,8 @@ const validateProduct = (data) => {
     original_price,
     stock,
     brand: brand || null,
-    brand_url: brand_url || null
+    brand_url: brand_url || null,
+    is_new // <-- NUEVO: Lo retornamos para usarlo en la BD
   };
 };
 
@@ -172,14 +176,14 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// GET: Leer productos (Incluimos brand y brand_url)
+// GET: Leer productos (Incluimos is_new)
 router.get('/products', async (req, res) => {
   try {
     const result = await pool.query(
       `
       SELECT
         id, name, category, description,
-        price, original_price, stock, images, brand, brand_url, created_at
+        price, original_price, stock, images, brand, brand_url, is_new, created_at
       FROM products
       ORDER BY created_at DESC, id DESC
       `
@@ -191,7 +195,7 @@ router.get('/products', async (req, res) => {
   }
 });
 
-// POST: Crear producto con imágenes y marca
+// POST: Crear producto con imágenes, marca y is_new
 router.post('/products', upload.array('images', 4), async (req, res) => {
   try {
     const product = validateProduct(req.body || {});
@@ -201,9 +205,9 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO products (
-        name, category, description, price, original_price, stock, images, brand, brand_url
+        name, category, description, price, original_price, stock, images, brand, brand_url, is_new
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
       `,
       [
@@ -215,7 +219,8 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
         product.stock,
         imageUrls,
         product.brand,
-        product.brand_url
+        product.brand_url,
+        product.is_new
       ]
     );
 
@@ -232,7 +237,7 @@ router.post('/products', upload.array('images', 4), async (req, res) => {
   }
 });
 
-// PUT: Actualizar producto con imágenes y marca
+// PUT: Actualizar producto con imágenes, marca y is_new
 router.put('/products/:id', upload.array('images', 4), async (req, res) => {
   try {
     if (!isPositiveId(req.params.id)) {
@@ -259,8 +264,8 @@ router.put('/products/:id', upload.array('images', 4), async (req, res) => {
       SET
         name = $1, category = $2, description = $3,
         price = $4, original_price = $5, stock = $6, images = $7,
-        brand = $8, brand_url = $9
-      WHERE id = $10
+        brand = $8, brand_url = $9, is_new = $10
+      WHERE id = $11
       RETURNING *
       `,
       [
@@ -273,6 +278,7 @@ router.put('/products/:id', upload.array('images', 4), async (req, res) => {
         imageUrls,
         product.brand,
         product.brand_url,
+        product.is_new,
         req.params.id
       ]
     );
@@ -458,7 +464,8 @@ router.patch('/orders/:id/status', async (req, res) => {
       return res.status(400).json({ message: 'ID del pedido inválido.' });
     }
 
-    const validStatuses = ['pendiente', 'enviado', 'entregado', 'cancelado'];
+    // <-- NUEVO: Se agregó 'preparando' a los estados válidos
+    const validStatuses = ['pendiente', 'preparando', 'enviado', 'entregado', 'cancelado'];
     const status = String(req.body?.status || '').toLowerCase();
 
     if (!validStatuses.includes(status)) {

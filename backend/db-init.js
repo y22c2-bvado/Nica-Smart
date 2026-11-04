@@ -93,6 +93,87 @@ const createOrderItemsTable = `
   );
 `;
 
+// ==========================================
+// MIGRACIONES PARA SEGUIMIENTO DE PEDIDOS Y PAGOS
+// ==========================================
+
+const migrateAddOrderTrackingFields = `
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMPTZ;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_confirmed_at TIMESTAMPTZ;
+`;
+
+const migrateAddOrderPaymentFields = `
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50);
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(100);
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_card_brand VARCHAR(50);
+`;
+
+const createDeliveryConfirmationsTable = `
+  CREATE TABLE IF NOT EXISTS delivery_confirmations (
+    id BIGSERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+    customer_email VARCHAR(255) NOT NULL,
+    photo_data BYTEA NOT NULL,
+    photo_mime VARCHAR(30) NOT NULL,
+    photo_size INTEGER NOT NULL,
+    confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Restricciones de seguridad añadidas desde la guía
+    CONSTRAINT chk_delivery_photo_mime CHECK (photo_mime IN ('image/jpeg', 'image/png', 'image/webp')),
+    CONSTRAINT chk_delivery_photo_size CHECK (photo_size > 0 AND photo_size <= 5242880)
+  );
+`;
+
+const createOrderTrackingIndexes = `
+  CREATE INDEX IF NOT EXISTS idx_orders_shipped_at ON orders(shipped_at);
+  CREATE INDEX IF NOT EXISTS idx_orders_delivered_at ON orders(delivered_at);
+  CREATE INDEX IF NOT EXISTS idx_delivery_confirmations_date ON delivery_confirmations(confirmed_at);
+`;
+
+// ⚠️ NUEVO: Restricción para que los estados solo sean los válidos
+const migrateOrdersStatusConstraint = `
+  ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+  ALTER TABLE orders ADD CONSTRAINT orders_status_check 
+  CHECK (
+      status IN ('pendiente', 'preparando', 'enviado', 'entregado', 'cancelado')
+  );
+`;
+
+// ⚠️ NUEVO: Vista para consultas administrativas rápidas
+const createAdminTrackingView = `
+  CREATE OR REPLACE VIEW v_admin_delivery_tracking AS
+  SELECT
+      o.id AS order_id,
+      o.customer_name,
+      o.customer_email,
+      o.customer_phone,
+      o.customer_address,
+      o.total,
+      o.status,
+      o.created_at AS ordered_at,
+      o.shipped_at,
+      o.delivered_at,
+      o.delivery_confirmed_at,
+      CASE WHEN dc.order_id IS NOT NULL THEN TRUE ELSE FALSE END AS has_delivery_photo,
+      dc.confirmed_at AS customer_confirmed_at,
+      CASE
+          WHEN o.delivery_confirmed_at IS NOT NULL THEN 'Confirmado por cliente'
+          WHEN LOWER(o.status) IN ('entregado', 'delivered') THEN 'Entregado sin confirmar'
+          WHEN LOWER(o.status) IN ('enviado', 'shipped') THEN 'En camino'
+          WHEN LOWER(o.status) IN ('preparando', 'processing') THEN 'En preparación'
+          WHEN LOWER(o.status) IN ('cancelado', 'cancelled') THEN 'Cancelado'
+          ELSE 'Pendiente'
+      END AS delivery_summary
+  FROM orders o
+  LEFT JOIN delivery_confirmations dc ON dc.order_id = o.id;
+`;
+
+// ==========================================
+// MIGRACIONES DE PRODUCTOS EXISTENTES
+// ==========================================
+
 const insertSeedData = `
   INSERT INTO products (name, category, price, original_price, stock, image, description) VALUES
   ('AirPods 2da Generación', 'Audio', 2490, 2490, 15, '/Imagenes/Airpods2.jpg', 'Audífonos inalámbricos con conexión Bluetooth y estuche de carga.'),
@@ -217,6 +298,7 @@ const assignBrandsToSeedData = [
 
 async function init() {
   try {
+    // 1. TABLAS BASE
     console.log('🔧 Creando tabla products...');
     await pool.query(createProductsTable);
     console.log('✅ Tabla products creada (o ya existía)');
@@ -245,6 +327,32 @@ async function init() {
     await pool.query(createOrderItemsTable);
     console.log('✅ Tabla order_items creada');
 
+    // 2. NUEVAS TABLAS Y MIGRACIONES DE PEDIDOS (Sistema de entregas y pagos)
+    console.log('🚚 Agregando campos de seguimiento a la tabla orders...');
+    await pool.query(migrateAddOrderTrackingFields);
+    console.log('✅ Campos shipped_at, delivered_at y delivery_confirmed_at listos');
+
+    console.log('💳 Agregando campos de pago a la tabla orders...');
+    await pool.query(migrateAddOrderPaymentFields);
+    console.log('✅ Campos de pago listos');
+
+    console.log('📸 Creando tabla delivery_confirmations (Fotos de entrega)...');
+    await pool.query(createDeliveryConfirmationsTable);
+    console.log('✅ Tabla delivery_confirmations creada');
+
+    console.log('⚡ Creando índices para el seguimiento de pedidos...');
+    await pool.query(createOrderTrackingIndexes);
+    console.log('✅ Índices de seguimiento listos');
+
+    console.log('🛡️ Actualizando restricciones de estado (CHECK)...');
+    await pool.query(migrateOrdersStatusConstraint);
+    console.log('✅ Restricción de estados actualizada');
+
+    console.log('👁️ Creando vista administrativa (v_admin_delivery_tracking)...');
+    await pool.query(createAdminTrackingView);
+    console.log('✅ Vista creada correctamente');
+
+    // 3. MIGRACIONES Y DATOS SEMILLA DE PRODUCTOS
     console.log('🔧 Verificando columna original_price...');
     await pool.query(migrateAddOriginalPrice);
     console.log('✅ Columna original_price lista');
@@ -316,6 +424,7 @@ async function init() {
     await pool.query(createNewProductTrigger);
     console.log('✅ Trigger activo: Los productos que agregues desde el Admin serán nuevos');
 
+    // 4. RESUMEN
     const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
     const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
     const withDiscount = await pool.query(

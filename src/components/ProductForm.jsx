@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FiImage, FiSave, FiX, FiUploadCloud, FiTrash2 } from 'react-icons/fi'
+import { FiImage, FiSave, FiX, FiUploadCloud, FiTrash2, FiCheckCircle } from 'react-icons/fi'
 
 const emptyForm = {
   name: '',
@@ -9,7 +9,8 @@ const emptyForm = {
   original_price: '',
   stock: '',
   brand: '',
-  brand_url: ''
+  brand_url: '',
+  is_new: true // <-- NUEVO: Por defecto, los productos nuevos entran con esta etiqueta activa
 }
 
 function ProductForm({
@@ -39,7 +40,8 @@ function ProductForm({
             : '',
         stock: String(product.stock ?? ''),
         brand: product.brand || '',
-        brand_url: product.brand_url || ''
+        brand_url: product.brand_url || '',
+        is_new: product.is_new ?? false // <-- NUEVO: Cargamos el estado real al editar un producto existente
       })
       
       // Cargar imágenes existentes si estamos editando
@@ -57,10 +59,11 @@ function ProductForm({
   }, [product])
 
   const updateField = (event) => {
-    const { name, value } = event.target;
+    const { name, value, type, checked } = event.target;
     setForm((previous) => ({
       ...previous,
-      [name]: value
+      // <-- NUEVO: Si el input es un checkbox, guardamos 'checked' (true/false), sino el 'value'
+      [name]: type === 'checkbox' ? checked : value
     }))
     setError('')
   }
@@ -192,6 +195,9 @@ function ProductForm({
     formData.append('brand', brand)
     formData.append('brand_url', brand_url)
     
+    // <-- NUEVO: Enviamos el valor del checkbox al backend
+    formData.append('is_new', form.is_new) 
+
     if (original_price !== null) {
       formData.append('original_price', original_price)
     }
@@ -349,6 +355,26 @@ function ProductForm({
             step="1"
             required
           />
+        </div>
+
+        {/* <-- NUEVO: CHECKBOX PARA MARCAR COMO NUEVO --> */}
+        <div className="adm-field" style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', border: '1px solid #444' }}>
+          <input 
+            type="checkbox" 
+            id="adm-is-new" 
+            name="is_new" 
+            checked={form.is_new} 
+            onChange={updateField}
+            style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0755d7' }}
+          />
+          <div>
+            <label htmlFor="adm-is-new" style={{ margin: 0, cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FiCheckCircle color="#0755d7" /> Destacar como Producto Nuevo
+            </label>
+            <small style={{ display: 'block', marginTop: '4px', color: '#aaa' }}>
+              Si está marcado, aparecerá en la sección "Nuevos" de la tienda.
+            </small>
+          </div>
         </div>
 
         {/* INPUT DE IMÁGENES */}

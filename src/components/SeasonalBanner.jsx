@@ -1,8 +1,13 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getProducts } from "../services/api";
 import "./SeasonalBanner.css";
+
+// ⚠️ IMPORTANTE: Agregamos la URL del backend
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : "")
+).trim().replace(/\/+$/, "");
 
 // FORMATO DE PRECIOS
 const money = (value) =>
@@ -98,6 +103,21 @@ const defaultDecor = {
 };
 
 const categoryIcons = ["🎧", "⌚", "🔌", "🎮"];
+
+// ⚠️ NUEVA FUNCIÓN PARA MANEJAR IMÁGENES
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (typeof path !== "string") return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  
+  // Si la imagen está en el backend
+  if (path.startsWith("/uploads/")) {
+    return `${API_URL}${path}`;
+  }
+  
+  // Si es una imagen del frontend (como /Imagenes/... o /seasons/...)
+  return path;
+};
 
 // IMAGEN DE PRODUCTO
 function ProductImage({ src, name, fallbackIcon }) {
@@ -380,11 +400,19 @@ export default function SeasonalBanner({ campaign }) {
           {/* CUATRO PRODUCTOS */}
           <div className="seasonal-featured-products">
             {displayedProducts.map((product) => {
-              const productImage =
-                product.image_url ||
-                product.image ||
-                product.images?.[0]?.url ||
+              // ⚠️ AQUÍ APLICAMOS LA NUEVA FUNCIÓN
+              const firstImage = 
+                (product.images && product.images.length > 0) 
+                  ? product.images[0] 
+                  : null;
+              
+              const rawImage = 
+                product.image_url || 
+                product.image || 
+                (typeof firstImage === 'string' ? firstImage : firstImage?.url) || 
                 null;
+
+              const productImage = getImageUrl(rawImage);
 
               return (
                 <Link

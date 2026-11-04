@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -7,7 +6,8 @@ import {
   FiEdit2, FiTrash2, FiSearch, FiLock,
   FiUnlock, FiArrowLeft, FiExternalLink,
   FiClock, FiTruck, FiNavigation,
-  FiCheckCircle, FiCamera, FiX, FiFilter
+  FiCheckCircle, FiCamera, FiX, FiFilter,
+  FiMapPin, FiXCircle
 } from 'react-icons/fi'
 
 import AdminSidebar from '../components/AdminSidebar'
@@ -361,6 +361,7 @@ function Admin() {
         adminRequest('/products'),
         adminRequest('/users'),
         adminRequest('/stats'),
+        // ⚠️ AQUÍ SE USA LA NUEVA RUTA DE ORDERS.JS
         apiRequest('/api/orders/admin/all')
       ])
 
@@ -678,6 +679,7 @@ function Admin() {
     setNotice('')
 
     try {
+      // ⚠️ AQUÍ SE USA LA NUEVA RUTA DE ORDERS.JS
       const result = await apiRequest(
         `/api/orders/admin/${encodeURIComponent(orderId)}/status`,
         {
@@ -1412,48 +1414,54 @@ function Admin() {
                   </button>
                 </div>
 
+                {/* PANEL DE ESTADÍSTICAS */}
                 <div
+                  className="adm-delivery-stats"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(160px, 1fr))',
-                    gap: 14,
-                    marginBottom: 24
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: 15,
+                    marginBottom: 25
                   }}
                 >
-                  {[
-                    ['Total de pedidos', orders.length, '#075cd8'],
-                    ['Entregados', deliveredOrders.length, '#15803d'],
-                    ['Confirmados', confirmedOrders.length, '#059669'],
-                    ['Sin confirmar', pendingConfirmation.length, '#a16207']
-                  ].map(([label, count, color]) => (
-                    <div
-                      key={label}
-                      style={{
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 14,
-                        padding: 20
-                      }}
-                    >
-                      <span
+                  {ORDER_STATUSES.map((status) => {
+                    const quantity = orders.filter(
+                      (order) => getOrderStatus(order.status).value === status.value
+                    ).length
+
+                    return (
+                      <div
+                        key={status.value}
                         style={{
-                          display: 'block',
-                          color: '#64748b',
-                          fontSize: 13,
-                          marginBottom: 10
+                          padding: 20,
+                          borderRadius: 14,
+                          border: '1px solid #e2e8f0',
+                          background: '#ffffff'
                         }}
                       >
-                        {label}
-                      </span>
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 13,
+                            color: '#64748b',
+                            marginBottom: 10
+                          }}
+                        >
+                          {status.label}
+                        </span>
 
-                      <strong
-                        style={{ fontSize: 27, color }}
-                      >
-                        {count}
-                      </strong>
-                    </div>
-                  ))}
+                        <strong
+                          style={{
+                            fontSize: 28,
+                            fontWeight: 800,
+                            color: status.color
+                          }}
+                        >
+                          {quantity}
+                        </strong>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 <div

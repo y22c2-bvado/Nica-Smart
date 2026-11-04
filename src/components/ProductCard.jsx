@@ -2,14 +2,33 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import '../styles/products.css'
 
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/+$/, '')
+
 function ProductCard({ product }) {
   const navigate = useNavigate()
   const { addToCart } = useCart()
 
-  const previewImage = 
+  const rawImage = 
     (product.images && product.images.length > 0) 
       ? product.images[0] 
-      : (product.image || 'https://via.placeholder.com/300x300?text=Sin+Imagen')
+      : (product.image || null)
+
+  const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
+    
+    if (path.startsWith('http') || path.startsWith('data:')) return path
+    
+    if (path.startsWith('/uploads/')) {
+      return `${API_URL}${path}`
+    }
+    
+    return path
+  }
+
+  const previewImage = getImageUrl(rawImage)
 
   const price = Number(product.price)
   const originalPrice = Number(
@@ -54,7 +73,6 @@ function ProductCard({ product }) {
       </Link>
 
       <div className="product-card-content">
-        {/* Mostrar la marca si existe */}
         {product.brand && (
           <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#0755d7', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>
             {product.brand}
