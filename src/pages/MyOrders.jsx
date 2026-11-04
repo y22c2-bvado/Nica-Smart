@@ -22,18 +22,12 @@ import Footer from '../components/Footer'
 
 import '../styles/myOrders.css'
 
-// ==========================================
-// CONFIGURACIÓN DE API
-// ==========================================
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
 ).trim().replace(/\/$/, '')
 
-// ==========================================
-// FORMATO DE MONEDA
-// ==========================================
 
 const formatMoney = (value) =>
   `C$ ${Number(value || 0).toLocaleString('es-NI', {
@@ -41,9 +35,6 @@ const formatMoney = (value) =>
     maximumFractionDigits: 2
   })}`
 
-// ==========================================
-// FORMATO DE FECHA
-// ==========================================
 
 const formatDate = (value) => {
   if (!value) return 'Fecha no disponible'
@@ -60,10 +51,6 @@ const formatDate = (value) => {
     year: 'numeric'
   })
 }
-
-// ==========================================
-// ESTADOS DE PEDIDOS
-// ==========================================
 
 const getStatusInfo = (status) => {
   const normalized = String(status || 'Registrado')
@@ -97,10 +84,6 @@ const getStatusInfo = (status) => {
   }
 }
 
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
-
 function MyOrders() {
   const navigate = useNavigate()
 
@@ -108,10 +91,6 @@ function MyOrders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedOrders, setExpandedOrders] = useState({})
-
-  // ==========================================
-  // OBTENER PEDIDOS DE POSTGRESQL
-  // ==========================================
 
   useEffect(() => {
     const controller = new AbortController()
@@ -169,10 +148,6 @@ function MyOrders() {
 
     return () => controller.abort()
   }, [])
-
-  // ==========================================
-  // ABRIR Y CERRAR DETALLES
-  // ==========================================
 
   const toggleOrder = (id) => {
     setExpandedOrders((previous) => ({
