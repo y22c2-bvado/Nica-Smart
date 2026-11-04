@@ -1,9 +1,21 @@
+
 server {
     listen ${PORT};
     server_name _;
+
     root /usr/share/nginx/html;
     index index.html;
 
+    # Tipos MIME para JavaScript, CSS e imágenes
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Archivos compilados de Vite
+    location /assets/ {
+        try_files $uri =404;
+    }
+
+    # Rutas de React Router
     location / {
         try_files $uri $uri/ /index.html;
     }
