@@ -12,9 +12,14 @@ const createProductsTable = `
     name VARCHAR(200) NOT NULL,
     category VARCHAR(100),
     price NUMERIC(10,2),
+    original_price NUMERIC(10,2),
     stock INTEGER DEFAULT 0,
     image TEXT,
+    images TEXT[] DEFAULT '{}',
     description TEXT,
+    brand VARCHAR(120),
+    brand_url TEXT,
+    is_new BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `;
@@ -89,29 +94,126 @@ const createOrderItemsTable = `
 `;
 
 const insertSeedData = `
-  INSERT INTO products (name, category, price, stock, image, description) VALUES
-  ('AirPods 2da Generación', 'Audio', 2490, 15, '/Imagenes/Airpods2.jpg', 'Audífonos inalámbricos con conexión Bluetooth y estuche de carga.'),
-  ('Audífonos Bluetooth Inalámbricos', 'Audio', 1200, 20, '/Imagenes/audifonosBlu.jpg', 'Audífonos inalámbricos ideales para música, llamadas y uso diario.'),
-  ('Cargador Rápido USB-C 35W', 'Cargadores', 850, 25, '/Imagenes/cargador35.jpg', 'Cargador USB-C de carga rápida compatible con múltiples dispositivos.'),
-  ('Cargador Rápido USB-C 65W', 'Cargadores', 1450, 18, '/Imagenes/cargador65.jpg', 'Cargador USB-C de alta potencia para teléfonos, tablets y laptops compatibles.'),
-  ('Cable USB-C a USB-C', 'Cables', 350, 40, '/Imagenes/cableAC.jpg', 'Cable USB-C para carga rápida y transferencia de datos.'),
-  ('Cable USB-C a Lightning', 'Cables', 450, 35, '/Imagenes/cableC.jpg', 'Cable compatible con dispositivos que utilizan conexión Lightning.'),
-  ('Cable HDMI 2.1', 'Cables', 550, 22, '/Imagenes/cableHD.jpg', 'Cable HDMI para transmisión de audio y video en alta resolución.'),
-  ('Power Bank 10,000 mAh', 'Energía', 1200, 17, '/Imagenes/powebank.jpg', 'Batería portátil para cargar dispositivos móviles durante el día.'),
-  ('Power Bank 20,000 mAh', 'Energía', 1850, 12, '/Imagenes/powerbank.jpg', 'Batería portátil de gran capacidad para múltiples cargas.'),
-  ('Smartwatch X1', 'Relojes', 3200, 10, '/Imagenes/smarwatch.jpg', 'Reloj inteligente con conectividad Bluetooth y funciones deportivas.'),
-  ('Soporte Ajustable para Laptop', 'Soportes', 950, 14, '/Imagenes/soporte.jpg', 'Soporte ajustable para mejorar la posición y ventilación de la laptop.'),
-  ('Soporte Magnético para Celular', 'Soportes', 550, 30, '/Imagenes/soportecelular.jpg', 'Soporte magnético compacto para teléfonos móviles.'),
-  ('Mouse Inalámbrico', 'Computación', 650, 28, '/Imagenes/mouse.jpg', 'Mouse inalámbrico para computadora y laptop.'),
-  ('Teclado Mecánico RGB', 'Gaming', 2200, 13, '/Imagenes/teclado.jpg', 'Teclado mecánico con iluminación RGB para gaming y productividad.'),
-  ('Hub USB-C Multipuerto', 'Adaptadores', 1450, 19, '/Imagenes/usbhub.jpg', 'Hub USB-C con múltiples conexiones para distintos dispositivos.'),
-  ('Adaptador USB-C a HDMI', 'Adaptadores', 750, 21, '/Imagenes/usbhd.jpg', 'Adaptador para conectar dispositivos USB-C a pantallas HDMI.'),
-  ('Webcam Full HD 1080p', 'Computación', 1800, 16, '/Imagenes/webcam.jpg', 'Cámara web Full HD para videollamadas, clases y reuniones.'),
-  ('Bocina Bluetooth Portátil', 'Audio', 1600, 18, '/Imagenes/bocinablu.jpg', 'Bocina portátil con conexión Bluetooth y batería recargable.'),
-  ('Control Inalámbrico para Gaming', 'Gaming', 1900, 14, '/Imagenes/control.jpg', 'Control inalámbrico para videojuegos y diferentes dispositivos.'),
-  ('Base de Carga Inalámbrica', 'Cargadores', 1100, 24, '/Imagenes/inalambrico.jpg', 'Base de carga inalámbrica para teléfonos compatibles.');
+  INSERT INTO products (name, category, price, original_price, stock, image, description) VALUES
+  ('AirPods 2da Generación', 'Audio', 2490, 2490, 15, '/Imagenes/Airpods2.jpg', 'Audífonos inalámbricos con conexión Bluetooth y estuche de carga.'),
+  ('Audífonos Bluetooth Inalámbricos', 'Audio', 1200, 1200, 20, '/Imagenes/audifonosBlu.jpg', 'Audífonos inalámbricos ideales para música, llamadas y uso diario.'),
+  ('Cargador Rápido USB-C 35W', 'Cargadores', 850, 850, 25, '/Imagenes/cargador35.jpg', 'Cargador USB-C de carga rápida compatible con múltiples dispositivos.'),
+  ('Cargador Rápido USB-C 65W', 'Cargadores', 1450, 1450, 18, '/Imagenes/cargador65.jpg', 'Cargador USB-C de alta potencia para teléfonos, tablets y laptops compatibles.'),
+  ('Cable USB-C a USB-C', 'Cables', 350, 350, 40, '/Imagenes/cableAC.jpg', 'Cable USB-C para carga rápida y transferencia de datos.'),
+  ('Cable USB-C a Lightning', 'Cables', 450, 450, 35, '/Imagenes/cableC.jpg', 'Cable compatible con dispositivos que utilizan conexión Lightning.'),
+  ('Cable HDMI 2.1', 'Cables', 550, 550, 22, '/Imagenes/cableHD.jpg', 'Cable HDMI para transmisión de audio y video en alta resolución.'),
+  ('Power Bank 10,000 mAh', 'Energía', 1200, 1200, 17, '/Imagenes/powebank.jpg', 'Batería portátil para cargar dispositivos móviles durante el día.'),
+  ('Power Bank 20,000 mAh', 'Energía', 1850, 1850, 12, '/Imagenes/powerbank.jpg', 'Batería portátil de gran capacidad para múltiples cargas.'),
+  ('Smartwatch X1', 'Relojes', 3200, 3200, 10, '/Imagenes/smarwatch.jpg', 'Reloj inteligente con conectividad Bluetooth y funciones deportivas.'),
+  ('Soporte Ajustable para Laptop', 'Soportes', 950, 950, 14, '/Imagenes/soporte.jpg', 'Soporte ajustable para mejorar la posición y ventilación de la laptop.'),
+  ('Soporte Magnético para Celular', 'Soportes', 550, 550, 30, '/Imagenes/soportecelular.jpg', 'Soporte magnético compacto para teléfonos móviles.'),
+  ('Mouse Inalámbrico', 'Computación', 520, 650, 28, '/Imagenes/mouse.jpg', 'Mouse inalámbrico para computadora y laptop.'),
+  ('Teclado Mecánico RGB', 'Gaming', 1650, 2200, 13, '/Imagenes/teclado.jpg', 'Teclado mecánico con iluminación RGB para gaming y productividad.'),
+  ('Hub USB-C Multipuerto', 'Adaptadores', 1450, 1450, 19, '/Imagenes/usbhub.jpg', 'Hub USB-C con múltiples conexiones para distintos dispositivos.'),
+  ('Adaptador USB-C a HDMI', 'Adaptadores', 750, 750, 21, '/Imagenes/usbhd.jpg', 'Adaptador para conectar dispositivos USB-C a pantallas HDMI.'),
+  ('Webcam Full HD 1080p', 'Computación', 1800, 1800, 16, '/Imagenes/webcam.jpg', 'Cámara web Full HD para videollamadas, clases y reuniones.'),
+  ('Bocina Bluetooth Portátil', 'Audio', 1600, 1600, 18, '/Imagenes/bocinablu.jpg', 'Bocina portátil con conexión Bluetooth y batería recargable.'),
+  ('Control Inalámbrico para Gaming', 'Gaming', 1615, 1900, 14, '/Imagenes/control.jpg', 'Control inalámbrico para videojuegos y diferentes dispositivos.'),
+  ('Base de Carga Inalámbrica', 'Cargadores', 1100, 1100, 24, '/Imagenes/inalambrico.jpg', 'Base de carga inalámbrica para teléfonos compatibles.');
 `;
 
+const migrateAddOriginalPrice = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS original_price NUMERIC(10,2);
+`;
+
+const migrateFillOriginalPrice = `
+  UPDATE products
+  SET original_price = price
+  WHERE original_price IS NULL;
+`;
+
+const migrateAddCreatedAt = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+`;
+
+const migrateAddImagesArray = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
+`;
+
+const migrateOldImageToImages = `
+  UPDATE products
+  SET images = ARRAY[image]
+  WHERE image IS NOT NULL 
+    AND (images IS NULL OR cardinality(images) = 0);
+`;
+
+const migrateAddIsNew = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS is_new BOOLEAN NOT NULL DEFAULT FALSE;
+`;
+
+const migrateAddBrand = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS brand VARCHAR(120);
+`;
+
+const migrateAddBrandUrl = `
+  ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS brand_url TEXT;
+`;
+
+const createBrandIndex = `
+  CREATE INDEX IF NOT EXISTS idx_products_brand ON products (brand);
+`;
+
+const createMarkNewFunction = `
+  CREATE OR REPLACE FUNCTION marcar_producto_nuevo()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      NEW.is_new := TRUE;
+      RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+`;
+
+const createNewProductTrigger = `
+  DROP TRIGGER IF EXISTS trigger_producto_nuevo ON products;
+  CREATE TRIGGER trigger_producto_nuevo
+  BEFORE INSERT ON products
+  FOR EACH ROW
+  EXECUTE FUNCTION marcar_producto_nuevo();
+`;
+
+const applySeasonPromotions = [
+  `
+  UPDATE products
+  SET original_price = 2200, price = 1650
+  WHERE name = 'Teclado Mecánico RGB'
+    AND price = 2200
+  `,
+  `
+  UPDATE products
+  SET original_price = 1900, price = 1615
+  WHERE name = 'Control Inalámbrico para Gaming'
+    AND price = 1900
+  `,
+  `
+  UPDATE products
+  SET original_price = 650, price = 520
+  WHERE name = 'Mouse Inalámbrico'
+    AND price = 650
+  `,
+];
+
+const assignBrandsToSeedData = [
+  `UPDATE products SET brand = 'Apple', brand_url = 'https://www.apple.com' WHERE name ILIKE '%AirPods%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Xiaomi', brand_url = 'https://www.mi.com' WHERE name ILIKE '%Audífonos Bluetooth%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Anker', brand_url = 'https://www.anker.com' WHERE (name ILIKE '%Cargador%' OR name ILIKE '%Power Bank%') AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Samsung', brand_url = 'https://www.samsung.com' WHERE name ILIKE '%Smartwatch%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Logitech', brand_url = 'https://www.logitech.com' WHERE (name ILIKE '%Mouse%' OR name ILIKE '%Teclado%') AND brand IS NULL;`,
+  `UPDATE products SET brand = 'Razer', brand_url = 'https://www.razer.com' WHERE name ILIKE '%Control Inalámbrico%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'JBL', brand_url = 'https://www.jbl.com' WHERE name ILIKE '%Bocina%' AND brand IS NULL;`,
+  `UPDATE products SET brand = 'MSI', brand_url = 'https://www.msi.com' WHERE name ILIKE '%MSI%' AND brand IS NULL;`
+];
+// -----------------------------------------------------------------------
 
 async function init() {
   try {
@@ -143,29 +245,96 @@ async function init() {
     await pool.query(createOrderItemsTable);
     console.log('✅ Tabla order_items creada');
 
-    const { rows } = await pool.query(
-      'SELECT COUNT(*) FROM products'
-    );
+    console.log('🔧 Verificando columna original_price...');
+    await pool.query(migrateAddOriginalPrice);
+    console.log('✅ Columna original_price lista');
+
+    console.log('🔄 Rellenando original_price en filas existentes...');
+    await pool.query(migrateFillOriginalPrice);
+    console.log('✅ Filas sin original_price actualizadas');
+
+    console.log('🔧 Verificando columna created_at...');
+    await pool.query(migrateAddCreatedAt);
+    console.log('✅ Columna created_at lista');
+
+    console.log('🖼️ Verificando columna images (Array)...');
+    await pool.query(migrateAddImagesArray);
+    console.log('✅ Columna images lista');
+
+    console.log('🔄 Migrando imagen antigua al nuevo array...');
+    await pool.query(migrateOldImageToImages);
+    console.log('✅ Imágenes migradas');
+
+    console.log('🆕 Verificando columna is_new...');
+    await pool.query(migrateAddIsNew);
+    console.log('✅ Columna is_new lista');
+
+    console.log('🏷️ Verificando columna brand (Marca)...');
+    await pool.query(migrateAddBrand);
+    console.log('✅ Columna brand lista');
+
+    console.log('🔗 Verificando columna brand_url (Web de marca)...');
+    await pool.query(migrateAddBrandUrl);
+    console.log('✅ Columna brand_url lista');
+
+    console.log('⚡ Creando índice para búsquedas por marca...');
+    await pool.query(createBrandIndex);
+    console.log('✅ Índice de marca listo');
+
+    const { rows } = await pool.query('SELECT COUNT(*) FROM products');
 
     if (parseInt(rows[0].count) === 0) {
       console.log('📦 Insertando productos...');
       await pool.query(insertSeedData);
-      console.log('✅ 20 productos insertados');
+      console.log('✅ 20 productos insertados (marcados como NO nuevos)');
     } else {
-      console.log(
-        `ℹ️ Ya hay ${rows[0].count} productos, no se insertaron duplicados`
-      );
+      console.log(`ℹ️ Ya hay ${rows[0].count} productos, no se insertaron duplicados`);
     }
 
-    const totalProducts = await pool.query(
-      'SELECT COUNT(*) FROM products'
+    console.log('🏷️ Asignando marcas a los productos del catálogo...');
+    for (const sql of assignBrandsToSeedData) {
+      await pool.query(sql);
+    }
+    console.log('✅ Marcas asignadas correctamente');
+
+    console.log('🎃 Aplicando promociones de temporada...');
+    for (const sql of applySeasonPromotions) {
+      await pool.query(sql);
+    }
+    console.log('✅ Promociones aplicadas');
+
+    console.log('🖥️ Marcando monitor MSI (ID 41) como nuevo si existe...');
+    await pool.query(`
+      UPDATE products SET is_new = TRUE
+      WHERE id = 41 AND name ILIKE '%MSI%'
+    `);
+    console.log('✅ Verificación de MSI completada');
+
+    // ⚠️ IMPORTANTE: El trigger se crea AL FINAL para no marcar los 20 productos semilla como nuevos
+    console.log('⚡ Configurando sistema automático de nuevos ingresos...');
+    await pool.query(createMarkNewFunction);
+    await pool.query(createNewProductTrigger);
+    console.log('✅ Trigger activo: Los productos que agregues desde el Admin serán nuevos');
+
+    const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
+    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
+    const withDiscount = await pool.query(
+      `SELECT COUNT(*) FROM products
+       WHERE original_price IS NOT NULL
+         AND original_price > price`
     );
-    const totalUsers = await pool.query(
-      'SELECT COUNT(*) FROM users'
+    const newProducts = await pool.query(
+      'SELECT COUNT(*) FROM products WHERE is_new = TRUE'
+    );
+    const productsWithBrand = await pool.query(
+      'SELECT COUNT(*) FROM products WHERE brand IS NOT NULL'
     );
 
     console.log(`📊 Total de productos: ${totalProducts.rows[0].count}`);
     console.log(`📊 Total de usuarios: ${totalUsers.rows[0].count}`);
+    console.log(`📊 Productos con descuento activo: ${withDiscount.rows[0].count}`);
+    console.log(`📊 Productos marcados como nuevos: ${newProducts.rows[0].count}`);
+    console.log(`📊 Productos con marca asignada: ${productsWithBrand.rows[0].count}`);
 
     process.exit(0);
 
@@ -174,6 +343,5 @@ async function init() {
     process.exit(1);
   }
 }
-
 
 init();

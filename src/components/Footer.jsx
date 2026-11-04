@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom'
 
 import {
@@ -12,27 +13,79 @@ import {
   FiUser,
   FiFileText,
   FiShoppingCart,
-  FiMapPin,
+  FiMapPin
 } from 'react-icons/fi'
 
 import {
   FaFacebookF,
   FaInstagram,
-  FaTiktok,
-  FaYoutube,
+  FaWhatsapp
 } from 'react-icons/fa'
 
 import '../styles/footer.css'
 
+// ==========================================
+// REDES SOCIALES OFICIALES DE NICA S-MART
+// ==========================================
+
+export const SOCIAL_LINKS = {
+  facebook:
+    'https://www.facebook.com/share/14uU9zNDUQv/?mibextid=wwXIfr',
+
+  instagram:
+    'https://www.instagram.com/nic.asmart?cplk=eGE2cHkzZzQwYXo5',
+
+  whatsappNumber: '50582740813'
+}
+
+// ==========================================
+// MENSAJE AUTOMÁTICO DE WHATSAPP
+// ==========================================
+
+const WHATSAPP_MESSAGE =
+  'Hola, NICA S-MART. Me gustaría recibir información sobre sus productos.'
+
+export function getWhatsAppLink() {
+  const number = SOCIAL_LINKS.whatsappNumber.replace(/\D/g, '')
+
+  if (!number) return ''
+
+  return `https://wa.me/${number}?text=${encodeURIComponent(
+    WHATSAPP_MESSAGE
+  )}`
+}
+
+// ==========================================
+// COMPONENTE FOOTER
+// ==========================================
+
 function Footer() {
+  const socialNetworks = [
+    {
+      name: 'Facebook',
+      url: SOCIAL_LINKS.facebook,
+      Icon: FaFacebookF
+    },
+    {
+      name: 'Instagram',
+      url: SOCIAL_LINKS.instagram,
+      Icon: FaInstagram
+    },
+    {
+      name: 'WhatsApp',
+      url: getWhatsAppLink(),
+      Icon: FaWhatsapp
+    }
+  ]
+
   return (
     <footer className="footer">
 
       <div className="footer-container">
 
-        {/* =========================
-            MARCA
-        ========================== */}
+        {/* =====================================
+            MARCA NICA S-MART
+        ===================================== */}
 
         <div className="footer-brand">
 
@@ -53,50 +106,36 @@ function Footer() {
             tu día a día.
           </p>
 
+          {/* =====================================
+              FACEBOOK, INSTAGRAM Y WHATSAPP
+          ===================================== */}
+
           <div className="footer-social">
 
-            <a
-              href="#"
-              aria-label="Facebook"
-            >
-              <FaFacebookF />
-            </a>
-
-            <a
-              href="#"
-              aria-label="Instagram"
-            >
-              <FaInstagram />
-            </a>
-
-            <a
-              href="#"
-              aria-label="TikTok"
-            >
-              <FaTiktok />
-            </a>
-
-            <a
-              href="#"
-              aria-label="YouTube"
-            >
-              <FaYoutube />
-            </a>
+            {socialNetworks.map(({ name, url, Icon }) => (
+              <a
+                key={name}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`NICA S-MART en ${name}`}
+                title={name}
+              >
+                <Icon />
+              </a>
+            ))}
 
           </div>
 
         </div>
 
-
-        {/* =========================
+        {/* =====================================
             INFORMACIÓN
-        ========================== */}
+        ===================================== */}
 
         <div className="footer-column">
 
-          <h3>
-            Información
-          </h3>
+          <h3>Información</h3>
 
           <div className="footer-title-line" />
 
@@ -115,7 +154,7 @@ function Footer() {
             <span>Categorías</span>
           </Link>
 
-          <Link to="/products?filter=promotions">
+          <Link to="/promotions">
             <FiTag />
             <span>Promociones</span>
           </Link>
@@ -127,16 +166,13 @@ function Footer() {
 
         </div>
 
-
-        {/* =========================
+        {/* =====================================
             AYUDA
-        ========================== */}
+        ===================================== */}
 
         <div className="footer-column">
 
-          <h3>
-            Ayuda
-          </h3>
+          <h3>Ayuda</h3>
 
           <div className="footer-title-line" />
 
@@ -157,16 +193,13 @@ function Footer() {
 
         </div>
 
-
-        {/* =========================
+        {/* =====================================
             MI CUENTA
-        ========================== */}
+        ===================================== */}
 
         <div className="footer-column">
 
-          <h3>
-            Mi cuenta
-          </h3>
+          <h3>Mi cuenta</h3>
 
           <div className="footer-title-line" />
 
@@ -194,17 +227,17 @@ function Footer() {
 
       </div>
 
-
-      {/* =========================
+      {/* =====================================
           PARTE INFERIOR
-      ========================== */}
+      ===================================== */}
 
       <div className="footer-bottom">
 
         <div className="footer-bottom-container">
 
           <p>
-            © 2026 NICA S-MART. Todos los derechos reservados.
+            © {new Date().getFullYear()} NICA S-MART.
+            Todos los derechos reservados.
           </p>
 
           <div className="footer-legal">

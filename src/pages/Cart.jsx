@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom'
 
 import Header from '../components/Header'
@@ -18,6 +17,7 @@ function Cart() {
     decreaseQuantity,
     removeProduct,
     cartTotal,
+    cartSavings,
   } = useCart()
 
   // ==========================================
@@ -26,6 +26,11 @@ function Cart() {
 
   const shipping = cartItems.length > 0 ? 150 : 0
   const total = cartTotal + shipping
+
+  const money = (value) =>
+    `C$ ${Number(value).toLocaleString('es-NI', {
+      maximumFractionDigits: 0,
+    })}`
 
   // ==========================================
   // VERIFICAR SESIÓN DEL CLIENTE
@@ -39,14 +44,12 @@ function Cart() {
     }
 
     try {
-      // Separar las partes del JWT
       const parts = token.split('.')
 
       if (parts.length !== 3) {
         return false
       }
 
-      // Decodificar el contenido del token
       const base64 = parts[1]
         .replace(/-/g, '+')
         .replace(/_/g, '/')
@@ -60,7 +63,6 @@ function Cart() {
         )
       )
 
-      // Comprobar si el token expiró
       if (
         typeof payload.exp !== 'number' ||
         payload.exp * 1000 <= Date.now()
@@ -85,20 +87,11 @@ function Cart() {
   // ==========================================
 
   const handleCheckout = () => {
-
-    // No continuar con el carrito vacío
     if (cartItems.length === 0) {
       return
     }
 
-    // ==========================================
-    // CLIENTE SIN SESIÓN
-    // ==========================================
-
     if (!hasActiveSession()) {
-
-      // Enviar al login y regresar al carrito
-      // después de iniciar sesión.
       navigate('/login', {
         state: {
           from: '/cart',
@@ -108,11 +101,6 @@ function Cart() {
       return
     }
 
-    // ==========================================
-    // CLIENTE CON SESIÓN
-    // ==========================================
-
-    // Abrir la página para confirmar el pedido
     navigate('/checkout')
   }
 
@@ -135,7 +123,8 @@ function Cart() {
               <h1>Tu carrito</h1>
 
               <p>
-                {cartItems.length} productos
+                {cartItems.length}{' '}
+                {cartItems.length === 1 ? 'producto' : 'productos'}
               </p>
             </div>
 
@@ -145,6 +134,21 @@ function Cart() {
 
                 const image =
                   item.images?.[0] || item.image
+
+                const price = Number(item.price)
+
+                const original = Number(
+                  item.original_price ?? item.price
+                )
+
+                const hasDiscount =
+                  Number.isFinite(original) &&
+                  Number.isFinite(price) &&
+                  original > price
+
+                const itemSaving = hasDiscount
+                  ? (original - price) * item.quantity
+                  : 0
 
                 return (
                   <div
@@ -170,12 +174,22 @@ function Cart() {
                       </h3>
 
                       <p className="cart-item-price">
-                        C$ {
-                          Number(
-                            item.price
-                          ).toLocaleString()
-                        }
+                        {hasDiscount && (
+                          <del className="cart-item-price-original">
+                            {money(original)}
+                          </del>
+                        )}
+
+                        <span>
+                          {money(price)}
+                        </span>
                       </p>
+
+                      {hasDiscount && (
+                        <small className="cart-item-saving">
+                          Ahorras {money(itemSaving)}
+                        </small>
+                      )}
 
                       {/* CANTIDAD */}
 
@@ -212,12 +226,7 @@ function Cart() {
                     <div className="cart-item-total">
 
                       <strong>
-                        C$ {
-                          (
-                            Number(item.price) *
-                            item.quantity
-                          ).toLocaleString()
-                        }
+                        {money(price * item.quantity)}
                       </strong>
 
                       <button
@@ -274,46 +283,48 @@ function Cart() {
             </h2>
 
             <div className="summary-row">
-
               <span>
                 Subtotal
               </span>
 
               <strong>
-                C$ {cartTotal.toLocaleString()}
+                {money(cartTotal)}
               </strong>
-
             </div>
 
-            <div className="summary-row">
+            {cartSavings > 0 && (
+              <div className="summary-row summary-saving">
+                <span>
+                  Descuento
+                </span>
 
+                <strong style={{ color: '#2e7d32' }}>
+                  − {money(cartSavings)}
+                </strong>
+              </div>
+            )}
+
+            <div className="summary-row">
               <span>
                 Envío
               </span>
 
               <strong>
-                C$ {shipping.toLocaleString()}
+                {money(shipping)}
               </strong>
-
             </div>
 
             <div className="summary-divider"></div>
 
             <div className="summary-total">
-
               <span>
                 Total
               </span>
 
               <strong>
-                C$ {total.toLocaleString()}
+                {money(total)}
               </strong>
-
             </div>
-
-            {/* ==================================
-                PROCEDER AL PAGO
-            ================================== */}
 
             <button
               type="button"
@@ -323,10 +334,6 @@ function Cart() {
             >
               Proceder al pago
             </button>
-
-            {/* ==================================
-                SEGUIR COMPRANDO
-            ================================== */}
 
             <button
               type="button"

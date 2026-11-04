@@ -1,4 +1,4 @@
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   useParams,
   useNavigate,
@@ -14,14 +14,13 @@ import '../styles/productDetail.css'
 
 function ProductDetail() {
   const { id } = useParams()
-
   const navigate = useNavigate()
-
   const { addToCart } = useCart()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
+  const [selectedImage, setSelectedImage] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -34,7 +33,18 @@ function ProductDetail() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Mientras carga
+  useEffect(() => {
+    if (product) {
+      const imgs = product.images && product.images.length > 0 
+        ? product.images 
+        : (product.image ? [product.image] : []);
+        
+      if (imgs.length > 0) {
+        setSelectedImage(imgs[0]);
+      }
+    }
+  }, [product]);
+
   if (loading) {
     return (
       <>
@@ -48,7 +58,6 @@ function ProductDetail() {
     )
   }
 
-  // Si no existe el producto
   if (!product) {
     return (
       <>
@@ -62,8 +71,9 @@ function ProductDetail() {
     )
   }
 
-  const productImage =
-    product.images?.[0] || product.image
+  const productImages = product.images && product.images.length > 0 
+    ? product.images 
+    : (product.image ? [product.image] : []);
 
   const increaseQuantity = () => {
     if (quantity < product.stock) {
@@ -83,7 +93,6 @@ function ProductDetail() {
 
   const handleBuyNow = () => {
     addToCart(product, quantity)
-
     navigate('/cart')
   }
 
@@ -95,25 +104,76 @@ function ProductDetail() {
       <main className="product-detail">
 
         <section className="product-detail-gallery">
-
+          
+          {/* IMAGEN PRINCIPAL */}
           <div className="product-detail-main-image">
-            <img
-              src={productImage}
-              alt={product.name}
-            />
+            {selectedImage ? (
+              <img
+                src={selectedImage}
+                alt={product.name}
+              />
+            ) : (
+              <div style={{ padding: '50px', textAlign: 'center', background: '#f5f5f5', borderRadius: '8px' }}>
+                Sin imagen disponible
+              </div>
+            )}
           </div>
+
+          {/* MINIATURAS (Solo se muestran si hay más de 1 imagen) */}
+          {productImages.length > 1 && (
+            <div className="product-detail-thumbnails">
+              {productImages.map((img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  alt={`${product.name} - miniatura ${index + 1}`}
+                  onClick={() => setSelectedImage(img)}
+                  style={{
+                    width: '70px',
+                    height: '70px',
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                    border: selectedImage === img ? '2px solid #1e3a8a' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              ))}
+            </div>
+          )}
 
         </section>
 
         <section className="product-detail-info">
 
-          <p className="detail-category">
-            {product.category}
-          </p>
+          {/* MOSTRAR MARCA Y CATEGORÍA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+            {product.brand && (
+              <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0755d7', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {product.brand}
+              </span>
+            )}
+            
+            <p className="detail-category" style={{ margin: 0 }}>
+              {product.category}
+            </p>
+          </div>
 
           <h1>
             {product.name}
           </h1>
+
+          {/* ENLACE A LA PÁGINA DE LA MARCA */}
+          {product.brand_url && (
+            <a 
+              href={product.brand_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ display: 'inline-block', fontSize: '13px', color: '#0755d7', textDecoration: 'underline', marginBottom: '15px' }}
+            >
+              Visitar sitio web de {product.brand || 'la marca'} ↗
+            </a>
+          )}
 
           <div className="detail-rating">
             ★★★★★

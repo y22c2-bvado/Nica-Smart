@@ -46,7 +46,30 @@
   transform: scale(1.05);
 }
 
-/* INFORMACIÓN */
+.product-detail-thumbnails {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.product-detail-thumbnails img {
+  width: 75px;
+  height: 75px;
+  object-fit: cover;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: #f7f7f7;
+}
+
+.product-detail-thumbnails img:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
 
 .product-detail-info {
   padding-top: 15px;

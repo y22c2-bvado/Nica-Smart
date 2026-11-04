@@ -75,6 +75,17 @@ export function CartProvider({ children }) {
     0
   )
 
+  const cartOriginalTotal = cartItems.reduce(
+  (total, item) => {
+    const original = Number(
+      item.original_price ?? item.price
+    )
+    return total + original * item.quantity
+  },
+  0
+)
+
+const cartSavings = Math.max(0, cartOriginalTotal - cartTotal)
   return (
     <CartContext.Provider
       value={{
@@ -85,6 +96,8 @@ export function CartProvider({ children }) {
         removeProduct,
         cartCount,
         cartTotal,
+        cartOriginalTotal,
+        cartSavings,
       }}
     >
       {children}

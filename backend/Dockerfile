@@ -1,32 +1,52 @@
+
 # ==========================================
-# ETAPA 1: Compilar el proyecto de Vite (Node.js)
+# NICA S-MART | BACKEND
+# Node.js 20 Alpine + Express + PostgreSQL
 # ==========================================
-FROM node:20-alpine AS build
+
+# ==========================================
+# ETAPA 1: IMAGEN BASE
+# ==========================================
+
+FROM node:20-alpine
+
+# ==========================================
+# DIRECTORIO DE TRABAJO
+# ==========================================
 
 WORKDIR /app
 
-# Copiamos package.json y package-lock.json para instalar dependencias
+# ==========================================
+# INSTALAR DEPENDENCIAS
+# ==========================================
+
+# Copiar archivos de dependencias
 COPY package*.json ./
-RUN npm install
 
-# Copiamos todo el código del proyecto y lo compilamos
+# Instalar dependencias de producción
+RUN npm ci --omit=dev
+
+# ==========================================
+# COPIAR CÓDIGO DEL BACKEND
+# ==========================================
+
 COPY . .
-RUN npm run build
 
 # ==========================================
-# ETAPA 2: Servir los archivos con Nginx
+# CONFIGURACIÓN DEL SERVIDOR
 # ==========================================
-FROM nginx:1.27-alpine
 
-# Railway inyecta la variable PORT
-ENV PORT=80
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Plantilla de configuración de Nginx
-COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
+# ==========================================
+# EXPONER PUERTO DE EXPRESS
+# ==========================================
 
-# ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-# Copiamos SOLO la carpeta "dist" (que genera Vite al compilar) 
-# y la ponemos en la carpeta pública de Nginx.
-COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 3000
 
-EXPOSE 80
+# ==========================================
+# INICIAR EL BACKEND
+# ==========================================
+
+CMD ["npm", "start"]

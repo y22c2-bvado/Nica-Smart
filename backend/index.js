@@ -4,17 +4,10 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 
-// ==========================================
-// CONFIGURACIÓN DE VARIABLES DE ENTORNO
-// ==========================================
 
 require('dotenv').config({
   path: path.join(__dirname, '.env')
 });
-
-// ==========================================
-// DIAGNÓSTICO DE GOOGLE OAUTH
-// ==========================================
 
 if (process.env.NODE_ENV !== 'production') {
   console.log('Configuración Google OAuth:', {
@@ -25,9 +18,6 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ==========================================
-// IMPORTACIÓN DE RUTAS
-// ==========================================
 
 const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
@@ -37,37 +27,23 @@ const googleAuthRoutes = require('./routes/googleAuth');
 
 const orderRoutes = require('./routes/orders');
 
-// NUEVO: PANEL DE ADMINISTRACIÓN
 const adminRoutes = require('./routes/admin');
 
-// NUEVO: RECUPERACIÓN DE CONTRASEÑA
 const passwordResetRoutes = require('./routes/passwordReset');
 
-// ==========================================
-// INICIALIZAR EXPRESS
-// ==========================================
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ==========================================
-// CONFIGURACIÓN DE SEGURIDAD
-// ==========================================
-
 app.disable('x-powered-by');
 
-// Permitir solicitudes del frontend.
-// Más adelante restringiremos los orígenes
-// al dominio de NICA S-MART.
 app.use(cors());
 
 app.use(express.json({
   limit: '10kb'
 }));
 
-// ==========================================
-// CONEXIÓN A POSTGRESQL
-// ==========================================
+app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -75,11 +51,6 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
-
-// ==========================================
-// RUTA DE PRUEBA
-// GET /
-// ==========================================
 
 app.get('/', async (req, res) => {
   try {
@@ -99,64 +70,28 @@ app.get('/', async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS PÚBLICAS DE PRODUCTOS
-// ==========================================
-
 app.use('/api/products', productRoutes);
 
-// ==========================================
-// RUTAS DE CATEGORÍAS
-// ==========================================
 
 app.use('/api/categories', categoryRoutes);
 
-// ==========================================
-// AUTENTICACIÓN CON GOOGLE
-// ==========================================
 
 app.use('/api/auth/google', googleAuthRoutes);
 
-// ==========================================
-// REGISTRO Y LOGIN CON CORREO
-// ==========================================
-
 app.use('/api/auth', authRoutes);
-
-// ==========================================
-// RECUPERACIÓN DE CONTRASEÑAS
-// ==========================================
 
 app.use('/api/auth', passwordResetRoutes);
 
-// ==========================================
-// PEDIDOS DE CLIENTES
-// ==========================================
-
 app.use('/api/orders', orderRoutes);
-
-// ==========================================
-// ADMINISTRACIÓN
-// ==========================================
-
-// Todas las rutas deben estar protegidas
-// por requireAdmin dentro de admin.js.
 
 app.use('/api/admin', adminRoutes);
 
-// ==========================================
-// RUTAS NO ENCONTRADAS
-// ==========================================
 
 app.use((req, res) => {
   return res.status(404).json({
     error: 'Ruta no encontrada'
   });
 });
-
-// ==========================================
-// MANEJO GENERAL DE ERRORES
-// ==========================================
 
 app.use((err, req, res, next) => {
   console.error('Error del servidor:', err);
@@ -178,9 +113,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==========================================
-// INICIAR SERVIDOR
-// ==========================================
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);

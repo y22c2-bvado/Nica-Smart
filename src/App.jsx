@@ -5,6 +5,8 @@ import {
   BrowserRouter,
   Routes,
   Route,
+  Navigate,
+  useLocation
 } from 'react-router-dom'
 
 // ==========================================
@@ -15,9 +17,26 @@ import Home from './pages/Home'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
 import ProductDetail from './pages/ProductDetail'
+import NewArrivals from './pages/NewArrivals'
+import Brands from './pages/Brands'
+import Contact from './pages/Contact'
 
 // ==========================================
-// AUTENTICACIÓN Y REGISTRO
+// AYUDA Y SEGUIMIENTO
+// ==========================================
+
+import Help from './pages/Help'
+import Tracking from './pages/Tracking'
+
+// ==========================================
+// PROMOCIONES
+// ==========================================
+
+import Promotions from './pages/Promotions'
+import PromoCart from './pages/PromoCart'
+
+// ==========================================
+// AUTENTICACIÓN
 // ==========================================
 
 import Login from './pages/Login'
@@ -26,22 +45,48 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
 // ==========================================
-// CARRITO Y COMPRAS
+// CARRITO Y PEDIDOS
 // ==========================================
 
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import MyOrders from './pages/MyOrders'
-
-// ==========================================
-// PERFIL Y ADMINISTRACIÓN
-// ==========================================
-
 import Profile from './pages/Profile'
+
+// ==========================================
+// ADMINISTRACIÓN
+// ==========================================
+
 import Admin from './pages/Admin'
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// RUTAS PROTEGIDAS
+// ==========================================
+
+function RequireAuth({ children }) {
+  const location = useLocation()
+  const token = localStorage.getItem('token')
+
+  if (!token) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from:
+            location.pathname +
+            location.search +
+            location.hash
+        }}
+      />
+    )
+  }
+
+  return children
+}
+
+// ==========================================
+// APLICACIÓN PRINCIPAL
 // ==========================================
 
 function App() {
@@ -49,82 +94,228 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* PÁGINA PRINCIPAL */}
+        {/* ==================================
+            INICIO
+        ================================== */}
+
         <Route
           path="/"
           element={<Home />}
         />
 
-        {/* INICIO DE SESIÓN */}
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        {/* ==================================
+            PRODUCTOS
+        ================================== */}
 
-        {/* REGISTRO DE CLIENTES */}
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        {/* OLVIDÉ MI CONTRASEÑA */}
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
-
-        {/* RESTABLECER CONTRASEÑA */}
-        <Route
-          path="/reset-password"
-          element={<ResetPassword />}
-        />
-
-        {/* PRODUCTOS */}
         <Route
           path="/products"
           element={<Products />}
         />
 
-        {/* CATEGORÍAS */}
         <Route
           path="/categories"
           element={<Categories />}
         />
 
-        {/* DETALLE DEL PRODUCTO */}
         <Route
           path="/product/:id"
           element={<ProductDetail />}
         />
 
-        {/* CARRITO DE COMPRAS */}
+        {/* ==================================
+            NUEVOS PRODUCTOS
+        ================================== */}
+
+        <Route
+          path="/new-products"
+          element={<NewArrivals />}
+        />
+
+        <Route
+          path="/new"
+          element={
+            <Navigate
+              to="/new-products"
+              replace
+            />
+          }
+        />
+
+        {/* ==================================
+            MARCAS Y CONTACTO
+        ================================== */}
+
+        <Route
+          path="/brands"
+          element={<Brands />}
+        />
+
+        <Route
+          path="/contact"
+          element={<Contact />}
+        />
+
+        {/* ==================================
+            CENTRO DE AYUDA
+        ================================== */}
+
+        <Route
+          path="/help"
+          element={<Help />}
+        />
+
+        <Route
+          path="/faq"
+          element={<Help />}
+        />
+
+        {/* ==================================
+            PROMOCIONES
+        ================================== */}
+
+        <Route
+          path="/promotions"
+          element={<Promotions />}
+        />
+
+        <Route
+          path="/promo-cart"
+          element={<PromoCart />}
+        />
+
+        {/* ==================================
+            AUTENTICACIÓN
+        ================================== */}
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
+
+        {/* ==================================
+            CARRITO
+        ================================== */}
+
         <Route
           path="/cart"
           element={<Cart />}
         />
 
-        {/* CONFIRMACIÓN DE COMPRA */}
+        {/* ==================================
+            FINALIZAR COMPRA
+        ================================== */}
+
         <Route
           path="/checkout"
-          element={<Checkout />}
+          element={
+            <RequireAuth>
+              <Checkout />
+            </RequireAuth>
+          }
         />
 
-        {/* PERFIL DEL CLIENTE */}
-        <Route
-          path="/profile"
-          element={<Profile />}
-        />
+        {/* ==================================
+            MIS PEDIDOS
+        ================================== */}
 
-        {/* HISTORIAL DE PEDIDOS */}
         <Route
           path="/orders"
-          element={<MyOrders />}
+          element={
+            <RequireAuth>
+              <MyOrders />
+            </RequireAuth>
+          }
         />
 
-        {/* PANEL DE ADMINISTRACIÓN */}
+        <Route
+          path="/my-orders"
+          element={
+            <Navigate
+              to="/orders"
+              replace
+            />
+          }
+        />
+
+        {/* ==================================
+            SEGUIMIENTO GENERAL
+        ================================== */}
+
+        <Route
+          path="/tracking"
+          element={
+            <RequireAuth>
+              <Tracking />
+            </RequireAuth>
+          }
+        />
+
+        {/* ==================================
+            SEGUIMIENTO INDIVIDUAL
+        ================================== */}
+
+        <Route
+          path="/tracking/:id"
+          element={
+            <RequireAuth>
+              <Tracking />
+            </RequireAuth>
+          }
+        />
+
+        {/* ==================================
+            PERFIL DEL CLIENTE
+        ================================== */}
+
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+
+        {/* ==================================
+            PANEL ADMINISTRATIVO
+        ================================== */}
+
         <Route
           path="/admin"
-          element={<Admin />}
+          element={
+            <RequireAuth>
+              <Admin />
+            </RequireAuth>
+          }
+        />
+
+        {/* ==================================
+            RUTA NO ENCONTRADA
+        ================================== */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
         />
 
       </Routes>
