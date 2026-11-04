@@ -14,7 +14,6 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
 import { getProducts } from '../services/api'
-import { getProductImages } from '../utils/productImages'
 
 import './NewArrivals.css'
 
@@ -127,6 +126,77 @@ function getDiscount(product) {
 
 // ==========================================
 // IMÁGENES DEL PRODUCTO
+// ==========================================
+
+// Función local para evitar conflictos
+// de importación entre Windows y Docker.
+
+function getProductImages(product) {
+  if (!product) return []
+
+  const images = []
+  const seen = new Set()
+
+  const addImage = (value) => {
+    if (!value) return
+
+    if (Array.isArray(value)) {
+      value.forEach(addImage)
+      return
+    }
+
+    if (typeof value === 'object') {
+      addImage(
+        value.url ||
+        value.src ||
+        value.image_url ||
+        value.image
+      )
+      return
+    }
+
+    if (typeof value !== 'string') return
+
+    const candidate = value.trim()
+
+    if (
+      candidate.startsWith('[') ||
+      candidate.startsWith('{')
+    ) {
+      try {
+        addImage(JSON.parse(candidate))
+        return
+      } catch {
+        // Continuar como URL si no es JSON.
+      }
+    }
+
+    if (
+      candidate.includes(',') &&
+      !candidate.startsWith('data:')
+    ) {
+      candidate.split(',').forEach(addImage)
+      return
+    }
+
+    if (
+      /^(https?:\/\/|\/|data:image\/)/i.test(candidate) &&
+      !seen.has(candidate)
+    ) {
+      seen.add(candidate)
+      images.push(candidate)
+    }
+  }
+
+  addImage(product.images)
+  addImage(product.image_url)
+  addImage(product.image)
+
+  return images
+}
+
+// ==========================================
+// IMAGEN CON ALTERNATIVAS
 // ==========================================
 
 function ProductImage({ product }) {
