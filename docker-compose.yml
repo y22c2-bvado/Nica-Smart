@@ -1,30 +1,66 @@
+
+# ==========================================
+# NICA S-MART | DOCKER COMPOSE
+# Frontend + Backend
+# ==========================================
+
 services:
+
+  # ========================================
+  # BACKEND - NODE.JS 20 + EXPRESS
+  # ========================================
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+
+    container_name: nica-smart-backend
+
     ports:
       - "3000:3000"
+
     env_file:
       - ./backend/.env
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
     networks:
       - app-network
-    restart: always
+
+    restart: unless-stopped
+
+  # ========================================
+  # FRONTEND - REACT + VITE + NGINX
+  # ========================================
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
+
       args:
-        - VITE_API_URL=http://localhost:3000
-        - VITE_GOOGLE_CLIENT_ID=443765701327-ilci2umgkcb49jknagi7dukgb8pk90a9.apps.googleusercontent.com
+        VITE_API_URL: http://localhost:3000
+        VITE_GOOGLE_CLIENT_ID: 443765701327-ilci2umgkcb49jknagi7dukgb8pk90a9.apps.googleusercontent.com
+
+    container_name: nica-smart-frontend
+
     ports:
       - "5173:80"
+
     depends_on:
       - backend
+
     networks:
       - app-network
-    restart: always
+
+    restart: unless-stopped
+
+# ==========================================
+# RED INTERNA
+# ==========================================
 
 networks:
   app-network:

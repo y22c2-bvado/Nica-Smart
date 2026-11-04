@@ -10,7 +10,7 @@ import {
   getPromoCart,
   savePromoCart,
   clearPromoCart,
-} from "../Utils/promoCart";
+} from "../utils/promoCart";
 
 import "./PromoCart.css";
 

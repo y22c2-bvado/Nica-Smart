@@ -13,7 +13,7 @@ import SeasonalBanner from "../components/SeasonalBanner";
 
 import useSeasonalPromotion from "../Hooks/useSeasonalPromotion";
 import { getProducts } from "../services/api";
-import { addPromoProduct } from "../Utils/promoCart";
+import { addPromoProduct } from "../utils/promoCart";
 
 import "./Promotions.css";
 

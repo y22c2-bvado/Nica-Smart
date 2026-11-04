@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { getSeasonalPromotion } from "../Utils/seasonalPromotions";
+import { getSeasonalPromotion } from "../utils/seasonalPromotions";
 
 export default function useSeasonalPromotion() {
   const [campaign, setCampaign] = useState(
