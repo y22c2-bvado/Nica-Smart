@@ -6,6 +6,10 @@ import { useCart } from '../context/CartContext'
 
 import '../styles/header.css'
 
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
+
 function Header() {
   const { cartCount, cartTotal } = useCart()
   const navigate = useNavigate()
@@ -63,8 +67,7 @@ function Header() {
           return
         }
 
-        // Esta información es solo visual.
-        // La autorización real la comprueba el backend.
+        // La autorización real la valida el backend.
         setUser(parsedUser)
 
       } catch (error) {
@@ -143,36 +146,52 @@ function Header() {
     user?.email?.split('@')[0] ||
     'Cliente'
 
-  const isAdmin =
-    user?.provider === 'local' &&
-    String(user?.role || '').toUpperCase() === 'ADMIN'
-
   return (
     <>
-      {/* ==================================
+      {/* =====================================
           BARRA SUPERIOR
-      ================================== */}
+      ===================================== */}
 
       <div className="topbar">
+
         <div>
-          🚚 Envíos a todo Nicaragua
+          🚚 Envíos a toda Nicaragua
         </div>
 
         <div className="topbar-links">
-          <span>Ayuda</span>
-          <span>Seguimiento de pedido</span>
+
+          {/* CENTRO DE AYUDA */}
+
+          <Link
+            to="/help"
+            aria-label="Ir al centro de ayuda"
+          >
+            Ayuda
+          </Link>
+
+          {/* SEGUIMIENTO DE PEDIDO */}
+
+          <Link
+            to="/tracking"
+            aria-label="Consultar seguimiento de pedido"
+          >
+            Seguimiento de pedido
+          </Link>
+
         </div>
+
       </div>
 
-      {/* ==================================
-          ENCABEZADO
-      ================================== */}
+      {/* =====================================
+          ENCABEZADO PRINCIPAL
+      ===================================== */}
 
       <header className="header">
 
         {/* LOGO */}
 
         <div className="logo">
+
           <div className="logo-main">
             NICA
           </div>
@@ -182,11 +201,15 @@ function Header() {
           </div>
 
           <span>TECH STORE</span>
+
         </div>
 
-        {/* BUSCADOR */}
+        {/* =====================================
+            BUSCADOR
+        ===================================== */}
 
         <div className="search-container">
+
           <input
             type="text"
             placeholder="Buscar productos..."
@@ -199,17 +222,21 @@ function Header() {
           >
             🔍
           </button>
+
         </div>
 
-        {/* ==================================
+        {/* =====================================
             OPCIONES DEL ENCABEZADO
-        ================================== */}
+        ===================================== */}
 
         <div className="header-options">
 
-          {/* CUENTA */}
+          {/* =================================
+              CUENTA DE USUARIO
+          ================================= */}
 
           {user ? (
+
             <div
               ref={accountRef}
               className="header-option account-link"
@@ -224,7 +251,9 @@ function Header() {
               {/* FOTO DE PERFIL */}
 
               <div className="option-icon">
+
                 {user.picture ? (
+
                   <img
                     src={user.picture}
                     alt="Foto de perfil"
@@ -236,16 +265,20 @@ function Header() {
                       objectFit: 'cover'
                     }}
                   />
+
                 ) : (
                   '👤'
                 )}
+
               </div>
 
               {/* NOMBRE Y SESIÓN */}
 
               <button
                 type="button"
-                onClick={() => setShowMenu((previous) => !previous)}
+                onClick={() =>
+                  setShowMenu((previous) => !previous)
+                }
                 aria-expanded={showMenu}
                 aria-haspopup="menu"
                 aria-label="Opciones de mi cuenta"
@@ -297,15 +330,18 @@ function Header() {
                   </small>
 
                 </div>
+
               </button>
 
-              {/* ==================================
+              {/* =================================
                   MENÚ DESPLEGABLE
-              ================================== */}
+              ================================= */}
 
               {showMenu && (
+
                 <div
                   className="account-dropdown"
+                  role="menu"
                   style={{
                     position: 'absolute',
                     top: '100%',
@@ -324,7 +360,7 @@ function Header() {
                   }}
                 >
 
-                  {/* PERFIL */}
+                  {/* MI PERFIL */}
 
                   <Link
                     to="/profile"
@@ -333,7 +369,7 @@ function Header() {
                     Mi perfil
                   </Link>
 
-                  {/* PEDIDOS */}
+                  {/* MIS PEDIDOS */}
 
                   <Link
                     to="/orders"
@@ -342,10 +378,14 @@ function Header() {
                     Mis pedidos
                   </Link>
 
-                  {/* No mostramos ningún acceso
-                      administrativo en el Header.
-                      El administrador entra
-                      automáticamente desde Login.jsx. */}
+                  {/* SEGUIMIENTO */}
+
+                  <Link
+                    to="/tracking"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Seguimiento de pedido
+                  </Link>
 
                   {/* CERRAR SESIÓN */}
 
@@ -358,16 +398,19 @@ function Header() {
                       color: '#d62828',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      font: 'inherit'
+                      font: 'inherit',
+                      padding: 0
                     }}
                   >
                     Cerrar sesión
                   </button>
 
                 </div>
+
               )}
 
             </div>
+
           ) : (
 
             /* USUARIO SIN SESIÓN */
@@ -376,6 +419,7 @@ function Header() {
               to="/login"
               className="header-option account-link"
             >
+
               <div className="option-icon">
                 👤
               </div>
@@ -384,33 +428,38 @@ function Header() {
                 <small>Mi cuenta</small>
                 <strong>Iniciar sesión</strong>
               </div>
+
             </Link>
 
           )}
 
-          {/* ==================================
+          {/* =====================================
               CARRITO
-          ================================== */}
+          ===================================== */}
 
           <Link
             to="/cart"
             className="header-option cart-link"
           >
+
             <div className="option-icon">
               🛒
             </div>
 
             <div>
+
               <small>Carrito</small>
 
               <strong>
                 C$ {Number(cartTotal || 0).toLocaleString('es-NI')}
               </strong>
+
             </div>
 
             <span className="cart-count">
               {cartCount}
             </span>
+
           </Link>
 
         </div>

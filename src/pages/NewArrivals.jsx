@@ -1,55 +1,112 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 
-import Header from "../components/Header";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef
+} from 'react'
 
-import { getProducts } from "../services/api";
+import { Link } from 'react-router-dom'
 
-import "./NewArrivals.css";
+import Header from '../components/Header'
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
-const TIMEZONE = "America/Managua";
+import { getProducts } from '../services/api'
+import { getProductImages } from '../utils/productImages'
+
+import './NewArrivals.css'
+
+// ==========================================
+// CONFIGURACIÓN
+// ==========================================
+
+const TIMEZONE = 'America/Managua'
 
 const money = (value) =>
-  new Intl.NumberFormat("es-NI", {
-    style: "currency",
-    currency: "NIO",
-    maximumFractionDigits: 0,
-  }).format(Number(value) || 0);
+  new Intl.NumberFormat('es-NI', {
+    style: 'currency',
+    currency: 'NIO',
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0)
+
+// ==========================================
+// FUNCIONES AUXILIARES
+// ==========================================
+
+function normalizeText(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
 
 function getCategoryName(product) {
-  if (typeof product.category === "string") {
-    return product.category;
+  if (typeof product.category === 'string') {
+    return product.category
   }
 
   return (
     product.category?.name ||
     product.category_name ||
-    "Sin categoría"
-  );
+    'Sin categoría'
+  )
 }
 
 function getCreatedTime(product) {
-  const value = product.created_at ?? product.createdAt;
-  if (!value) return null;
-  const time = Date.parse(value);
-  return Number.isFinite(time) ? time : null;
+  const value =
+    product.created_at ??
+    product.createdAt
+
+  if (!value) return 0
+
+  const time = Date.parse(value)
+
+  return Number.isFinite(time) ? time : 0
 }
 
-function getImage(product) {
-  const raw =
-    product.image_url ||
-    product.image ||
-    product.images?.[0]?.url ||
-    product.images?.[0];
+function formatDate(product) {
+  const time = getCreatedTime(product)
 
-  return typeof raw === "string" ? raw : null;
+  if (!time) return 'Fecha no disponible'
+
+  return new Intl.DateTimeFormat('es-NI', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date(time))
 }
+
+// ==========================================
+// IDENTIFICAR PRODUCTOS NUEVOS
+// ==========================================
+
+function isNewProduct(product) {
+  const value = product?.is_new
+
+  return (
+    value === true ||
+    value === 1 ||
+    value === 'true' ||
+    value === '1'
+  )
+}
+
+// ==========================================
+// DESCUENTOS
+// ==========================================
 
 function getDiscount(product) {
-  const price = Number(product.price);
-  const original = Number(product.original_price ?? product.originalPrice ?? price);
+  const price = Number(product.price)
+
+  const original = Number(
+    product.original_price ??
+    product.originalPrice ??
+    price
+  )
 
   if (
     !Number.isFinite(price) ||
@@ -57,135 +114,271 @@ function getDiscount(product) {
     original <= price ||
     price < 0
   ) {
-    return null;
+    return null
   }
 
   return {
     original,
-    percentage: Math.round(((original - price) / original) * 100),
-  };
+    percentage: Math.round(
+      ((original - price) / original) * 100
+    )
+  }
 }
 
+// ==========================================
+// IMÁGENES DEL PRODUCTO
+// ==========================================
+
 function ProductImage({ product }) {
-  const image = getImage(product);
-  const [failed, setFailed] = useState(false);
+  const images = getProductImages(product)
+  const imagesKey = images.join('|')
+
+  const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    setFailed(false);
-  }, [image]);
+    setIndex(0)
+  }, [imagesKey])
 
-  if (!image || failed) {
-    return <span className="new-product-placeholder">📦</span>;
+  const image = images[index]
+
+  if (!image) {
+    return (
+      <span className="new-product-placeholder">
+        📦
+      </span>
+    )
   }
 
   return (
     <img
+      key={image}
       src={image}
-      alt={product.name}
+      alt={product.name || 'Producto'}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => {
+        setIndex((previous) => previous + 1)
+      }}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain'
+      }}
     />
-  );
+  )
 }
 
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
+
 export default function NewArrivals() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const [category, setCategory] = useState("all");
-  const [order, setOrder] = useState("newest");
-  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState('all')
+  const [order, setOrder] = useState('newest')
+  const [search, setSearch] = useState('')
 
-  // CONSULTAR PRODUCTOS DE POSTGRESQL A TRAVÉS DE LA API
+  const requestId = useRef(0)
+  const mounted = useRef(false)
+
+  // ========================================
+  // CARGAR PRODUCTOS DESDE POSTGRESQL
+  // ========================================
+
+  const loadProducts = useCallback(async () => {
+    const currentRequest = ++requestId.current
+
+    try {
+      setLoading(true)
+      setError('')
+
+      const response = await getProducts()
+
+      if (
+        !mounted.current ||
+        currentRequest !== requestId.current
+      ) {
+        return
+      }
+
+      const data = Array.isArray(response)
+        ? response
+        : response?.products ??
+          response?.data?.products ??
+          response?.data ??
+          []
+
+      if (!Array.isArray(data)) {
+        throw new Error(
+          'La API no devolvió una lista válida.'
+        )
+      }
+
+      const validProducts = data.filter(
+        (product) =>
+          product &&
+          typeof product === 'object' &&
+          product.id != null
+      )
+
+      setProducts(validProducts)
+    } catch (err) {
+      if (
+        !mounted.current ||
+        currentRequest !== requestId.current
+      ) {
+        return
+      }
+
+      console.error(
+        'Error cargando nuevos ingresos:',
+        err
+      )
+
+      setError(
+        'No se pudieron cargar los productos nuevos.'
+      )
+
+      setProducts([])
+    } finally {
+      if (
+        mounted.current &&
+        currentRequest === requestId.current
+      ) {
+        setLoading(false)
+      }
+    }
+  }, [])
+
+  // ========================================
+  // CARGAR AL ABRIR LA PÁGINA
+  // ========================================
+
   useEffect(() => {
-    let active = true;
+    mounted.current = true
 
-    async function loadProducts() {
-      try {
-        setLoading(true);
-        setError("");
+    loadProducts()
 
-        const response = await getProducts();
+    return () => {
+      mounted.current = false
+      requestId.current += 1
+    }
+  }, [loadProducts])
 
-        if (!active) return;
+  // ========================================
+  // ACTUALIZACIÓN AUTOMÁTICA
+  // ========================================
 
-        const data = Array.isArray(response)
-          ? response
-          : response?.products ?? response?.data?.products ?? response?.data ?? [];
-
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!active) return;
-
-        console.error("Error cargando nuevos ingresos:", err);
-        setError("No se pudieron cargar los productos nuevos.");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') {
+        loadProducts()
       }
     }
 
-    loadProducts();
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
 
     return () => {
-      active = false;
-    };
-  }, []);
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener(
+        'visibilitychange',
+        refresh
+      )
+    }
+  }, [loadProducts])
 
-  // NUEVA LÓGICA: FILTRAR ESTRICTAMENTE POR is_new === true
+  // ========================================
+  // PRODUCTOS MARCADOS COMO NUEVOS
+  // ========================================
+
   const recentProducts = useMemo(() => {
     return products.filter((product) => {
-      if (!product || product.id == null) return false;
-      const price = Number(product.price);
-      
+      const price = Number(product.price)
+
       return (
-        product.is_new === true &&
+        product.id != null &&
+        isNewProduct(product) &&
         Number.isFinite(price) &&
         price >= 0
-      );
-    });
-  }, [products]);
+      )
+    })
+  }, [products])
 
-  // CATEGORÍAS PRESENTES ENTRE LOS NUEVOS INGRESOS
+  // ========================================
+  // CATEGORÍAS DINÁMICAS
+  // ========================================
+
   const categories = useMemo(() => {
-    return [...new Set(recentProducts.map(getCategoryName))].sort((a, b) =>
-      a.localeCompare(b)
-    );
-  }, [recentProducts]);
+    return [
+      ...new Set(
+        recentProducts.map(getCategoryName)
+      )
+    ].sort((a, b) => a.localeCompare(b, 'es'))
+  }, [recentProducts])
 
-  // BUSCAR, FILTRAR Y ORDENAR
+  // ========================================
+  // BUSCADOR, FILTROS Y ORDENAMIENTO
+  // ========================================
+
   const visibleProducts = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = normalizeText(search)
 
-    return recentProducts
+    return [...recentProducts]
       .filter((product) => {
         const matchesCategory =
-          category === "all" || getCategoryName(product) === category;
+          category === 'all' ||
+          normalizeText(getCategoryName(product)) ===
+            normalizeText(category)
 
-        const text = [product.name, product.description, getCategoryName(product)]
-          .join(" ")
-          .toLowerCase();
+        const text = normalizeText(
+          [
+            product.name,
+            product.description,
+            getCategoryName(product),
+            product.brand?.name ?? product.brand
+          ].join(' ')
+        )
 
-        const matchesSearch = !term || text.includes(term);
-
-        return matchesCategory && matchesSearch;
+        return (
+          matchesCategory &&
+          (!term || text.includes(term))
+        )
       })
       .sort((a, b) => {
-        if (order === "oldest") {
-          return (getCreatedTime(a) || 0) - (getCreatedTime(b) || 0);
+        if (order === 'oldest') {
+          return (
+            getCreatedTime(a) -
+            getCreatedTime(b)
+          )
         }
-        if (order === "price-low") {
-          return Number(a.price) - Number(b.price);
+
+        if (order === 'price-low') {
+          return (
+            Number(a.price) -
+            Number(b.price)
+          )
         }
-        if (order === "price-high") {
-          return Number(b.price) - Number(a.price);
+
+        if (order === 'price-high') {
+          return (
+            Number(b.price) -
+            Number(a.price)
+          )
         }
-        // Por defecto: Más recientes
-        return (getCreatedTime(b) || 0) - (getCreatedTime(a) || 0);
-      });
-  }, [recentProducts, category, order, search]);
+
+        return (
+          getCreatedTime(b) -
+          getCreatedTime(a)
+        )
+      })
+  }, [recentProducts, category, order, search])
+
+  // ========================================
+  // INTERFAZ
+  // ========================================
 
   return (
     <>
@@ -193,9 +386,12 @@ export default function NewArrivals() {
       <Navbar />
 
       <main className="new-arrivals-page">
+
         {/* BANNER PRINCIPAL */}
+
         <section className="new-arrivals-hero">
           <div className="new-arrivals-hero-content">
+
             <span className="new-arrivals-eyebrow">
               🚀 ÚLTIMAS NOVEDADES EN TECH
             </span>
@@ -205,14 +401,20 @@ export default function NewArrivals() {
             </h1>
 
             <p>
-              Descubre la tecnología recién llegada a NICA S-MART. Nuevos equipos,
-              accesorios y dispositivos.
+              Descubre la tecnología recién llegada a
+              NICA S-MART. Nuevos equipos, accesorios
+              y dispositivos.
             </p>
 
-            <a href="#new-products">Explorar novedades ↓</a>
+            <a href="#new-products">
+              Explorar novedades ↓
+            </a>
           </div>
 
-          <div className="new-arrivals-hero-art" aria-hidden="true">
+          <div
+            className="new-arrivals-hero-art"
+            aria-hidden="true"
+          >
             <span>🎧</span>
             <span>⌨️</span>
             <span>⌚</span>
@@ -220,6 +422,7 @@ export default function NewArrivals() {
         </section>
 
         {/* BENEFICIOS */}
+
         <section className="new-arrivals-benefits">
           <div>✨ Últimos ingresos del mercado</div>
           <div>🚚 Envíos a toda Nicaragua</div>
@@ -227,25 +430,47 @@ export default function NewArrivals() {
           <div>💳 Múltiples métodos de pago</div>
         </section>
 
-        {/* LISTADO DE PRODUCTOS */}
-        <section id="new-products" className="new-arrivals-content">
+        {/* NUEVOS PRODUCTOS */}
+
+        <section
+          id="new-products"
+          className="new-arrivals-content"
+        >
           <div className="new-arrivals-heading">
             <div>
-              <span className="new-arrivals-kicker">RECIÉN LLEGADOS</span>
+              <span className="new-arrivals-kicker">
+                RECIÉN LLEGADOS
+              </span>
+
               <h2>✨ Nuevos productos</h2>
-              <p>Los productos más recientes agregados a nuestro catálogo.</p>
+
+              <p>
+                Productos recién agregados por
+                NICA S-MART.
+              </p>
             </div>
+
+            {/* FILTROS */}
 
             <div className="new-arrivals-filters">
               <label>
                 Filtrar por:
+
                 <select
                   value={category}
-                  onChange={(event) => setCategory(event.target.value)}
+                  onChange={(event) =>
+                    setCategory(event.target.value)
+                  }
                 >
-                  <option value="all">Todas las categorías</option>
+                  <option value="all">
+                    Todas las categorías
+                  </option>
+
                   {categories.map((name) => (
-                    <option key={name} value={name}>
+                    <option
+                      key={name}
+                      value={name}
+                    >
                       {name}
                     </option>
                   ))}
@@ -254,135 +479,209 @@ export default function NewArrivals() {
 
               <label>
                 Ordenar por:
+
                 <select
                   value={order}
-                  onChange={(event) => setOrder(event.target.value)}
+                  onChange={(event) =>
+                    setOrder(event.target.value)
+                  }
                 >
-                  <option value="newest">Más recientes</option>
-                  <option value="oldest">Más antiguos</option>
-                  <option value="price-low">Menor precio</option>
-                  <option value="price-high">Mayor precio</option>
+                  <option value="newest">
+                    Más recientes
+                  </option>
+
+                  <option value="oldest">
+                    Más antiguos
+                  </option>
+
+                  <option value="price-low">
+                    Menor precio
+                  </option>
+
+                  <option value="price-high">
+                    Mayor precio
+                  </option>
                 </select>
               </label>
             </div>
           </div>
 
-          {/* BÚSQUEDA */}
+          {/* BUSCADOR */}
+
           <div className="new-arrivals-toolbar">
             <input
               type="search"
               placeholder="Buscar entre los nuevos productos..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
               aria-label="Buscar nuevos productos"
             />
-            <span>{visibleProducts.length} productos</span>
+
+            <span>
+              {visibleProducts.length}{' '}
+              {visibleProducts.length === 1
+                ? 'producto'
+                : 'productos'}
+            </span>
           </div>
 
           {/* CARGANDO */}
+
           {loading && (
             <div className="new-arrivals-empty">
               <span>⏳</span>
-              <h3>Cargando nuevos ingresos...</h3>
+
+              <h3>
+                Cargando nuevos ingresos...
+              </h3>
             </div>
           )}
 
           {/* ERROR */}
+
           {!loading && error && (
-            <div className="new-arrivals-empty" role="alert">
+            <div
+              className="new-arrivals-empty"
+              role="alert"
+            >
               <span>⚠️</span>
-              <h3>No se pudo cargar el catálogo</h3>
+
+              <h3>
+                No se pudo cargar el catálogo
+              </h3>
+
               <p>{error}</p>
+
+              <button
+                type="button"
+                onClick={() => loadProducts()}
+              >
+                Reintentar
+              </button>
             </div>
           )}
 
-          {/* SIN PRODUCTOS NUEVOS */}
-          {!loading && !error && visibleProducts.length === 0 && (
-            <div className="new-arrivals-empty">
-              <span>📦</span>
-              <h3>
-                {recentProducts.length === 0
-                  ? "Aún no hay nuevos ingresos"
-                  : "No encontramos coincidencias"}
-              </h3>
-              <p>
-                {recentProducts.length === 0
-                  ? "Los productos registrados recientemente desde administración aparecerán aquí."
-                  : "Prueba con otro nombre o categoría."}
-              </p>
-              <Link to="/products">Ver catálogo completo</Link>
-            </div>
-          )}
+          {/* SIN PRODUCTOS */}
+
+          {!loading &&
+            !error &&
+            visibleProducts.length === 0 && (
+              <div className="new-arrivals-empty">
+                <span>📦</span>
+
+                <h3>
+                  {recentProducts.length === 0
+                    ? 'Aún no hay nuevos ingresos'
+                    : 'No encontramos coincidencias'}
+                </h3>
+
+                <p>
+                  {recentProducts.length === 0
+                    ? 'Cuando el administrador agregue productos marcados como nuevos, aparecerán aquí automáticamente.'
+                    : 'Prueba con otro nombre o categoría.'}
+                </p>
+
+                <Link to="/products">
+                  Ver catálogo completo
+                </Link>
+              </div>
+            )}
 
           {/* TARJETAS */}
-          {!loading && !error && visibleProducts.length > 0 && (
-            <div className="new-arrivals-grid">
-              {visibleProducts.map((product) => {
-                const discount = getDiscount(product);
-                const createdAt = product.created_at ?? product.createdAt;
 
-                return (
-                  <article className="new-arrivals-card" key={product.id}>
-                    <div className="new-arrivals-image">
-                      <span className="new-arrivals-badge">✨ Nuevo</span>
+          {!loading &&
+            !error &&
+            visibleProducts.length > 0 && (
+              <div className="new-arrivals-grid">
+                {visibleProducts.map((product) => {
+                  const discount = getDiscount(product)
 
-                      {discount && (
-                        <span className="new-arrivals-discount">
-                          -{discount.percentage}%
+                  const createdAt =
+                    product.created_at ??
+                    product.createdAt
+
+                  return (
+                    <article
+                      className="new-arrivals-card"
+                      key={product.id}
+                    >
+                      {/* IMAGEN */}
+
+                      <div className="new-arrivals-image">
+                        <span className="new-arrivals-badge">
+                          ✨ Nuevo
                         </span>
-                      )}
 
-                      <Link to={`/product/${product.id}`}>
-                        <ProductImage product={product} />
-                      </Link>
-                    </div>
+                        {discount && (
+                          <span className="new-arrivals-discount">
+                            -{discount.percentage}%
+                          </span>
+                        )}
 
-                    <div className="new-arrivals-info">
-                      <small className="new-arrivals-category">
-                        {getCategoryName(product)}
-                      </small>
-
-                      <h3>{product.name}</h3>
-
-                      <p>
-                        {product.description
-                          ? String(product.description).slice(0, 90)
-                          : "Nuevo producto disponible en NICA S-MART"}
-                      </p>
-
-                      <div className="new-arrivals-prices">
-                        {discount && <del>{money(discount.original)}</del>}
-                        <strong>{money(product.price)}</strong>
+                        <Link to={`/product/${product.id}`}>
+                          <ProductImage product={product} />
+                        </Link>
                       </div>
 
-                      {createdAt && (
-                        <span className="new-arrivals-date">
-                          📅 Agregado el{" "}
-                          {new Intl.DateTimeFormat("es-NI", {
-                            timeZone: TIMEZONE,
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }).format(new Date(createdAt))}
-                        </span>
-                      )}
+                      {/* INFORMACIÓN */}
 
-                      <Link
-                        className="new-arrivals-buy"
-                        to={`/product/${product.id}`}
-                      >
-                        🛒 Ver producto
-                      </Link>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+                      <div className="new-arrivals-info">
+                        <small className="new-arrivals-category">
+                          {getCategoryName(product)}
+                        </small>
+
+                        <h3>{product.name}</h3>
+
+                        <p>
+                          {product.description
+                            ? String(product.description).slice(0, 90)
+                            : 'Nuevo producto disponible en NICA S-MART'}
+                        </p>
+
+                        {/* PRECIOS */}
+
+                        <div className="new-arrivals-prices">
+                          {discount && (
+                            <del>
+                              {money(discount.original)}
+                            </del>
+                          )}
+
+                          <strong>
+                            {money(product.price)}
+                          </strong>
+                        </div>
+
+                        {/* FECHA */}
+
+                        {createdAt && (
+                          <span className="new-arrivals-date">
+                            📅 Agregado el{' '}
+                            {formatDate(product)}
+                          </span>
+                        )}
+
+                        {/* VER PRODUCTO */}
+
+                        <Link
+                          className="new-arrivals-buy"
+                          to={`/product/${product.id}`}
+                        >
+                          🛒 Ver producto
+                        </Link>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+
         </section>
       </main>
 
       <Footer />
     </>
-  );
+  )
 }

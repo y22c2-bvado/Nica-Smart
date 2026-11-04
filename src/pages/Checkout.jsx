@@ -1,10 +1,11 @@
 
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+
 import { useCart } from '../context/CartContext'
 
 import '../styles/checkout.css'
@@ -13,166 +14,279 @@ import '../styles/checkout.css'
 // CONFIGURACIÓN API
 // ==========================================
 
-const API_URL = (
+const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
-).trim().replace(/\/$/, '')
+)
+  .trim()
+  .replace(/\/+$/, '')
 
 // ==========================================
-// RF-12: TARJETAS DE DEMOSTRACIÓN
+// CONFIGURACIÓN DE PAGOS SIMULADOS
 // ==========================================
 
-const TEST_CARDS = {
-  '4111111111111111': {
+const PAYMENT_METHODS = {
+  card: 'tarjeta_simulada',
+  transfer: 'transferencia_simulada'
+}
+
+const DEMO_CARDS = {
+  visa: {
     brand: 'visa',
     testId: 'VISA_TEST'
   },
-  '5555555555554444': {
+  mastercard: {
     brand: 'mastercard',
     testId: 'MASTERCARD_TEST'
   }
 }
 
-const SELECT_STYLE = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: '8px',
-  border: '1px solid #d4dceb',
-  background: '#fff',
-  color: '#10244a',
-  fontSize: '15px'
+const SHIPPING_COST = 150
+
+// ==========================================
+// FORMATO DE MONEDA
+// ==========================================
+
+const money = (value) =>
+  `C$ ${Number(value || 0).toLocaleString('es-NI', {
+    maximumFractionDigits: 0
+  })}`
+
+// ==========================================
+// USUARIO ALMACENADO
+// ==========================================
+
+function getStoredUser() {
+  try {
+    const value = localStorage.getItem('user')
+    return value ? JSON.parse(value) : null
+  } catch {
+    return null
+  }
 }
 
-const digitsOnly = (value) =>
-  value.replace(/\D/g, '')
+// ==========================================
+// OBTENER IMÁGENES DE PRODUCTOS
+// SIN DEPENDER DE productImages.js
+// ==========================================
 
-const formatCardNumber = (value) =>
-  digitsOnly(value)
-    .slice(0, 16)
-    .replace(/(.{4})/g, '$1 ')
-    .trim()
+function getProductImages(product) {
+  if (!product) return []
 
-const formatExpiration = (value) => {
-  const digits = digitsOnly(value).slice(0, 4)
+  const images = []
+  const seen = new Set()
 
-  return digits.length > 2
-    ? `${digits.slice(0, 2)}/${digits.slice(2)}`
-    : digits
-}
+  const addImage = (value) => {
+    if (!value) return
 
-const isValidExpiration = (value) => {
-  if (!/^\d{2}\/\d{2}$/.test(value)) {
-    return false
+    if (Array.isArray(value)) {
+      value.forEach(addImage)
+      return
+    }
+
+    if (typeof value === 'object') {
+      addImage(
+        value.url ||
+        value.src ||
+        value.image_url ||
+        value.image
+      )
+      return
+    }
+
+    if (typeof value !== 'string') return
+
+    const trimmed = value.trim()
+
+    if (!trimmed) return
+
+    // Permitir imágenes almacenadas como
+    // JSON serializado o lista de imágenes.
+    if (
+      (trimmed.startsWith('[') &&
+        trimmed.endsWith(']')) ||
+      (trimmed.startsWith('{') &&
+        trimmed.endsWith('}'))
+    ) {
+      try {
+        addImage(JSON.parse(trimmed))
+        return
+      } catch {
+        // Continuar como texto normal.
+      }
+    }
+
+    const candidates =
+      trimmed.includes(',') &&
+      !trimmed.startsWith('data:')
+        ? trimmed.split(',')
+        : [trimmed]
+
+    candidates.forEach((candidate) => {
+      const image = candidate.trim()
+
+      const valid =
+        image.startsWith('https://') ||
+        image.startsWith('http://') ||
+        image.startsWith('/') ||
+        image.startsWith('data:image/')
+
+      if (valid && !seen.has(image)) {
+        seen.add(image)
+        images.push(image)
+      }
+    })
   }
 
-  const [month, year] = value.split('/').map(Number)
+  addImage(product.images)
+  addImage(product.image_url)
+  addImage(product.image)
 
-  // Solo aceptar 12/30 en esta demostración.
-  return month === 12 && year === 30
+  return images
 }
+
+// ==========================================
+// IMAGEN DEL PRODUCTO
+// ==========================================
+
+function CheckoutProductImage({ product }) {
+  const images = getProductImages(product)
+  const [index, setIndex] = useState(0)
+
+  const image = images[index]
+
+  if (!image) {
+    return (
+      <div className="checkout-product-placeholder">
+        📦
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={image}
+      alt={product.name || 'Producto'}
+      loading="lazy"
+      onError={() =>
+        setIndex((previous) => previous + 1)
+      }
+    />
+  )
+}
+
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
 
 function Checkout() {
   const navigate = useNavigate()
 
   const {
-    cartItems,
-    cartTotal
+    cartItems = [],
+    cartTotal = 0,
+    clearCart
   } = useCart()
 
-  // ==========================================
-  // DATOS DEL CLIENTE
-  // ==========================================
+  const [user] = useState(getStoredUser)
 
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
-
-  // ==========================================
-  // RF-12: ESTADOS DEL PAGO SIMULADO
-  // ==========================================
-
-  const [paymentMethod, setPaymentMethod] = useState(
-    'tarjeta_simulada'
-  )
-
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardExpiration, setCardExpiration] = useState('')
-  const [cardCvv, setCardCvv] = useState('')
-  const [testCode, setTestCode] = useState('APROBAR')
+  const [formData, setFormData] = useState({
+    phone: '',
+    address: '',
+    reference: '',
+    paymentMethod: PAYMENT_METHODS.card,
+    cardBrand: 'visa'
+  })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
 
   // ==========================================
-  // IDENTIFICACIÓN AUTOMÁTICA
+  // CALCULAR TOTALES
   // ==========================================
 
-  const cardDigits = digitsOnly(cardNumber)
-  const testCard = TEST_CARDS[cardDigits] || null
+  const subtotal = Number(cartTotal) || 0
 
-  const cardBrand = testCard?.brand || null
-  const paymentTestCard = testCard?.testId || null
+  const shipping =
+    cartItems.length > 0 ? SHIPPING_COST : 0
+
+  const estimatedTotal = subtotal + shipping
+
+  const itemCount = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) =>
+          sum + (Number(item.quantity) || 1),
+        0
+      ),
+    [cartItems]
+  )
 
   // ==========================================
-  // OBTENER USUARIO
+  // ACTUALIZAR FORMULARIO
   // ==========================================
 
-  const getUser = () => {
-    try {
-      const savedUser = localStorage.getItem('user')
+  const handleChange = (event) => {
+    const { name, value } = event.target
 
-      return savedUser
-        ? JSON.parse(savedUser)
-        : null
-    } catch {
-      return null
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value
+    }))
+
+    if (error) {
+      setError('')
     }
   }
 
-  const user = getUser()
-
   // ==========================================
-  // TOTALES ESTIMADOS
+  // VALIDAR FORMULARIO
   // ==========================================
 
-  const shipping = cartItems.length > 0 ? 150 : 0
-  const total = cartTotal + shipping
-
-  // ==========================================
-  // VALIDAR PAGO SIMULADO
-  // ==========================================
-
-  const validatePayment = () => {
-    if (paymentMethod === 'transferencia_simulada') {
-      return true
+  const validateForm = () => {
+    if (cartItems.length === 0) {
+      return 'Tu carrito está vacío.'
     }
 
-    if (!testCard) {
-      setError(
-        'Utiliza una tarjeta ficticia Visa o Mastercard autorizada.'
+    const phoneDigits =
+      formData.phone.replace(/\D/g, '')
+
+    const validPhone =
+      phoneDigits.length === 8 ||
+      (
+        phoneDigits.length === 11 &&
+        phoneDigits.startsWith('505')
       )
-      return false
+
+    if (!validPhone) {
+      return 'Ingresá un número de teléfono válido de Nicaragua.'
     }
 
-    if (!isValidExpiration(cardExpiration)) {
-      setError(
-        'Utiliza el vencimiento de prueba 12/30.'
+    if (formData.address.trim().length < 10) {
+      return 'Ingresá una dirección de entrega más detallada.'
+    }
+
+    if (
+      !Object.values(PAYMENT_METHODS).includes(
+        formData.paymentMethod
       )
-      return false
+    ) {
+      return 'Seleccioná un método de pago válido.'
     }
 
-    if (cardCvv !== '123') {
-      setError(
-        'El CVV ficticio de demostración es 123.'
-      )
-      return false
+    if (
+      formData.paymentMethod === PAYMENT_METHODS.card &&
+      !DEMO_CARDS[formData.cardBrand]
+    ) {
+      return 'Seleccioná una tarjeta de prueba.'
     }
 
-    return true
+    return ''
   }
 
   // ==========================================
-  // RF-12: CONFIRMAR PEDIDO Y SIMULAR PAGO
+  // CONFIRMAR PEDIDO
   // ==========================================
 
   const handleConfirmOrder = async (event) => {
@@ -186,62 +300,59 @@ function Checkout() {
 
     if (!token) {
       navigate('/login', {
-        state: { from: '/cart' }
+        state: { from: '/checkout' }
       })
       return
     }
 
-    if (cartItems.length === 0) {
-      setError('Tu carrito está vacío.')
-      return
-    }
+    const validationError = validateForm()
 
-    if (!phone.trim() || !address.trim()) {
-      setError(
-        'Ingresa tu teléfono y dirección de entrega.'
-      )
-      return
-    }
-
-    if (!validatePayment()) return
-
-    if (!API_URL) {
-      setError('El servidor no está configurado.')
+    if (validationError) {
+      setError(validationError)
       return
     }
 
     setLoading(true)
 
     try {
-      // Enviar solamente ID y cantidad de productos.
+      // Los precios y el stock se validan
+      // nuevamente desde PostgreSQL.
+
       const items = cartItems.map((item) => ({
-        product_id: item.id,
-        quantity: Number(item.quantity)
+        product_id: Number(item.id),
+        quantity: Number(item.quantity) || 1
       }))
 
-      // ======================================
-      // CONSTRUIR SOLICITUD DE PAGO
-      // ======================================
-
       const body = {
-        customer_phone: phone.trim(),
-        customer_address: address.trim(),
-        payment_method: paymentMethod,
-        payment_test_code: testCode,
+        customer_phone: formData.phone.trim(),
+        customer_address: [
+          formData.address.trim(),
+          formData.reference.trim()
+        ]
+          .filter(Boolean)
+          .join('\nReferencia: '),
+
+        payment_method: formData.paymentMethod,
+        payment_test_code: 'APROBAR',
         items
       }
 
-      // ======================================
-      // IDENTIFICADOR DE TARJETA FICTICIA
-      // COMPATIBLE CON orders.js
-      // ======================================
+      // No enviar datos bancarios reales.
 
-      if (paymentMethod === 'tarjeta_simulada') {
-        body.payment_card_brand = cardBrand
-        body.payment_test_card = paymentTestCard
+      if (
+        formData.paymentMethod ===
+        PAYMENT_METHODS.card
+      ) {
+        const selectedCard =
+          DEMO_CARDS[formData.cardBrand]
+
+        body.payment_card_brand =
+          selectedCard.brand
+
+        body.payment_test_card =
+          selectedCard.testId
       }
 
-      // No enviar número completo, CVV ni vencimiento.
       const response = await fetch(
         `${API_URL}/api/orders`,
         {
@@ -254,74 +365,82 @@ function Checkout() {
         }
       )
 
-      const data = await response.json().catch(() => ({}))
-
-      // ======================================
-      // VERIFICAR SESIÓN
-      // ======================================
+      const data = await response
+        .json()
+        .catch(() => ({}))
 
       if (response.status === 401) {
         navigate('/login', {
-          state: { from: '/cart' }
+          state: { from: '/checkout' }
         })
         return
       }
-
-      // ======================================
-      // PAGO RECHAZADO O ERROR
-      // ======================================
 
       if (!response.ok) {
         throw new Error(
           data.message ||
           data.error ||
-          'No se pudo procesar el pago simulado.'
+          'No se pudo registrar el pedido.'
         )
       }
-
-      // ======================================
-      // CONFIRMACIÓN DEL BACKEND
-      // ======================================
 
       if (
         data.simulated !== true ||
         data.payment_status !== 'aprobado_simulado'
       ) {
         throw new Error(
-          'El backend no confirmó correctamente el pago simulado.'
+          'El servidor no confirmó el pedido correctamente.'
         )
       }
 
-      setSuccess({
-        orderId: data.orderId,
-        total: data.total,
-        paymentMethod: data.payment_method,
-        paymentStatus: data.payment_status,
-        paymentReference: data.payment_reference,
-        cardBrand: data.payment_card_brand
-      })
+      const orderId =
+        data.orderId ?? data.order?.id
 
-      // Limpiar los datos ficticios.
-      setCardNumber('')
-      setCardExpiration('')
-      setCardCvv('')
+      if (orderId == null) {
+        throw new Error(
+          'El servidor no devolvió el número del pedido.'
+        )
+      }
+
+      const confirmedOrder = {
+        orderId,
+        total: data.total ?? estimatedTotal,
+        paymentMethod:
+          data.payment_method ??
+          formData.paymentMethod,
+        paymentStatus: data.payment_status,
+        paymentReference:
+          data.payment_reference
+      }
+
+      setSuccess(confirmedOrder)
+
+      // Vaciar carrito únicamente después
+      // de recibir confirmación del backend.
+
+      if (typeof clearCart === 'function') {
+        clearCart()
+      }
 
     } catch (err) {
-      console.error('Error del checkout:', err)
+      console.error(
+        'Error al confirmar pedido:',
+        err
+      )
 
       setError(
         err instanceof TypeError
-          ? 'No se pudo conectar con el servidor.'
-          : err.message || 'Error al procesar el pedido.'
+          ? 'No se pudo conectar con el servidor. Revisá que el backend esté funcionando.'
+          : err.message ||
+            'Ocurrió un error al confirmar el pedido.'
       )
-
     } finally {
       setLoading(false)
     }
   }
 
   // ==========================================
-  // PEDIDO CONFIRMADO
+  // PEDIDO REGISTRADO CORRECTAMENTE
   // ==========================================
 
   if (success) {
@@ -331,70 +450,90 @@ function Checkout() {
         <Navbar />
 
         <main className="checkout-page">
-          <section className="checkout-container">
-            <div className="checkout-card checkout-success">
+          <div className="checkout-success-page">
 
-              <div className="checkout-success-icon">
-                ✓
+            <div className="checkout-success-icon">
+              ✓
+            </div>
+
+            <span className="checkout-eyebrow">
+              NICA S-MART
+            </span>
+
+            <h1>¡Pedido registrado!</h1>
+
+            <p>
+              Hemos recibido tu solicitud de compra.
+              Ahora podés consultar los detalles y
+              realizar el seguimiento del pedido.
+            </p>
+
+            <div className="checkout-order-number">
+              <span>Número de pedido</span>
+              <strong>#{success.orderId}</strong>
+            </div>
+
+            <div className="checkout-success-details">
+
+              <div>
+                <span>Total del pedido</span>
+                <strong>
+                  {money(success.total)}
+                </strong>
               </div>
 
-              <h1>¡Pago simulado aprobado!</h1>
+              <div>
+                <span>Método seleccionado</span>
 
-              <p>
-                Tu pedido fue registrado correctamente
-                en NICA S-MART.
-              </p>
+                <strong>
+                  {success.paymentMethod ===
+                    PAYMENT_METHODS.card
+                    ? 'Tarjeta'
+                    : 'Transferencia bancaria'}
+                </strong>
+              </div>
 
-              <h2>
-                Pedido #{success.orderId}
-              </h2>
-
-              <p>
-                Total: C${' '}
-                {Number(success.total).toLocaleString()}
-              </p>
-
-              <p>
-                Método de pago:{' '}
-                {success.paymentMethod === 'tarjeta_simulada'
-                  ? 'Tarjeta simulada'
-                  : 'Transferencia simulada'}
-              </p>
-
-              {success.cardBrand && (
-                <p>
-                  Tarjeta:{' '}
-                  {success.cardBrand === 'visa'
-                    ? 'Visa'
-                    : 'Mastercard'}
-                </p>
-              )}
-
-              <p>
-                Estado: Aprobado (simulación)
-              </p>
-
-              {success.paymentReference && (
-                <p>
-                  Referencia: {success.paymentReference}
-                </p>
-              )}
-
-              <p>
-                Esta operación es una demostración académica.
-                No se realizó ningún cobro real.
-              </p>
-
-              <button
-                type="button"
-                className="checkout-submit"
-                onClick={() => navigate('/')}
-              >
-                Volver al inicio
-              </button>
+              <div>
+                <span>Estado</span>
+                <strong>Pedido recibido</strong>
+              </div>
 
             </div>
-          </section>
+
+            <p className="checkout-demo-disclosure">
+              Este pedido se registró utilizando
+              un entorno de pagos simulados.
+              No se realizó ningún cobro bancario real.
+            </p>
+
+            <div className="checkout-success-actions">
+
+              <Link
+                to="/orders"
+                className="pay-button"
+              >
+                Ver mis pedidos
+              </Link>
+
+              <Link
+                to={`/tracking/${encodeURIComponent(
+                  success.orderId
+                )}`}
+                className="back-to-cart"
+              >
+                Seguimiento del pedido
+              </Link>
+
+              <Link
+                to="/"
+                className="checkout-home-link"
+              >
+                Seguir comprando
+              </Link>
+
+            </div>
+
+          </div>
         </main>
 
         <Footer />
@@ -403,7 +542,7 @@ function Checkout() {
   }
 
   // ==========================================
-  // FORMULARIO DE CHECKOUT
+  // FORMULARIO DE COMPRA
   // ==========================================
 
   return (
@@ -412,434 +551,483 @@ function Checkout() {
       <Navbar />
 
       <main className="checkout-page">
-        <section className="checkout-container">
 
-          <div className="checkout-heading">
-            <h1>Finalizar compra</h1>
+        <div className="checkout-shell">
 
-            <p>
-              Completa tus datos y realiza una
-              simulación de pago.
-            </p>
-          </div>
+          {/* COLUMNA PRINCIPAL */}
 
-          <div className="checkout-layout">
+          <section className="checkout-main">
 
-            {/* DATOS DE ENTREGA */}
+            <div className="checkout-heading">
+              <span>COMPRA EN NICA S-MART</span>
 
-            <div className="checkout-card">
+              <h1>Finalizar compra.</h1>
 
-              <h2>Datos de entrega</h2>
+              <p>
+                Revisá tus datos de entrega,
+                seleccioná un método de pago
+                y confirmá tu pedido.
+              </p>
+            </div>
 
-              {user && (
-                <div className="checkout-user">
-                  <span>👤</span>
+            <form
+              className="checkout-form"
+              onSubmit={handleConfirmOrder}
+            >
 
-                  <div>
-                    <strong>
-                      {user.name || 'Cliente'}
-                    </strong>
-                    <p>{user.email}</p>
+              {/* INFORMACIÓN DEL CLIENTE */}
+
+              <div className="checkout-card">
+
+                <div className="section-header">
+                  <h2>Información de contacto</h2>
+
+                  <p>
+                    Utilizaremos estos datos para
+                    comunicarnos sobre tu pedido.
+                  </p>
+                </div>
+
+                {user && (
+                  <div className="checkout-customer">
+
+                    <div className="checkout-customer-avatar">
+                      {user.picture ? (
+                        <img
+                          src={user.picture}
+                          alt="Perfil"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span>👤</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <strong>
+                        {user.name ||
+                          user.username ||
+                          'Cliente'}
+                      </strong>
+
+                      <span>
+                        {user.email || ''}
+                      </span>
+                    </div>
+
                   </div>
+                )}
+
+                <div className="form-grid">
+
+                  <div className="form-group">
+                    <label htmlFor="checkout-phone">
+                      Número de teléfono
+                    </label>
+
+                    <input
+                      id="checkout-phone"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+505 8888 8888"
+                      autoComplete="tel"
+                      maxLength={20}
+                      required
+                    />
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* ENTREGA */}
+
+              <div className="checkout-card">
+
+                <div className="section-header">
+                  <h2>Entrega de tu pedido</h2>
+
+                  <p>
+                    Indicá dónde querés recibir
+                    tus productos.
+                  </p>
+                </div>
+
+                <div className="form-grid">
+
+                  <div className="form-group">
+                    <label htmlFor="checkout-address">
+                      Dirección de entrega
+                    </label>
+
+                    <textarea
+                      id="checkout-address"
+                      name="address"
+                      rows={4}
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="Departamento, municipio, barrio, número de casa..."
+                      autoComplete="street-address"
+                      maxLength={450}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="checkout-reference">
+                      Referencia adicional (opcional)
+                    </label>
+
+                    <textarea
+                      id="checkout-reference"
+                      name="reference"
+                      rows={2}
+                      value={formData.reference}
+                      onChange={handleChange}
+                      placeholder="Casa de portón negro, frente a..."
+                      maxLength={500}
+                    />
+                  </div>
+
+                  <div className="checkout-shipping-info">
+                    <span>🚚</span>
+
+                    <div>
+                      <strong>
+                        Entrega a domicilio
+                      </strong>
+
+                      <p>
+                        Costo de envío estimado:{' '}
+                        {money(shipping)}
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* MÉTODO DE PAGO */}
+
+              <div className="checkout-card">
+
+                <div className="section-header">
+                  <h2>¿Cómo querés pagar?</h2>
+
+                  <p>
+                    Seleccioná un método para
+                    registrar tu pedido de prueba.
+                  </p>
+                </div>
+
+                <div className="payment-methods">
+
+                  {/* TARJETA */}
+
+                  <label
+                    className={
+                      formData.paymentMethod ===
+                        PAYMENT_METHODS.card
+                        ? 'payment-option active'
+                        : 'payment-option'
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={PAYMENT_METHODS.card}
+                      checked={
+                        formData.paymentMethod ===
+                        PAYMENT_METHODS.card
+                      }
+                      onChange={handleChange}
+                    />
+
+                    <div>
+                      <strong>
+                        Tarjeta de crédito o débito
+                      </strong>
+
+                      <span>
+                        Visa y Mastercard (simulado)
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* TRANSFERENCIA */}
+
+                  <label
+                    className={
+                      formData.paymentMethod ===
+                        PAYMENT_METHODS.transfer
+                        ? 'payment-option active'
+                        : 'payment-option'
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={PAYMENT_METHODS.transfer}
+                      checked={
+                        formData.paymentMethod ===
+                        PAYMENT_METHODS.transfer
+                      }
+                      onChange={handleChange}
+                    />
+
+                    <div>
+                      <strong>
+                        Transferencia bancaria
+                      </strong>
+
+                      <span>
+                        Transferencia simulada
+                      </span>
+                    </div>
+                  </label>
+
+                </div>
+
+                {/* TARJETAS DE PRUEBA */}
+
+                {formData.paymentMethod ===
+                  PAYMENT_METHODS.card && (
+
+                  <div className="payment-box">
+
+                    <div className="payment-box-top">
+                      <h3>Tarjeta de prueba</h3>
+
+                      <div className="card-brands">
+                        <span>VISA</span>
+                        <span>MC</span>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="card-brand">
+                        Seleccionar tarjeta de prueba
+                      </label>
+
+                      <select
+                        id="card-brand"
+                        name="cardBrand"
+                        value={formData.cardBrand}
+                        onChange={handleChange}
+                      >
+                        <option value="visa">
+                          Visa
+                        </option>
+
+                        <option value="mastercard">
+                          Mastercard
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="secure-note">
+                      <span>🔒</span>
+
+                      <span>
+                        Entorno de demostración.
+                        No ingresés datos de
+                        tarjetas bancarias reales.
+                      </span>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* TRANSFERENCIA DE PRUEBA */}
+
+                {formData.paymentMethod ===
+                  PAYMENT_METHODS.transfer && (
+
+                  <div className="payment-box">
+                    <h3>Transferencia bancaria</h3>
+
+                    <p className="checkout-payment-description">
+                      Esta opción registra una
+                      transferencia simulada.
+                      No se enviará ni debitará
+                      dinero de ninguna cuenta bancaria.
+                    </p>
+                  </div>
+                )}
+
+              </div>
+
+              {/* AVISO */}
+
+              <p className="checkout-demo-disclosure">
+                Entorno de demostración de NICA S-MART.
+                Los pagos son simulados y no se realizan
+                cargos reales.
+              </p>
+
+              {/* ERROR */}
+
+              {error && (
+                <div
+                  className="checkout-alert error"
+                  role="alert"
+                >
+                  {error}
                 </div>
               )}
 
-              <form onSubmit={handleConfirmOrder}>
+              {/* BOTONES */}
 
-                <div className="checkout-field">
-                  <label htmlFor="checkout-phone">
-                    Número telefónico
-                  </label>
-
-                  <input
-                    id="checkout-phone"
-                    type="tel"
-                    placeholder="Ej. 8888-8888"
-                    value={phone}
-                    onChange={(e) =>
-                      setPhone(e.target.value)
-                    }
-                    maxLength={30}
-                    autoComplete="tel"
-                    required
-                  />
-                </div>
-
-                <div className="checkout-field">
-                  <label htmlFor="checkout-address">
-                    Dirección de entrega
-                  </label>
-
-                  <textarea
-                    id="checkout-address"
-                    rows="4"
-                    placeholder="Departamento, municipio, barrio y referencias"
-                    value={address}
-                    onChange={(e) =>
-                      setAddress(e.target.value)
-                    }
-                    maxLength={500}
-                    autoComplete="street-address"
-                    required
-                  />
-                </div>
-
-                {/* RF-12: MÉTODO DE PAGO */}
-
-                <h2 style={{ marginTop: '25px' }}>
-                  Método de pago
-                </h2>
-
-                <div className="checkout-field">
-                  <label htmlFor="payment-method">
-                    Selecciona tu método
-                  </label>
-
-                  <select
-                    id="payment-method"
-                    style={SELECT_STYLE}
-                    value={paymentMethod}
-                    onChange={(e) => {
-                      setPaymentMethod(e.target.value)
-                      setError('')
-                    }}
-                  >
-                    <option value="tarjeta_simulada">
-                      Tarjeta de crédito/débito
-                    </option>
-
-                    <option value="transferencia_simulada">
-                      Transferencia bancaria
-                    </option>
-                  </select>
-                </div>
-
-                {/* TARJETA SIMULADA */}
-
-                {paymentMethod === 'tarjeta_simulada' && (
-                  <div
-                    style={{
-                      padding: '18px',
-                      border: '1px solid #dbe4f0',
-                      borderRadius: '12px',
-                      marginBottom: '20px'
-                    }}
-                  >
-                    <h3>
-                      Datos de tarjeta de prueba
-                    </h3>
-
-                    <p style={{
-                      color: '#64748b',
-                      fontSize: '13px'
-                    }}>
-                      Utiliza solamente las tarjetas
-                      ficticias indicadas.
-                    </p>
-
-                    <div className="checkout-field">
-                      <label htmlFor="test-card-number">
-                        Número de tarjeta simulada
-                      </label>
-
-                      <input
-                        id="test-card-number"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="0000 0000 0000 0000"
-                        value={cardNumber}
-                        onChange={(e) =>
-                          setCardNumber(
-                            formatCardNumber(e.target.value)
-                          )
-                        }
-                        maxLength={19}
-                        required
-                      />
-                    </div>
-
-                    {/* IDENTIFICACIÓN DE VISA O MASTERCARD */}
-
-                    <div
-                      style={{
-                        marginBottom: '18px',
-                        fontWeight: 600,
-                        color: cardBrand
-                          ? '#167346'
-                          : '#64748b'
-                      }}
-                    >
-                      {cardBrand
-                        ? `✓ Tarjeta ${
-                            cardBrand === 'visa'
-                              ? 'Visa'
-                              : 'Mastercard'
-                          } identificada`
-                        : 'Tarjeta de prueba no identificada'}
-                    </div>
-
-                    {/* VENCIMIENTO Y CVV FICTICIOS */}
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '12px'
-                    }}>
-                      <div className="checkout-field">
-                        <label htmlFor="test-expiration">
-                          Vencimiento (MM/AA)
-                        </label>
-
-                        <input
-                          id="test-expiration"
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete="off"
-                          placeholder="12/30"
-                          value={cardExpiration}
-                          onChange={(e) =>
-                            setCardExpiration(
-                              formatExpiration(e.target.value)
-                            )
-                          }
-                          maxLength={5}
-                          required
-                        />
-                      </div>
-
-                      <div className="checkout-field">
-                        <label htmlFor="test-cvv">
-                          CVV ficticio
-                        </label>
-
-                        <input
-                          id="test-cvv"
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete="off"
-                          placeholder="123"
-                          value={cardCvv}
-                          onChange={(e) =>
-                            setCardCvv(
-                              digitsOnly(e.target.value)
-                                .slice(0, 3)
-                            )
-                          }
-                          maxLength={3}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* DATOS DE PRUEBA */}
-
-                    <div style={{
-                      background: '#f1f5f9',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      lineHeight: 1.8
-                    }}>
-                      <strong>
-                        Tarjetas disponibles:
-                      </strong>
-
-                      <div>
-                        Visa: 4111 1111 1111 1111
-                      </div>
-
-                      <div>
-                        Mastercard: 5555 5555 5555 4444
-                      </div>
-
-                      <div>
-                        Vencimiento: 12/30
-                      </div>
-
-                      <div>
-                        CVV ficticio: 123
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* TRANSFERENCIA SIMULADA */}
-
-                {paymentMethod === 'transferencia_simulada' && (
-                  <div style={{
-                    padding: '18px',
-                    background: '#f1f5f9',
-                    borderRadius: '10px',
-                    marginBottom: '20px'
-                  }}>
-                    <h3>
-                      Transferencia de demostración
-                    </h3>
-
-                    <p>
-                      El sistema simulará una transferencia
-                      bancaria sin cuentas ni fondos reales.
-                    </p>
-
-                    <p>
-                      No es necesario ingresar información
-                      bancaria.
-                    </p>
-                  </div>
-                )}
-
-                {/* RESULTADO DE LA SIMULACIÓN */}
-
-                <div className="checkout-field">
-                  <label htmlFor="payment-result">
-                    Resultado de la simulación
-                  </label>
-
-                  <select
-                    id="payment-result"
-                    value={testCode}
-                    onChange={(e) =>
-                      setTestCode(e.target.value)
-                    }
-                    style={SELECT_STYLE}
-                  >
-                    <option value="APROBAR">
-                      Aprobar pago de prueba
-                    </option>
-
-                    <option value="RECHAZAR">
-                      Rechazar pago de prueba
-                    </option>
-                  </select>
-                </div>
-
-                <p style={{
-                  color: '#64748b',
-                  fontSize: '13px',
-                  marginBottom: '20px'
-                }}>
-                  🧪 Modo demostración académica.
-                  No ingreses tarjetas reales.
-                  No se realizará ningún cobro.
-                </p>
-
-                {/* MENSAJES DE ERROR */}
-
-                {error && (
-                  <div
-                    className="checkout-error"
-                    role="alert"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                {/* CONFIRMAR PAGO */}
+              <div className="checkout-actions">
 
                 <button
                   type="submit"
-                  className="checkout-submit"
+                  className="pay-button"
                   disabled={
                     loading ||
                     cartItems.length === 0
                   }
                 >
                   {loading
-                    ? 'Procesando simulación...'
-                    : 'Simular pago y confirmar pedido'}
+                    ? 'Registrando pedido...'
+                    : `Confirmar pedido · ${money(
+                        estimatedTotal
+                      )}`}
                 </button>
 
-                <button
-                  type="button"
-                  className="checkout-back"
-                  onClick={() => navigate('/cart')}
-                  disabled={loading}
+                <Link
+                  to="/cart"
+                  className="back-to-cart"
                 >
                   ← Volver al carrito
-                </button>
+                </Link>
 
-              </form>
-            </div>
+              </div>
 
-            {/* RESUMEN DEL PEDIDO */}
+            </form>
 
-            <aside className="checkout-card checkout-summary">
+          </section>
 
-              <h2>Resumen del pedido</h2>
+          {/* RESUMEN DEL PEDIDO */}
 
-              {cartItems.length === 0 ? (
-                <p>Tu carrito está vacío.</p>
-              ) : (
-                cartItems.map((item) => (
-                  <div
-                    className="checkout-product"
-                    key={item.id}
-                  >
-                    <img
-                      src={item.images?.[0] || item.image}
-                      alt={item.name}
-                    />
+          <aside className="checkout-summary">
 
-                    <div className="checkout-product-info">
-                      <strong>{item.name}</strong>
+            <div className="summary-card">
 
-                      <small>
-                        Cantidad: {item.quantity}
-                      </small>
+              <h2>Tu pedido</h2>
 
-                      <span>
-                        C${' '}
-                        {(
-                          Number(item.price) *
-                          Number(item.quantity)
-                        ).toLocaleString()}
-                      </span>
+              <div className="summary-meta">
+                <span>
+                  {itemCount}{' '}
+                  {itemCount === 1
+                    ? 'artículo'
+                    : 'artículos'}
+                </span>
+
+                <span>NICA S-MART</span>
+              </div>
+
+              <div className="summary-items">
+
+                {cartItems.length > 0 ? (
+
+                  cartItems.map((item) => (
+
+                    <div
+                      className="summary-item"
+                      key={item.id}
+                    >
+
+                      <div className="checkout-summary-image">
+                        <CheckoutProductImage
+                          product={item}
+                        />
+                      </div>
+
+                      <div className="summary-item-info">
+                        <strong>
+                          {item.name}
+                        </strong>
+
+                        <span>
+                          Cantidad:{' '}
+                          {item.quantity || 1}
+                        </span>
+
+                        <div className="summary-item-price">
+                          {money(
+                            Number(item.price) *
+                            (Number(item.quantity) || 1)
+                          )}
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                ))
-              )}
 
-              <div className="checkout-totals">
+                  ))
+
+                ) : (
+
+                  <p className="empty-summary">
+                    No hay productos en el carrito.
+                  </p>
+
+                )}
+
+              </div>
+
+              {/* TOTALES */}
+
+              <div className="summary-totals">
 
                 <div>
                   <span>Subtotal</span>
 
                   <strong>
-                    C$ {cartTotal.toLocaleString()}
+                    {money(subtotal)}
                   </strong>
                 </div>
 
                 <div>
-                  <span>Envío</span>
+                  <span>Envío estimado</span>
 
                   <strong>
-                    C$ {shipping.toLocaleString()}
+                    {money(shipping)}
                   </strong>
                 </div>
 
-                <div className="checkout-grand-total">
+                <div className="summary-total-final">
                   <span>Total estimado</span>
 
                   <strong>
-                    C$ {total.toLocaleString()}
+                    {money(estimatedTotal)}
                   </strong>
                 </div>
+
               </div>
 
-              <p className="checkout-note">
-                Los precios y existencias serán
-                verificados por el servidor.
+              <div className="summary-security">
+                <span>📦</span>
+
+                <p>
+                  Los precios y existencias se
+                  verificarán al confirmar el pedido.
+                </p>
+              </div>
+
+              <p className="checkout-small-note">
+                El total definitivo será confirmado
+                por nuestro servidor.
               </p>
 
-              <p className="checkout-note">
-                Las operaciones son simuladas.
-                No se procesa dinero real.
-              </p>
+            </div>
 
-            </aside>
-          </div>
-        </section>
+          </aside>
+
+        </div>
       </main>
 
       <Footer />
