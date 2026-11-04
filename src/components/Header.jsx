@@ -1,9 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
 import { useCart } from '../context/CartContext'
-
 import '../styles/header.css'
 
 // ==========================================
@@ -67,9 +65,7 @@ function Header() {
           return
         }
 
-        // La autorización real la valida el backend.
         setUser(parsedUser)
-
       } catch (error) {
         console.error('Error leyendo sesión:', error)
         setUser(null)
@@ -120,6 +116,13 @@ function Header() {
   }, [])
 
   // ==========================================
+  // VERIFICAR ROL DEL ADMINISTRADOR
+  // ==========================================
+
+  const isAdmin =
+    String(user?.role || '').trim().toUpperCase() === 'ADMIN'
+
+  // ==========================================
   // CERRAR SESIÓN
   // ==========================================
 
@@ -137,7 +140,7 @@ function Header() {
   }
 
   // ==========================================
-  // INFORMACIÓN VISUAL DEL USUARIO
+  // INFORMACIÓN DEL USUARIO
   // ==========================================
 
   const userName =
@@ -146,6 +149,22 @@ function Header() {
     user?.email?.split('@')[0] ||
     'Cliente'
 
+  // ==========================================
+  // ESTILOS DEL MENÚ
+  // ==========================================
+
+  const menuLinkStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 12px',
+    borderRadius: 8,
+    textDecoration: 'none',
+    color: '#10264e',
+    fontSize: 14,
+    fontWeight: 500
+  }
+
   return (
     <>
       {/* =====================================
@@ -153,15 +172,11 @@ function Header() {
       ===================================== */}
 
       <div className="topbar">
-
         <div>
           🚚 Envíos a toda Nicaragua
         </div>
 
         <div className="topbar-links">
-
-          {/* CENTRO DE AYUDA */}
-
           <Link
             to="/help"
             aria-label="Ir al centro de ayuda"
@@ -169,17 +184,13 @@ function Header() {
             Ayuda
           </Link>
 
-          {/* SEGUIMIENTO DE PEDIDO */}
-
           <Link
             to="/tracking"
             aria-label="Consultar seguimiento de pedido"
           >
             Seguimiento de pedido
           </Link>
-
         </div>
-
       </div>
 
       {/* =====================================
@@ -191,7 +202,6 @@ function Header() {
         {/* LOGO */}
 
         <div className="logo">
-
           <div className="logo-main">
             NICA
           </div>
@@ -201,15 +211,11 @@ function Header() {
           </div>
 
           <span>TECH STORE</span>
-
         </div>
 
-        {/* =====================================
-            BUSCADOR
-        ===================================== */}
+        {/* BUSCADOR */}
 
         <div className="search-container">
-
           <input
             type="text"
             placeholder="Buscar productos..."
@@ -222,21 +228,15 @@ function Header() {
           >
             🔍
           </button>
-
         </div>
 
-        {/* =====================================
-            OPCIONES DEL ENCABEZADO
-        ===================================== */}
+        {/* OPCIONES DEL ENCABEZADO */}
 
         <div className="header-options">
 
-          {/* =================================
-              CUENTA DE USUARIO
-          ================================= */}
+          {/* CUENTA DE USUARIO */}
 
           {user ? (
-
             <div
               ref={accountRef}
               className="header-option account-link"
@@ -244,16 +244,14 @@ function Header() {
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px'
+                gap: 10
               }}
             >
 
               {/* FOTO DE PERFIL */}
 
               <div className="option-icon">
-
                 {user.picture ? (
-
                   <img
                     src={user.picture}
                     alt="Foto de perfil"
@@ -265,14 +263,12 @@ function Header() {
                       objectFit: 'cover'
                     }}
                   />
-
                 ) : (
                   '👤'
                 )}
-
               </div>
 
-              {/* NOMBRE Y SESIÓN */}
+              {/* BOTÓN DE CUENTA */}
 
               <button
                 type="button"
@@ -292,7 +288,6 @@ function Header() {
                   textAlign: 'left'
                 }}
               >
-
                 <div
                   className="account-info"
                   style={{
@@ -300,7 +295,7 @@ function Header() {
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: 4
                   }}
                 >
 
@@ -308,7 +303,7 @@ function Header() {
                     className="account-name"
                     style={{
                       display: 'block',
-                      fontSize: '14px',
+                      fontSize: 14,
                       fontWeight: 700,
                       whiteSpace: 'nowrap'
                     }}
@@ -320,7 +315,7 @@ function Header() {
                     className="account-status"
                     style={{
                       display: 'block',
-                      fontSize: '12px',
+                      fontSize: 12,
                       fontWeight: 600,
                       color: '#16a34a',
                       whiteSpace: 'nowrap'
@@ -330,7 +325,6 @@ function Header() {
                   </small>
 
                 </div>
-
               </button>
 
               {/* =================================
@@ -338,35 +332,96 @@ function Header() {
               ================================= */}
 
               {showMenu && (
-
                 <div
                   className="account-dropdown"
-                  role="menu"
                   style={{
                     position: 'absolute',
                     top: '100%',
                     right: 0,
-                    minWidth: 190,
+                    minWidth: 230,
                     padding: 12,
                     background: '#fff',
                     color: '#10264e',
-                    borderRadius: 10,
-                    boxShadow:
-                      '0 8px 25px rgba(0,0,0,0.15)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.16)',
                     zIndex: 1000,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 12
+                    gap: 5
                   }}
                 >
+
+                  {/* ENCABEZADO DEL MENÚ */}
+
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderBottom: '1px solid #e2e8f0',
+                      marginBottom: 5
+                    }}
+                  >
+                    <strong
+                      style={{
+                        display: 'block',
+                        fontSize: 14
+                      }}
+                    >
+                      {userName}
+                    </strong>
+
+                    <small
+                      style={{
+                        display: 'block',
+                        color: '#64748b',
+                        fontSize: 12,
+                        overflowWrap: 'anywhere'
+                      }}
+                    >
+                      {user.email}
+                    </small>
+                  </div>
+
+                  {/* =================================
+                      PANEL SOLO PARA ADMIN
+                  ================================= */}
+
+                  {isAdmin && (
+                    <>
+                      <Link
+                        to="/admin"
+                        onClick={() => setShowMenu(false)}
+                        style={{
+                          ...menuLinkStyle,
+                          background: '#eaf2ff',
+                          color: '#075cd8',
+                          fontWeight: 700,
+                          border: '1px solid #bfdbfe'
+                        }}
+                      >
+                        <span>🛡️</span>
+                        <span>Panel de administrador</span>
+                      </Link>
+
+                      <div
+                        style={{
+                          height: 1,
+                          background: '#e2e8f0',
+                          margin: '6px 0'
+                        }}
+                      />
+                    </>
+                  )}
 
                   {/* MI PERFIL */}
 
                   <Link
                     to="/profile"
                     onClick={() => setShowMenu(false)}
+                    style={menuLinkStyle}
                   >
-                    Mi perfil
+                    <span>👤</span>
+                    <span>Mi perfil</span>
                   </Link>
 
                   {/* MIS PEDIDOS */}
@@ -374,8 +429,10 @@ function Header() {
                   <Link
                     to="/orders"
                     onClick={() => setShowMenu(false)}
+                    style={menuLinkStyle}
                   >
-                    Mis pedidos
+                    <span>📦</span>
+                    <span>Mis pedidos</span>
                   </Link>
 
                   {/* SEGUIMIENTO */}
@@ -383,9 +440,21 @@ function Header() {
                   <Link
                     to="/tracking"
                     onClick={() => setShowMenu(false)}
+                    style={menuLinkStyle}
                   >
-                    Seguimiento de pedido
+                    <span>🚚</span>
+                    <span>Seguimiento de pedido</span>
                   </Link>
+
+                  {/* SEPARADOR */}
+
+                  <div
+                    style={{
+                      height: 1,
+                      background: '#e2e8f0',
+                      margin: '6px 0'
+                    }}
+                  />
 
                   {/* CERRAR SESIÓN */}
 
@@ -393,24 +462,24 @@ function Header() {
                     type="button"
                     onClick={handleLogout}
                     style={{
+                      ...menuLinkStyle,
                       border: 'none',
                       background: 'transparent',
                       color: '#d62828',
                       cursor: 'pointer',
                       textAlign: 'left',
                       font: 'inherit',
-                      padding: 0
+                      fontSize: 14
                     }}
                   >
-                    Cerrar sesión
+                    <span>🚪</span>
+                    <span>Cerrar sesión</span>
                   </button>
 
                 </div>
-
               )}
 
             </div>
-
           ) : (
 
             /* USUARIO SIN SESIÓN */
@@ -419,7 +488,6 @@ function Header() {
               to="/login"
               className="header-option account-link"
             >
-
               <div className="option-icon">
                 👤
               </div>
@@ -428,7 +496,6 @@ function Header() {
                 <small>Mi cuenta</small>
                 <strong>Iniciar sesión</strong>
               </div>
-
             </Link>
 
           )}
@@ -441,25 +508,21 @@ function Header() {
             to="/cart"
             className="header-option cart-link"
           >
-
             <div className="option-icon">
               🛒
             </div>
 
             <div>
-
               <small>Carrito</small>
 
               <strong>
                 C$ {Number(cartTotal || 0).toLocaleString('es-NI')}
               </strong>
-
             </div>
 
             <span className="cart-count">
               {cartCount}
             </span>
-
           </Link>
 
         </div>
