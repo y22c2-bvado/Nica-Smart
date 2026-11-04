@@ -1,7 +1,7 @@
 
 # ==========================================
 # NICA S-MART | DOCKER COMPOSE
-# Frontend + Backend
+# React + Vite + Nginx + Express + PostgreSQL
 # ==========================================
 
 services:
@@ -26,6 +26,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+
+    # Almacenamiento persistente de imágenes
+    volumes:
+      - ./backend/public/uploads:/app/public/uploads
 
     networks:
       - app-network
