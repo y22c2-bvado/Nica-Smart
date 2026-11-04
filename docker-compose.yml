@@ -65,7 +65,7 @@ services:
 # ==========================================
 # RED INTERNA
 # ==========================================
-
+  
 networks:
   app-network:
     driver: bridge

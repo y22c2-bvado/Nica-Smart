@@ -1,42 +1,150 @@
-name: CI/CD Docker -> GHCR -> Railsway
+
+name: CI/CD Docker -> GHCR -> Render
 
 on:
   push:
-    branches: [main,YaderDX,y22c2-bvado]
+    branches:
+      - main
+      - YaderDX
+      - y22c2-bvado
+
   pull_request:
-    branches: [main,YaderDX,y22c2-bvado]
+    branches:
+      - main
+      - YaderDX
+      - y22c2-bvado
+
   workflow_dispatch:
+
+# ==========================================
+# VARIABLES GLOBALES
+# ==========================================
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ---------- CI: construir, probar y publicar la imagen ----------
+
+  # ========================================
+  # CI: CONSTRUIR, PROBAR Y PUBLICAR
+  # ========================================
+
   build-test-push:
+    name: Construir y probar Docker
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
+
     steps:
-      - name: 1. Descargar el código
+
+      # ====================================
+      # 1. DESCARGAR CÓDIGO
+      # ====================================
+
+      - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: 2. Construir la imagen
-        run: docker build -t smart-nica-db:test .
+      # ====================================
+      # 2. CONFIGURAR DOCKER BUILDX
+      # ====================================
 
-      - name: 3. Prueba sencilla (levantar y hacer curl)
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ====================================
+      # 3. CONSTRUIR IMAGEN DE PRUEBA
+      # ====================================
+
+      - name: Construir imagen Docker
         run: |
-          docker run -d --name app -p 8080:80 smart-nica-db:test
-          sleep 3
-          curl -sf http://localhost:8080 | grep -q "nica-smart"
-          echo "✅ La app responde y contiene 'nica-smart'"
+          docker build \
+            --build-arg VITE_API_URL="${{ vars.VITE_API_URL }}" \
+            --build-arg VITE_GOOGLE_CLIENT_ID="${{ 443765701327-ilci2umgkcb49jknagi7dukgb8pk90a9.apps.googleusercontent.com}}" \
+            -t smart-nica-db:test .
 
-      - name: 4. Logs del contenedor (solo si falló)
+      # ====================================
+      # 4. PROBAR FRONTEND
+      # ====================================
+
+      - name: Verificar funcionamiento de NICA S-MART
+        run: |
+          echo "Iniciando contenedor de prueba..."
+
+          docker run -d \
+            --name app \
+            -p 8080:80 \
+            smart-nica-db:test
+
+          echo "Esperando respuesta de Nginx..."
+
+          READY=false
+
+          for i in $(seq 1 20); do
+            if curl -fsS \
+              http://localhost:8080/ \
+              -o /tmp/nica-smart.html; then
+
+              READY=true
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$READY" != "true" ]; then
+            echo "ERROR: Nginx no respondió."
+            docker logs app
+            exit 1
+          fi
+
+          echo "Verificando HTML..."
+
+          test -s /tmp/nica-smart.html
+
+          echo "Verificando nombre de la tienda..."
+
+          grep -Eiq 'nica[ -]s-mart' \
+            /tmp/nica-smart.html
+
+          echo "Verificando compilación de Vite..."
+
+          JS_FILE=$(grep -oE \
+            'src="/assets/[^"]+\.js"' \
+            /tmp/nica-smart.html \
+            | head -1 \
+            | cut -d'"' -f2)
+
+          if [ -z "$JS_FILE" ]; then
+            echo "ERROR: No se encontró el JavaScript compilado."
+            exit 1
+          fi
+
+          echo "Comprobando archivo JavaScript..."
+
+          curl -fsS \
+            "http://localhost:8080$JS_FILE" \
+            -o /dev/null
+
+          echo "NICA S-MART funciona correctamente."
+
+      # ====================================
+      # 5. REGISTROS SI FALLA
+      # ====================================
+
+      - name: Mostrar logs si falla
         if: failure()
-        run: docker logs app
+        run: |
+          docker ps -a
+          docker logs app || true
 
-      - name: 5. Login en GitHub Container Registry
+      # ====================================
+      # 6. LOGIN EN GHCR
+      # ====================================
+
+      - name: Iniciar sesión en GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
@@ -44,42 +152,66 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 6. Calcular tags (latest + sha)
+      # ====================================
+      # 7. GENERAR ETIQUETAS
+      # ====================================
+
+      - name: Generar etiquetas Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=branch
             type=sha
 
-      - name: 7. Publicar la imagen en GHCR
+      # ====================================
+      # 8. PUBLICAR IMAGEN EN GHCR
+      # ====================================
+
+      - name: Publicar imagen Docker en GHCR
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # ---------- CD (DESACTIVADO): redesplegar en Railway ----------
-  # Para volver a usar Railway: descomenta este job y comenta deploy-render.
-  #deploy-railway:
-    #needs: build-test-push
-    #f: github.event_name != 'pull_request'
-    #runs-on: ubuntu-latest
-    #container: ghcr.io/railwayapp/cli:latest
-    #env:
-      #RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    #steps:
-      #- name: Redesplegar el servicio en Railways (descarga la nueva imagen :latest)
-        #run: railway redeploy --service ${{ secrets.RAILWAY_SERVICE_ID }} --yes
-        
-  # ---------- CD: redesplegar en Render ----------
+  # ========================================
+  # CD: DESPLEGAR EN RENDER
+  # Solo desde MAIN
+  # ========================================
+
   deploy-render:
+    name: Desplegar en Render
+
     needs: build-test-push
-    if: github.event_name != 'pull_request'
+
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
+
     steps:
-      - name: Redesplegar el servicio (Render descarga la nueva imagen :latest)
-        run: curl -sf -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+      - name: Solicitar despliegue en Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "ERROR: Falta configurar RENDER_DEPLOY_HOOK_URL."
+            exit 1
+          fi
+
+          curl --fail --show-error \
+            --silent \
+            --retry 3 \
+            --request POST \
+            "$RENDER_DEPLOY_HOOK_URL"
+
+          echo "Solicitud de despliegue enviada a Render."
