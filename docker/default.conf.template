@@ -1,4 +1,3 @@
-
 # ==========================================
 # NICA S-MART | NGINX
 # Frontend React + Backend Express
@@ -11,18 +10,27 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    include /etc/nginx/mime.types;
+    # ======================================
+    # FORZAR TIPOS MIME (Soluciona binary/octet-stream)
+    # ======================================
+    types {
+        application/javascript js mjs jsx;
+        text/css css;
+        image/png png;
+        image/jpeg jpg jpeg;
+        image/svg+xml svg;
+        image/x-icon ico;
+    }
     default_type application/octet-stream;
 
     # ======================================
     # API DEL BACKEND
     # ======================================
-
+    # REEMPLAZA ESTA URL POR LA DE TU BACKEND EN RENDER
+    # (Ejemplo: https://nica-smart-backend.onrender.com)
     location /api/ {
-        proxy_pass http://backend:3000;
-
+        proxy_pass https://nica-smart-backend.onrender.com/api/; 
         proxy_http_version 1.1;
-
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -32,10 +40,8 @@ server {
     # ======================================
     # IMÁGENES SUBIDAS AL BACKEND
     # ======================================
-
     location /uploads/ {
-        proxy_pass http://backend:3000;
-
+        proxy_pass https://nica-smart-backend.onrender.com/uploads/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -44,7 +50,6 @@ server {
     # ======================================
     # ARCHIVOS COMPILADOS DE VITE
     # ======================================
-
     location /assets/ {
         try_files $uri =404;
     }
@@ -52,7 +57,6 @@ server {
     # ======================================
     # RUTAS DE REACT ROUTER
     # ======================================
-
     location / {
         try_files $uri $uri/ /index.html;
     }

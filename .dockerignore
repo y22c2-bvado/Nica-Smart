@@ -1,6 +1,12 @@
-node_modules
-backend
+# Dependencias
+node_modules/
+backend/node_modules/
+
+# Compilaciones locales (VITAL para que Docker compile desde cero)
+dist/
+
+# Entorno y Git
+.git/
 .env
-.git
-.github
-*.md
+.env.*
+!.env.example
