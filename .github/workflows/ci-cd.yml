@@ -17,12 +17,14 @@ on:
   workflow_dispatch:
 
 # ==========================================
-# VARIABLES GLOBALES
+# NICA S-MART | VARIABLES GLOBALES
 # ==========================================
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  VITE_API_URL: ${{ vars.VITE_API_URL }}
+  VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
 
 jobs:
 
@@ -55,26 +57,64 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # ====================================
-      # 3. CONSTRUIR IMAGEN DE PRUEBA
+      # 3. VALIDAR VARIABLES
+      # ====================================
+
+      - name: Validar variables de Vite
+        run: |
+          if [ -z "$VITE_API_URL" ]; then
+            echo "::error::Falta VITE_API_URL en GitHub Actions Variables."
+            exit 1
+          fi
+
+          if [ -z "$VITE_GOOGLE_CLIENT_ID" ]; then
+            echo "::error::Falta VITE_GOOGLE_CLIENT_ID en GitHub Actions Variables."
+            exit 1
+          fi
+
+          echo "Variables de Vite configuradas."
+
+      # ====================================
+      # 4. CONSTRUIR IMAGEN DOCKER
       # ====================================
 
       - name: Construir imagen Docker
         run: |
           docker build \
-            --build-arg VITE_API_URL="${{ vars.VITE_API_URL }}" \
-            --build-arg VITE_GOOGLE_CLIENT_ID="${{ vars.VITE_GOOGLE_CLIENT_ID }}" \
+            --build-arg VITE_API_URL="$VITE_API_URL" \
+            --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" \
             -t smart-nica-db:test .
 
       # ====================================
-      # 4. PROBAR FRONTEND
+      # 5. PREPARAR RED DE PRUEBAS
+      # ====================================
+
+      - name: Preparar red Docker
+        run: |
+          docker network create nica-ci-network
+
+          # Contenedor auxiliar para resolver el
+          # hostname "backend" que utiliza Nginx.
+          # No reemplaza una prueba real del API.
+          docker run -d \
+            --name backend \
+            --network nica-ci-network \
+            alpine:3.20 \
+            sleep 300
+
+          echo "Red de pruebas configurada."
+
+      # ====================================
+      # 6. PROBAR FRONTEND
       # ====================================
 
       - name: Verificar funcionamiento de NICA S-MART
         run: |
-          echo "Iniciando contenedor de prueba..."
+          echo "Iniciando NICA S-MART..."
 
           docker run -d \
             --name app \
+            --network nica-ci-network \
             -p 8080:80 \
             smart-nica-db:test
 
@@ -86,7 +126,6 @@ jobs:
             if curl -fsS \
               http://localhost:8080/ \
               -o /tmp/nica-smart.html; then
-
               READY=true
               break
             fi
@@ -95,21 +134,24 @@ jobs:
           done
 
           if [ "$READY" != "true" ]; then
-            echo "ERROR: Nginx no respondió."
+            echo "::error::Nginx no respondió."
             docker logs app
             exit 1
           fi
 
-          echo "Verificando HTML..."
+          echo "Verificando documento HTML..."
 
           test -s /tmp/nica-smart.html
 
           echo "Verificando nombre de la tienda..."
 
-          grep -Eiq 'nica[ -]s-mart' \
-            /tmp/nica-smart.html
+          if ! grep -Eiq 'nica[[:space:]-]*s[[:space:]-]*mart' \
+            /tmp/nica-smart.html; then
+            echo "::error::El HTML no contiene NICA S-MART."
+            exit 1
+          fi
 
-          echo "Verificando compilación de Vite..."
+          echo "Verificando JavaScript de Vite..."
 
           JS_FILE=$(grep -oE \
             'src="/assets/[^"]+\.js"' \
@@ -118,7 +160,7 @@ jobs:
             | cut -d'"' -f2)
 
           if [ -z "$JS_FILE" ]; then
-            echo "ERROR: No se encontró el JavaScript compilado."
+            echo "::error::No se encontró JavaScript compilado."
             exit 1
           fi
 
@@ -128,10 +170,16 @@ jobs:
             "http://localhost:8080$JS_FILE" \
             -o /dev/null
 
-          echo "NICA S-MART funciona correctamente."
+          echo "Comprobando tipo de contenido..."
+
+          curl -fsSI \
+            "http://localhost:8080$JS_FILE" \
+            | grep -Eiq 'content-type:.*(javascript|ecmascript)'
+
+          echo "NICA S-MART pasó las pruebas del frontend."
 
       # ====================================
-      # 5. REGISTROS SI FALLA
+      # 7. MOSTRAR LOGS SI FALLA
       # ====================================
 
       - name: Mostrar logs si falla
@@ -139,9 +187,20 @@ jobs:
         run: |
           docker ps -a
           docker logs app || true
+          docker logs backend || true
 
       # ====================================
-      # 6. LOGIN EN GHCR
+      # 8. LIMPIAR CONTENEDORES DE PRUEBA
+      # ====================================
+
+      - name: Limpiar contenedores
+        if: always()
+        run: |
+          docker rm -f app backend || true
+          docker network rm nica-ci-network || true
+
+      # ====================================
+      # 9. LOGIN EN GHCR
       # ====================================
 
       - name: Iniciar sesión en GHCR
@@ -153,7 +212,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ====================================
-      # 7. GENERAR ETIQUETAS
+      # 10. GENERAR ETIQUETAS
       # ====================================
 
       - name: Generar etiquetas Docker
@@ -167,7 +226,7 @@ jobs:
             type=sha
 
       # ====================================
-      # 8. PUBLICAR IMAGEN EN GHCR
+      # 11. PUBLICAR EN GHCR
       # ====================================
 
       - name: Publicar imagen Docker en GHCR
@@ -177,19 +236,18 @@ jobs:
           context: .
           push: true
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL }}
-            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+            VITE_API_URL=${{ env.VITE_API_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ env.VITE_GOOGLE_CLIENT_ID }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   # ========================================
   # CD: DESPLEGAR EN RENDER
-  # Solo desde MAIN
+  # SOLO DESDE MAIN
   # ========================================
 
   deploy-render:
     name: Desplegar en Render
-
     needs: build-test-push
 
     if: >-
@@ -199,16 +257,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Solicitar despliegue en Render
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "ERROR: Falta configurar RENDER_DEPLOY_HOOK_URL."
+            echo "::error::Falta RENDER_DEPLOY_HOOK_URL."
             exit 1
           fi
 
-          curl --fail --show-error \
+          curl \
+            --fail \
+            --show-error \
             --silent \
             --retry 3 \
             --request POST \
