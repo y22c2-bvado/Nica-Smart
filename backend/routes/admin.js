@@ -25,7 +25,6 @@ const validateProduct = (data) => {
   const brand = data.brand?.trim() || '';
   const brand_url = data.brand_url?.trim() || '';
   
-  // <-- NUEVO: Capturamos el estado is_new (viene como string desde FormData)
   const is_new = data.is_new === 'true' || data.is_new === true;
 
   if (category.length > 100) {
@@ -176,7 +175,6 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// GET: Leer productos (Incluimos is_new)
 router.get('/products', async (req, res) => {
   try {
     const result = await pool.query(
@@ -195,7 +193,6 @@ router.get('/products', async (req, res) => {
   }
 });
 
-// POST: Crear producto con imágenes, marca y is_new
 router.post('/products', upload.array('images', 4), async (req, res) => {
   try {
     const product = validateProduct(req.body || {});
