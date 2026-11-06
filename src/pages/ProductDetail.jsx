@@ -12,6 +12,32 @@ import { useCart } from '../context/CartContext'
 
 import '../styles/productDetail.css'
 
+// ==========================================
+// CONFIGURACIÓN PARA LAS IMÁGENES
+// ==========================================
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/+$/, '')
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
+  
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  
+  if (path.includes('uploads/')) {
+    const filename = path.split('uploads/')[1]
+    return `${API_URL}/uploads/${filename}`
+  }
+  
+  if (!path.includes('/')) {
+    return `${API_URL}/uploads/${path}`
+  }
+  
+  return path
+}
+// ==========================================
+
 function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -105,12 +131,15 @@ function ProductDetail() {
 
         <section className="product-detail-gallery">
           
-          {/* IMAGEN PRINCIPAL */}
+          {/* IMAGEN PRINCIPAL CON getImageUrl */}
           <div className="product-detail-main-image">
             {selectedImage ? (
               <img
-                src={selectedImage}
+                src={getImageUrl(selectedImage)}
                 alt={product.name}
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/300x300?text=Error';
+                }}
               />
             ) : (
               <div style={{ padding: '50px', textAlign: 'center', background: '#f5f5f5', borderRadius: '8px' }}>
@@ -119,15 +148,18 @@ function ProductDetail() {
             )}
           </div>
 
-          {/* MINIATURAS (Solo se muestran si hay más de 1 imagen) */}
+          {/* MINIATURAS CON getImageUrl */}
           {productImages.length > 1 && (
             <div className="product-detail-thumbnails">
               {productImages.map((img, index) => (
                 <img
                   key={index}
-                  src={img}
+                  src={getImageUrl(img)}
                   alt={`${product.name} - miniatura ${index + 1}`}
                   onClick={() => setSelectedImage(img)}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/100x100?text=Error';
+                  }}
                   style={{
                     width: '70px',
                     height: '70px',
