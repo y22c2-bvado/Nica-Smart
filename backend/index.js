@@ -34,22 +34,21 @@ app.disable('x-powered-by');
 // ==========================================
 const corsOptions = {
   origin: [
-    'http://localhost:5173', // Para desarrollo local con Vite
-    'http://localhost:3000', // Por si acaso usas este puerto en local
-    'https://nica-smart-6z1r.onrender.com' // Tu Frontend en Render
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://nica-smart-6z1r.onrender.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true // Permite el envío de credenciales (cookies/tokens)
+  credentials: true
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Añadido para manejar peticiones OPTIONS (preflight)
 // ==========================================
 
 app.use(express.json({
   limit: '10kb'
 }));
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -58,6 +57,7 @@ const pool = new Pool({
   }
 });
 
+// 1. RUTA RAÍZ (Se ejecuta primero, antes que los archivos estáticos)
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -76,6 +76,7 @@ app.get('/', async (req, res) => {
   }
 });
 
+// 2. RUTAS DE LA API
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
@@ -84,6 +85,10 @@ app.use('/api/auth', passwordResetRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 
+// 3. ARCHIVOS ESTÁTICOS (Se ejecuta al final, si ninguna ruta de arriba coincidió)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 4. MANEJO DE ERRORES
 app.use((req, res) => {
   return res.status(404).json({
     error: 'Ruta no encontrada'
