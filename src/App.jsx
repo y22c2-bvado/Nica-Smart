@@ -87,7 +87,6 @@ function RequireAuth({ children }) {
 
 // ==========================================
 // APLICACIÓN PRINCIPAL
-// ==========================================
 
 function App() {
   return (
