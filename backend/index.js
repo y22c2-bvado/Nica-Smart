@@ -1,9 +1,7 @@
-
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
-
 
 require('dotenv').config({
   path: path.join(__dirname, '.env')
@@ -18,26 +16,34 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-
 const productRoutes = require('./routes/Products');
 const categoryRoutes = require('./routes/Categories');
-
 const authRoutes = require('./routes/auth');
 const googleAuthRoutes = require('./routes/googleAuth');
-
 const orderRoutes = require('./routes/orders');
-
 const adminRoutes = require('./routes/admin');
-
 const passwordResetRoutes = require('./routes/passwordReset');
-
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
 
-app.use(cors());
+// ==========================================
+// CONFIGURACIÓN DE CORS EXPLÍCITA
+// ==========================================
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', // Para desarrollo local con Vite
+    'http://localhost:3000', // Por si acaso usas este puerto en local
+    'https://nica-smart-6z1r.onrender.com' // Tu Frontend en Render
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true // Permite el envío de credenciales (cookies/tokens)
+};
+
+app.use(cors(corsOptions));
+// ==========================================
 
 app.use(express.json({
   limit: '10kb'
@@ -71,21 +77,12 @@ app.get('/', async (req, res) => {
 });
 
 app.use('/api/products', productRoutes);
-
-
 app.use('/api/categories', categoryRoutes);
-
-
 app.use('/api/auth/google', googleAuthRoutes);
-
 app.use('/api/auth', authRoutes);
-
 app.use('/api/auth', passwordResetRoutes);
-
 app.use('/api/orders', orderRoutes);
-
 app.use('/api/admin', adminRoutes);
-
 
 app.use((req, res) => {
   return res.status(404).json({
@@ -112,7 +109,6 @@ app.use((err, req, res, next) => {
     error: 'Error interno del servidor'
   });
 });
-
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
