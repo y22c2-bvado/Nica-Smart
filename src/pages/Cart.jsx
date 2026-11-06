@@ -18,10 +18,22 @@ const API_URL = String(
 
 const getImageUrl = (path) => {
   if (!path) return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
+  
+  // 1. Si ya es una URL completa o un base64
   if (path.startsWith('http') || path.startsWith('data:')) return path
-  if (path.startsWith('/uploads/')) {
-    return `${API_URL}${path}`
+  
+  // 2. Si la ruta ya incluye 'uploads/' (con o sin barra al inicio)
+  if (path.includes('uploads/')) {
+    const filename = path.split('uploads/')[1]
+    return `${API_URL}/uploads/${filename}`
   }
+  
+  // 3. Si es solo el nombre del archivo suelto (ej: "179375...jpg")
+  if (!path.includes('/')) {
+    return `${API_URL}/uploads/${path}`
+  }
+  
+  // 4. Si es una imagen estática del frontend (ej: "/Imagenes/logo.png")
   return path
 }
 // ==========================================
@@ -174,7 +186,7 @@ function Cart() {
                     className="cart-item"
                   >
 
-                    {/* IMAGEN CORREGIDA AQUÍ 👇 */}
+                    {/* IMAGEN CON LA NUEVA FUNCIÓN */}
 
                     <div className="cart-item-image">
                       <img
