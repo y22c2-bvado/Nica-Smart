@@ -8,6 +8,24 @@ import { useCart } from '../context/CartContext'
 
 import '../styles/cart.css'
 
+// ==========================================
+// CONFIGURACIÓN PARA LAS IMÁGENES
+// ==========================================
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/+$/, '')
+
+const getImageUrl = (path) => {
+  if (!path) return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  if (path.startsWith('/uploads/')) {
+    return `${API_URL}${path}`
+  }
+  return path
+}
+// ==========================================
+
 function Cart() {
   const navigate = useNavigate()
 
@@ -156,12 +174,15 @@ function Cart() {
                     className="cart-item"
                   >
 
-                    {/* IMAGEN */}
+                    {/* IMAGEN CORREGIDA AQUÍ 👇 */}
 
                     <div className="cart-item-image">
                       <img
-                        src={image}
+                        src={getImageUrl(image)}
                         alt={item.name}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/300x300?text=Error';
+                        }}
                       />
                     </div>
 
