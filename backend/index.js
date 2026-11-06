@@ -29,31 +29,42 @@ const port = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
 
-
+// ==========================================
+// 1. CONFIGURACIÓN DE CORS
+// ==========================================
 const corsOptions = {
   origin: [
-    'http://localhost:5173',
-    'http://localhost:3000', 
-    'https://nica-smart-6z1r.onrender.com'
+    'http://localhost:5173', // Desarrollo local con Vite
+    'http://localhost:3000', // Desarrollo local alternativo
+    'https://nica-smart-6z1r.onrender.com' // Tu Frontend en producción
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true 
+  credentials: true
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); 
+app.options('*', cors(corsOptions)); // Manejo de peticiones preflight (OPTIONS)
 
+// ==========================================
+// 2. PARSEADOR DE JSON
+// ==========================================
 app.use(express.json({
   limit: '10kb'
 }));
 
+// ==========================================
+// 3. CONEXIÓN A BASE DE DATOS
+// ==========================================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false // Necesario si usas la URL externa de Render
   }
 });
 
+// ==========================================
+// 4. RUTA RAÍZ (Para verificar que el backend está vivo)
+// ==========================================
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -72,6 +83,9 @@ app.get('/', async (req, res) => {
   }
 });
 
+// ==========================================
+// 5. RUTAS DE LA API
+// ==========================================
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
@@ -80,10 +94,16 @@ app.use('/api/auth', passwordResetRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// ==========================================
+// 6. ARCHIVOS ESTÁTICOS E IMÁGENES
+// ==========================================
+// Al servir la carpeta 'public', Express automáticamente servirá 
+// las imágenes guardadas en 'public/uploads/'.
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
+// 7. MANEJO DE ERRORES (404 y 500)
+// ==========================================
 app.use((req, res) => {
   return res.status(404).json({
     error: 'Ruta no encontrada'
@@ -110,17 +130,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ==========================================
+// 8. INICIAR SERVIDOR
+// ==========================================
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
-
-  console.log('Rutas disponibles:');
-  console.log('Productos: /api/products');
-  console.log('Categorías: /api/categories');
-  console.log('Login: /api/auth/login');
-  console.log('Registro: /api/auth/register');
-  console.log('Google: /api/auth/google');
-  console.log('Recuperación: /api/auth/forgot-password');
-  console.log('Pedidos: /api/orders');
-  console.log('Administración: /api/admin');
-  console.log('Imágenes: /uploads');
 });
