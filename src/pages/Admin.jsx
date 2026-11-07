@@ -88,8 +88,23 @@ const getProductImage = (product) => {
           ''
         ).trim()
 
-    if (/^(https?:\/\/|\/|data:image\/)/i.test(url)) {
-      return url
+    if (url) {
+      if (url.startsWith('http') || url.startsWith('data:')) {
+        return url
+      }
+      
+      if (url.includes('uploads/')) {
+        const filename = url.split('uploads/')[1]
+        return `${API_URL}/uploads/${filename}`
+      }
+      
+      if (!url.includes('/')) {
+        return `${API_URL}/uploads/${url}`
+      }
+      
+      if (url.startsWith('/')) {
+        return url
+      }
     }
   }
 
@@ -356,12 +371,10 @@ function Admin() {
     setError('')
 
     try {
-      // Si falla una API, las demás siguen funcionando.
       const results = await Promise.allSettled([
         adminRequest('/products'),
         adminRequest('/users'),
         adminRequest('/stats'),
-        // ⚠️ AQUÍ SE USA LA NUEVA RUTA DE ORDERS.JS
         apiRequest('/api/orders/admin/all')
       ])
 
@@ -679,7 +692,6 @@ function Admin() {
     setNotice('')
 
     try {
-      // ⚠️ AQUÍ SE USA LA NUEVA RUTA DE ORDERS.JS
       const result = await apiRequest(
         `/api/orders/admin/${encodeURIComponent(orderId)}/status`,
         {
