@@ -1,29 +1,20 @@
-
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getProducts } from '../services/api'
-
-// Componentes existentes
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import CategoryCard from '../components/CategoryCard'
 import ProductCard from '../components/ProductCard'
 import Footer from '../components/Footer'
-
-// Sistema de promociones automáticas
 import SeasonalBanner from '../components/SeasonalBanner'
 import useSeasonalPromotion from '../Hooks/useSeasonalPromotion'
-
-// Estilos existentes
 import '../styles/home.css'
 import '../styles/products.css'
 
 function Home() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-
-  // Detectar automáticamente la temporada en Nicaragua
   const campaign = useSeasonalPromotion()
 
   useEffect(() => {

@@ -10,20 +10,12 @@ import { useCart } from '../context/CartContext'
 
 import '../styles/checkout.css'
 
-// ==========================================
-// CONFIGURACIÓN API
-// ==========================================
-
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
 )
   .trim()
   .replace(/\/+$/, '')
-
-// ==========================================
-// CONFIGURACIÓN DE PAGOS SIMULADOS
-// ==========================================
 
 const PAYMENT_METHODS = {
   card: 'tarjeta_simulada',
@@ -43,18 +35,11 @@ const DEMO_CARDS = {
 
 const SHIPPING_COST = 150
 
-// ==========================================
-// FORMATO DE MONEDA
-// ==========================================
 
 const money = (value) =>
   `C$ ${Number(value || 0).toLocaleString('es-NI', {
     maximumFractionDigits: 0
   })}`
-
-// ==========================================
-// USUARIO ALMACENADO
-// ==========================================
 
 function getStoredUser() {
   try {
@@ -65,10 +50,6 @@ function getStoredUser() {
   }
 }
 
-// ==========================================
-// OBTENER IMÁGENES DE PRODUCTOS
-// SIN DEPENDER DE productImages.js
-// ==========================================
 
 function getProductImages(product) {
   if (!product) return []
@@ -100,8 +81,6 @@ function getProductImages(product) {
 
     if (!trimmed) return
 
-    // Permitir imágenes almacenadas como
-    // JSON serializado o lista de imágenes.
     if (
       (trimmed.startsWith('[') &&
         trimmed.endsWith(']')) ||
@@ -112,7 +91,6 @@ function getProductImages(product) {
         addImage(JSON.parse(trimmed))
         return
       } catch {
-        // Continuar como texto normal.
       }
     }
 
@@ -145,9 +123,6 @@ function getProductImages(product) {
   return images
 }
 
-// ==========================================
-// IMAGEN DEL PRODUCTO
-// ==========================================
 
 function CheckoutProductImage({ product }) {
   const images = getProductImages(product)
@@ -175,9 +150,6 @@ function CheckoutProductImage({ product }) {
   )
 }
 
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
 
 function Checkout() {
   const navigate = useNavigate()
@@ -202,9 +174,6 @@ function Checkout() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
 
-  // ==========================================
-  // CALCULAR TOTALES
-  // ==========================================
 
   const subtotal = Number(cartTotal) || 0
 
@@ -223,9 +192,6 @@ function Checkout() {
     [cartItems]
   )
 
-  // ==========================================
-  // ACTUALIZAR FORMULARIO
-  // ==========================================
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -240,9 +206,6 @@ function Checkout() {
     }
   }
 
-  // ==========================================
-  // VALIDAR FORMULARIO
-  // ==========================================
 
   const validateForm = () => {
     if (cartItems.length === 0) {
@@ -285,10 +248,6 @@ function Checkout() {
     return ''
   }
 
-  // ==========================================
-  // CONFIRMAR PEDIDO
-  // ==========================================
-
   const handleConfirmOrder = async (event) => {
     event.preventDefault()
 
@@ -315,8 +274,6 @@ function Checkout() {
     setLoading(true)
 
     try {
-      // Los precios y el stock se validan
-      // nuevamente desde PostgreSQL.
 
       const items = cartItems.map((item) => ({
         product_id: Number(item.id),
@@ -336,8 +293,6 @@ function Checkout() {
         payment_test_code: 'APROBAR',
         items
       }
-
-      // No enviar datos bancarios reales.
 
       if (
         formData.paymentMethod ===
@@ -415,8 +370,6 @@ function Checkout() {
 
       setSuccess(confirmedOrder)
 
-      // Vaciar carrito únicamente después
-      // de recibir confirmación del backend.
 
       if (typeof clearCart === 'function') {
         clearCart()
@@ -439,9 +392,6 @@ function Checkout() {
     }
   }
 
-  // ==========================================
-  // PEDIDO REGISTRADO CORRECTAMENTE
-  // ==========================================
 
   if (success) {
     return (
@@ -541,9 +491,6 @@ function Checkout() {
     )
   }
 
-  // ==========================================
-  // FORMULARIO DE COMPRA
-  // ==========================================
 
   return (
     <>

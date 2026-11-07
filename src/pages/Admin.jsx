@@ -153,10 +153,6 @@ const getOrderStatus = (value) => {
   }
 }
 
-// ==========================================
-// VISOR PRIVADO DE EVIDENCIAS
-// ==========================================
-
 function ProofViewer({ orderId, onClose }) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(true)
@@ -289,10 +285,6 @@ function ProofViewer({ orderId, onClose }) {
   )
 }
 
-// ==========================================
-// PANEL ADMINISTRATIVO
-// ==========================================
-
 function Admin() {
   const navigate = useNavigate()
 
@@ -320,10 +312,6 @@ function Admin() {
 
   const isAdmin =
     String(storedUser?.role || '').toUpperCase() === 'ADMIN'
-
-  // ==========================================
-  // API
-  // ==========================================
 
   const apiRequest = useCallback(async (path, options = {}) => {
     const token = localStorage.getItem('token')
@@ -361,10 +349,6 @@ function Admin() {
       apiRequest(`/api/admin${endpoint}`, options),
     [apiRequest]
   )
-
-  // ==========================================
-  // CARGA INDEPENDIENTE DE DATOS
-  // ==========================================
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -441,10 +425,6 @@ function Admin() {
     }
   }, [isAdmin, loadData])
 
-  // ==========================================
-  // INFORMACIÓN CALCULADA
-  // ==========================================
-
   const recentProducts = useMemo(() => {
     return [...products]
       .filter((product) =>
@@ -510,10 +490,6 @@ function Admin() {
     return status === orderFilter
   })
 
-  // ==========================================
-  // NAVEGACIÓN
-  // ==========================================
-
   const changeSection = (section) => {
     setActiveSection(section)
     setSidebarOpen(false)
@@ -535,10 +511,6 @@ function Admin() {
 
     navigate('/login', { replace: true })
   }
-
-  // ==========================================
-  // GUARDAR PRODUCTOS
-  // ==========================================
 
   const handleSaveProduct = async (formData) => {
     if (saving) return
@@ -606,10 +578,6 @@ function Admin() {
     }
   }
 
-  // ==========================================
-  // GESTIÓN DE USUARIOS
-  // ==========================================
-
   const handleBlockUser = async (user) => {
     const blocked = !user.is_blocked
 
@@ -654,10 +622,6 @@ function Admin() {
       setError(err.message)
     }
   }
-
-  // ==========================================
-  // ACTUALIZAR ESTADO DEL PEDIDO
-  // ==========================================
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     if (updatingOrderId !== null) return
@@ -728,10 +692,6 @@ function Admin() {
     users: 'Gestión de usuarios',
     orders: 'Pedidos y entregas'
   }
-
-  // ==========================================
-  // CONTROL DE ACCESO
-  // ==========================================
 
   if (!isAdmin) {
     return (

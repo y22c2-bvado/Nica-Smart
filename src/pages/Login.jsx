@@ -1,13 +1,9 @@
-
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 
 import '../styles/login.css'
 
-// ==========================================
-// CONFIGURACIÓN DE API Y FACEBOOK
-// ==========================================
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -18,23 +14,15 @@ const FACEBOOK_APP_ID = (
   import.meta.env.VITE_FACEBOOK_APP_ID || ''
 ).trim()
 
-// ==========================================
-// COMPONENTE LOGIN
-// ==========================================
 
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-
-  // Redirigir al carrito si venía de una compra.
   const from =
     location.state?.from === '/cart'
       ? '/cart'
       : '/'
 
-  // ==========================================
-  // ESTADOS
-  // ==========================================
 
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -50,9 +38,6 @@ function Login() {
 
   const busy = loading || googleLoading || facebookLoading
 
-  // ==========================================
-  // INICIALIZAR SDK DE FACEBOOK
-  // ==========================================
 
   useEffect(() => {
     if (!FACEBOOK_APP_ID) return
@@ -99,9 +84,6 @@ function Login() {
     }
   }, [])
 
-  // ==========================================
-  // GUARDAR SESIÓN
-  // ==========================================
 
   const saveSession = (data, sessionRemembered = false) => {
     const token = data?.token || data?.access_token
@@ -156,9 +138,6 @@ function Login() {
     })
   }
 
-  // ==========================================
-  // VALIDACIÓN DEL FORMULARIO LOCAL
-  // ==========================================
 
   const validateIdentifier = (value) => {
     const cleanValue = value.trim()
@@ -204,9 +183,6 @@ function Login() {
     return null
   }
 
-  // ==========================================
-  // LOGIN TRADICIONAL
-  // ==========================================
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -274,9 +250,6 @@ function Login() {
     }
   }
 
-  // ==========================================
-  // GOOGLE LOGIN CON POPUP
-  // ==========================================
 
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
@@ -372,9 +345,6 @@ function Login() {
     googleLogin()
   }
 
-  // ==========================================
-  // FACEBOOK LOGIN CON POPUP
-  // ==========================================
 
   const handleFacebookLogin = () => {
     if (busy) return
@@ -403,8 +373,6 @@ function Login() {
 
     setFacebookLoading(true)
 
-    // FB.login debe ejecutarse directamente después del clic.
-    // Así el navegador permite abrir la ventana emergente.
     try {
       window.FB.login(
         async (facebookResponse) => {
@@ -420,7 +388,6 @@ function Login() {
           }
 
           try {
-            // Express debe verificar este token con Meta.
             const response = await fetch(
               `${API_URL}/api/auth/facebook`,
               {
@@ -475,17 +442,10 @@ function Login() {
     }
   }
 
-  // ==========================================
-  // RECUPERACIÓN DE CONTRASEÑA
-  // ==========================================
-
   const handleForgotPassword = () => {
     navigate('/forgot-password')
   }
 
-  // ==========================================
-  // INTERFAZ
-  // ==========================================
 
   return (
     <main className="login-page">

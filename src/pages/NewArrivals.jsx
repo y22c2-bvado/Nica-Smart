@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useMemo,
@@ -17,11 +16,11 @@ import { getProducts } from '../services/api'
 
 import './NewArrivals.css'
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
-
 const TIMEZONE = 'America/Managua'
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/+$/, '')
 
 const money = (value) =>
   new Intl.NumberFormat('es-NI', {
@@ -29,10 +28,6 @@ const money = (value) =>
     currency: 'NIO',
     maximumFractionDigits: 0
   }).format(Number(value) || 0)
-
-// ==========================================
-// FUNCIONES AUXILIARES
-// ==========================================
 
 function normalizeText(value) {
   return String(value ?? '')
@@ -79,10 +74,6 @@ function formatDate(product) {
   }).format(new Date(time))
 }
 
-// ==========================================
-// IDENTIFICAR PRODUCTOS NUEVOS
-// ==========================================
-
 function isNewProduct(product) {
   const value = product?.is_new
 
@@ -93,10 +84,6 @@ function isNewProduct(product) {
     value === '1'
   )
 }
-
-// ==========================================
-// DESCUENTOS
-// ==========================================
 
 function getDiscount(product) {
   const price = Number(product.price)
@@ -124,13 +111,6 @@ function getDiscount(product) {
   }
 }
 
-// ==========================================
-// IMÁGENES DEL PRODUCTO
-// ==========================================
-
-// Función local para evitar conflictos
-// de importación entre Windows y Docker.
-
 function getProductImages(product) {
   if (!product) return []
 
@@ -157,7 +137,7 @@ function getProductImages(product) {
 
     if (typeof value !== 'string') return
 
-    const candidate = value.trim()
+    let candidate = value.trim()
 
     if (
       candidate.startsWith('[') ||
@@ -179,12 +159,21 @@ function getProductImages(product) {
       return
     }
 
-    if (
-      /^(https?:\/\/|\/|data:image\/)/i.test(candidate) &&
-      !seen.has(candidate)
-    ) {
-      seen.add(candidate)
-      images.push(candidate)
+    // AQUÍ CONSTRUIMOS LA URL COMPLETA DEL BACKEND
+    let finalUrl = candidate
+
+    if (!candidate.startsWith('http') && !candidate.startsWith('data:')) {
+      if (candidate.includes('uploads/')) {
+        const filename = candidate.split('uploads/')[1]
+        finalUrl = `${API_URL}/uploads/${filename}`
+      } else if (!candidate.includes('/')) {
+        finalUrl = `${API_URL}/uploads/${candidate}`
+      }
+    }
+
+    if (!seen.has(finalUrl)) {
+      seen.add(finalUrl)
+      images.push(finalUrl)
     }
   }
 
@@ -194,10 +183,6 @@ function getProductImages(product) {
 
   return images
 }
-
-// ==========================================
-// IMAGEN CON ALTERNATIVAS
-// ==========================================
 
 function ProductImage({ product }) {
   const images = getProductImages(product)
@@ -237,9 +222,6 @@ function ProductImage({ product }) {
   )
 }
 
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
 
 export default function NewArrivals() {
   const [products, setProducts] = useState([])
@@ -252,10 +234,6 @@ export default function NewArrivals() {
 
   const requestId = useRef(0)
   const mounted = useRef(false)
-
-  // ========================================
-  // CARGAR PRODUCTOS DESDE POSTGRESQL
-  // ========================================
 
   const loadProducts = useCallback(async () => {
     const currentRequest = ++requestId.current
@@ -322,10 +300,6 @@ export default function NewArrivals() {
     }
   }, [])
 
-  // ========================================
-  // CARGAR AL ABRIR LA PÁGINA
-  // ========================================
-
   useEffect(() => {
     mounted.current = true
 
@@ -336,10 +310,6 @@ export default function NewArrivals() {
       requestId.current += 1
     }
   }, [loadProducts])
-
-  // ========================================
-  // ACTUALIZACIÓN AUTOMÁTICA
-  // ========================================
 
   useEffect(() => {
     const refresh = () => {
@@ -360,10 +330,6 @@ export default function NewArrivals() {
     }
   }, [loadProducts])
 
-  // ========================================
-  // PRODUCTOS MARCADOS COMO NUEVOS
-  // ========================================
-
   const recentProducts = useMemo(() => {
     return products.filter((product) => {
       const price = Number(product.price)
@@ -377,10 +343,6 @@ export default function NewArrivals() {
     })
   }, [products])
 
-  // ========================================
-  // CATEGORÍAS DINÁMICAS
-  // ========================================
-
   const categories = useMemo(() => {
     return [
       ...new Set(
@@ -388,10 +350,6 @@ export default function NewArrivals() {
       )
     ].sort((a, b) => a.localeCompare(b, 'es'))
   }, [recentProducts])
-
-  // ========================================
-  // BUSCADOR, FILTROS Y ORDENAMIENTO
-  // ========================================
 
   const visibleProducts = useMemo(() => {
     const term = normalizeText(search)
@@ -445,10 +403,6 @@ export default function NewArrivals() {
         )
       })
   }, [recentProducts, category, order, search])
-
-  // ========================================
-  // INTERFAZ
-  // ========================================
 
   return (
     <>

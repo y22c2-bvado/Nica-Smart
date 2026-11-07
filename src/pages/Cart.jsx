@@ -3,14 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
 import { useCart } from '../context/CartContext'
-
 import '../styles/cart.css'
 
-// ==========================================
-// CONFIGURACIÓN PARA LAS IMÁGENES
-// ==========================================
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
@@ -19,24 +14,19 @@ const API_URL = String(
 const getImageUrl = (path) => {
   if (!path) return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
   
-  // 1. Si ya es una URL completa o un base64
   if (path.startsWith('http') || path.startsWith('data:')) return path
   
-  // 2. Si la ruta ya incluye 'uploads/' (con o sin barra al inicio)
   if (path.includes('uploads/')) {
     const filename = path.split('uploads/')[1]
     return `${API_URL}/uploads/${filename}`
   }
   
-  // 3. Si es solo el nombre del archivo suelto (ej: "179375...jpg")
   if (!path.includes('/')) {
     return `${API_URL}/uploads/${path}`
   }
   
-  // 4. Si es una imagen estática del frontend (ej: "/Imagenes/logo.png")
   return path
 }
-// ==========================================
 
 function Cart() {
   const navigate = useNavigate()
@@ -50,10 +40,6 @@ function Cart() {
     cartSavings,
   } = useCart()
 
-  // ==========================================
-  // CALCULAR TOTAL
-  // ==========================================
-
   const shipping = cartItems.length > 0 ? 150 : 0
   const total = cartTotal + shipping
 
@@ -61,10 +47,6 @@ function Cart() {
     `C$ ${Number(value).toLocaleString('es-NI', {
       maximumFractionDigits: 0,
     })}`
-
-  // ==========================================
-  // VERIFICAR SESIÓN DEL CLIENTE
-  // ==========================================
 
   const hasActiveSession = () => {
     const token = localStorage.getItem('token')
@@ -111,10 +93,6 @@ function Cart() {
       return false
     }
   }
-
-  // ==========================================
-  // PROCEDER AL PAGO
-  // ==========================================
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
