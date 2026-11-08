@@ -1,6 +1,4 @@
-
 import './App.css'
-
 import {
   BrowserRouter,
   Routes,
@@ -9,9 +7,7 @@ import {
   useLocation
 } from 'react-router-dom'
 
-// ==========================================
-// PÁGINAS PRINCIPALES
-// ==========================================
+import ScrollToTop from './components/ScrollToTop'
 
 import Home from './pages/Home'
 import Products from './pages/Products'
@@ -20,48 +16,20 @@ import ProductDetail from './pages/ProductDetail'
 import NewArrivals from './pages/NewArrivals'
 import Brands from './pages/Brands'
 import Contact from './pages/Contact'
-
-// ==========================================
-// AYUDA Y SEGUIMIENTO
-// ==========================================
-
 import Help from './pages/Help'
 import Tracking from './pages/Tracking'
-
-// ==========================================
-// PROMOCIONES
-// ==========================================
-
 import Promotions from './pages/Promotions'
 import PromoCart from './pages/PromoCart'
-
-// ==========================================
-// AUTENTICACIÓN
-// ==========================================
-
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-
-// ==========================================
-// CARRITO Y PEDIDOS
-// ==========================================
-
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import MyOrders from './pages/MyOrders'
 import Profile from './pages/Profile'
-
-// ==========================================
-// ADMINISTRACIÓN
-// ==========================================
-
 import Admin from './pages/Admin'
 
-// ==========================================
-// RUTAS PROTEGIDAS
-// ==========================================
 
 function RequireAuth({ children }) {
   const location = useLocation()
@@ -85,12 +53,13 @@ function RequireAuth({ children }) {
   return children
 }
 
-// ==========================================
-// APLICACIÓN PRINCIPAL
-
 function App() {
   return (
     <BrowserRouter>
+      
+      {/* SUBIR AL INICIO EN CADA CAMBIO DE PÁGINA */}
+      <ScrollToTop /> 
+
       <Routes>
 
         {/* ==================================
