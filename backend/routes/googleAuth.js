@@ -7,22 +7,49 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 // ==========================================
-// CONFIGURACIÓN
+// NICA S-MART - GOOGLE AUTH
+// ==========================================
+
+// ==========================================
+// CONFIGURACIÓN DE ENTORNO
 // ==========================================
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL;
+
+const FRONTEND_URL = (
+  process.env.FRONTEND_URL ||
+  'https://nica-smart-6z1r.onrender.com'
+).replace(/\/+$/, '');
+
+// IMPORTANTE:
+// Esta URI corresponde al flujo popup de Google
+// con código de autorización.
+//
+// Si utilizás un flujo redirect, configurá aquí
+// la URL exacta del callback correspondiente.
+
 const GOOGLE_REDIRECT_URI =
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173';
+  process.env.GOOGLE_REDIRECT_URI ||
+  'postmessage';
+
+// ==========================================
+// CONEXIÓN A POSTGRESQL
+// ==========================================
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: process.env.DATABASE_URL?.includes('localhost')
+    ? false
+    : {
+        rejectUnauthorized: false
+      }
 });
+
+// ==========================================
+// CLIENTE DE GOOGLE OAUTH
+// ==========================================
 
 const googleClient = new OAuth2Client({
   clientId: GOOGLE_CLIENT_ID,
@@ -36,54 +63,63 @@ const googleClient = new OAuth2Client({
 
 router.post('/', async (req, res) => {
   try {
-    // Validar configuración
+
+    // ======================================
+    // VALIDAR VARIABLES
+    // ======================================
+
     if (
       !GOOGLE_CLIENT_ID ||
       !GOOGLE_CLIENT_SECRET ||
       !JWT_SECRET ||
-      !FRONTEND_URL
+      !process.env.DATABASE_URL
     ) {
-      console.error('Faltan variables de Google OAuth');
+      console.error(
+        'Faltan variables de Google OAuth'
+      );
 
       return res.status(503).json({
-        message: 'El servidor de Google no está configurado.'
+        message:
+          'El servicio de Google no está configurado.'
       });
     }
 
-    // ==========================================
-    // VALIDAR CÓDIGO DE GOOGLE
-    // ==========================================
+    // ======================================
+    // VALIDAR CÓDIGO DE AUTORIZACIÓN
+    // ======================================
 
     const { code } = req.body || {};
 
     if (
       typeof code !== 'string' ||
-      !code ||
+      !code.trim() ||
       code.length > 4096
     ) {
       return res.status(400).json({
-        message: 'Código de autorización de Google inválido.'
+        message:
+          'Código de autorización de Google inválido.'
       });
     }
 
-    // ==========================================
-    // INTERCAMBIAR EL CÓDIGO POR TOKENS
-    // ==========================================
+    // ======================================
+    // INTERCAMBIAR CÓDIGO POR TOKENS
+    // ======================================
 
-   const { tokens } = await googleClient.getToken({
-  code,
-  redirect_uri: GOOGLE_REDIRECT_URI
-});
+    const { tokens } = await googleClient.getToken({
+      code,
+      redirect_uri: GOOGLE_REDIRECT_URI
+    });
 
     if (!tokens.id_token) {
       return res.status(401).json({
-        message: 'Google no devolvió un token de identidad.'
+        message:
+          'Google no devolvió un token de identidad.'
       });
     }
 
-    // ==========================================
-    // VERIFICAR IDENTIDAD CON GOOGLE
-    // ==========================================
+    // ======================================
+    // VERIFICAR IDENTIDAD DEL USUARIO
+    // ======================================
 
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token,
@@ -99,18 +135,19 @@ router.post('/', async (req, res) => {
       profile.email_verified !== true
     ) {
       return res.status(401).json({
-        message: 'No fue posible verificar la cuenta de Google.'
+        message:
+          'No fue posible verificar la cuenta de Google.'
       });
     }
 
     const googleId = profile.sub;
-    const email = profile.email;
+    const email = profile.email.trim().toLowerCase();
     const name = profile.name || '';
     const picture = profile.picture || null;
 
-    // ==========================================
-    // GUARDAR O ACTUALIZAR USUARIO
-    // ==========================================
+    // ======================================
+    // GUARDAR O ACTUALIZAR USUARIO GOOGLE
+    // ======================================
 
     const result = await pool.query(
       `
@@ -129,16 +166,26 @@ router.post('/', async (req, res) => {
         picture = EXCLUDED.picture,
         updated_at = CURRENT_TIMESTAMP
 
-      RETURNING id, google_id, email, name, picture
+      RETURNING
+        id,
+        google_id,
+        email,
+        name,
+        picture
       `,
-      [googleId, email, name, picture]
+      [
+        googleId,
+        email,
+        name,
+        picture
+      ]
     );
 
     const user = result.rows[0];
 
-    // ==========================================
-    // GENERAR JWT DE NICA S-MART
-    // ==========================================
+    // ======================================
+    // GENERAR JWT
+    // ======================================
 
     const token = jwt.sign(
       {
@@ -154,13 +201,16 @@ router.post('/', async (req, res) => {
       }
     );
 
-    // ==========================================
-    // RESPONDER AL FRONTEND
-    // ==========================================
+    // ======================================
+    // RESPUESTA AL FRONTEND
+    // ======================================
 
     return res.status(200).json({
-      message: 'Inicio de sesión con Google exitoso.',
+      message:
+        'Inicio de sesión con Google exitoso.',
+
       token,
+
       user: {
         id: user.id,
         name: user.name,
@@ -171,14 +221,15 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
+
     console.error(
       'Error de autenticación con Google:',
       error.message
     );
 
-    // Evitar enviar detalles internos al navegador
     return res.status(500).json({
-      message: 'No se pudo completar la autenticación con Google.'
+      message:
+        'No se pudo completar la autenticación con Google.'
     });
   }
 });

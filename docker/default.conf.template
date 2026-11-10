@@ -1,6 +1,7 @@
+
 # ==========================================
 # NICA S-MART | NGINX
-# Frontend React + Backend Express
+# Frontend React + Backend Express Render
 # ==========================================
 
 server {
@@ -10,54 +11,115 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    charset utf-8;
+
     # ======================================
-    # FORZAR TIPOS MIME (Soluciona binary/octet-stream)
+    # TIPOS MIME
     # ======================================
-    types {
-        application/javascript js mjs jsx;
-        text/css css;
-        image/png png;
-        image/jpeg jpg jpeg;
-        image/svg+xml svg;
-        image/x-icon ico;
-    }
+
+    include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
     # ======================================
-    # API DEL BACKEND
+    # SEGURIDAD BÁSICA
     # ======================================
-    # REEMPLAZA ESTA URL POR LA DE TU BACKEND EN RENDER
-    # (Ejemplo: https://nica-smart-backend.onrender.com)
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ======================================
+    # API BACKEND - RENDER
+    # ======================================
+
     location /api/ {
-        proxy_pass https://nica-smart-backend.onrender.com/api/; 
+
+        proxy_pass https://nica-smart-backend.onrender.com;
+
+        proxy_ssl_server_name on;
+
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+
+        proxy_set_header Host nica-smart-backend.onrender.com;
+
         proxy_set_header X-Real-IP $remote_addr;
+
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 30s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
     }
 
     # ======================================
     # IMÁGENES SUBIDAS AL BACKEND
     # ======================================
+
     location /uploads/ {
-        proxy_pass https://nica-smart-backend.onrender.com/uploads/;
+
+        proxy_pass https://nica-smart-backend.onrender.com;
+
+        proxy_ssl_server_name on;
+
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+
+        proxy_set_header Host nica-smart-backend.onrender.com;
+
         proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # ======================================
-    # ARCHIVOS COMPILADOS DE VITE
+    # ARCHIVOS ESTÁTICOS DE VITE
     # ======================================
+
     location /assets/ {
+
+        try_files $uri =404;
+
+        expires 1y;
+
+        add_header Cache-Control "public, immutable";
+
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    # ======================================
+    # ARCHIVOS PÚBLICOS
+    # ======================================
+
+    location = /favicon.ico {
+        try_files $uri =404;
+    }
+
+    location = /robots.txt {
         try_files $uri =404;
     }
 
     # ======================================
-    # RUTAS DE REACT ROUTER
+    # REACT ROUTER
     # ======================================
+    # Permite recargar páginas directamente:
+    #
+    # /login
+    # /register
+    # /products
+    # /categories
+    # /orders
+    # /privacy
+    # /terms
+    # /data-deletion
+    #
+    # Y cualquier otra ruta definida en App.jsx
+
     location / {
+
         try_files $uri $uri/ /index.html;
+
     }
 }

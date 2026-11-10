@@ -13,7 +13,9 @@ import {
   FiUser,
   FiFileText,
   FiShoppingCart,
-  FiMapPin
+  FiMapPin,
+  FiShield,
+  FiTrash2
 } from 'react-icons/fi'
 
 import {
@@ -107,7 +109,7 @@ function Footer() {
           </p>
 
           {/* =====================================
-              FACEBOOK, INSTAGRAM Y WHATSAPP
+              REDES SOCIALES
           ===================================== */}
 
           <div className="footer-social">
@@ -229,6 +231,7 @@ function Footer() {
 
       {/* =====================================
           PARTE INFERIOR
+          INFORMACIÓN LEGAL
       ===================================== */}
 
       <div className="footer-bottom">
@@ -243,13 +246,22 @@ function Footer() {
           <div className="footer-legal">
 
             <Link to="/terms">
+              <FiFileText />
               Términos y condiciones
             </Link>
 
             <span />
 
             <Link to="/privacy">
+              <FiShield />
               Política de privacidad
+            </Link>
+
+            <span />
+
+            <Link to="/data-deletion">
+              <FiTrash2 />
+              Eliminación de datos
             </Link>
 
             <span />
