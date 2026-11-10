@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = 'https://nica-smart-backend.onrender.com';
 
 export async function getProducts() {
   const response = await fetch(`${API_URL}/api/products`);

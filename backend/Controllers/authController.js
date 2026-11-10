@@ -90,7 +90,7 @@ const authController = {
         }
       });
 
-      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+      const resetLink = `https://nica-smart-6z1r.onrender.com/reset-password?token=${resetToken}`;
 
       await transporter.sendMail({
         from: `"Nica-Smart" <${process.env.EMAIL_USER}>`,

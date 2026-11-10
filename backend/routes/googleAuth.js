@@ -1,21 +1,14 @@
-
 const express = require('express');
 const { Pool } = require('pg');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-
 const router = express.Router();
-
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
-
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL;
-const GOOGLE_REDIRECT_URI =
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173';
+
+const FRONTEND_URL = 'https://nica-smart-6z1r.onrender.com';
+const GOOGLE_REDIRECT_URI = 'https://nica-smart-6z1r.onrender.com';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -30,13 +23,8 @@ const googleClient = new OAuth2Client({
   redirectUri: GOOGLE_REDIRECT_URI
 });
 
-// ==========================================
-// POST /api/auth/google
-// ==========================================
-
 router.post('/', async (req, res) => {
   try {
-    // Validar configuración
     if (
       !GOOGLE_CLIENT_ID ||
       !GOOGLE_CLIENT_SECRET ||
@@ -50,10 +38,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // VALIDAR CÓDIGO DE GOOGLE
-    // ==========================================
-
     const { code } = req.body || {};
 
     if (
@@ -66,24 +50,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // INTERCAMBIAR EL CÓDIGO POR TOKENS
-    // ==========================================
-
-   const { tokens } = await googleClient.getToken({
-  code,
-  redirect_uri: GOOGLE_REDIRECT_URI
-});
+    const { tokens } = await googleClient.getToken({
+      code,
+      redirect_uri: GOOGLE_REDIRECT_URI
+    });
 
     if (!tokens.id_token) {
       return res.status(401).json({
         message: 'Google no devolvió un token de identidad.'
       });
     }
-
-    // ==========================================
-    // VERIFICAR IDENTIDAD CON GOOGLE
-    // ==========================================
 
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token,
@@ -107,10 +83,6 @@ router.post('/', async (req, res) => {
     const email = profile.email;
     const name = profile.name || '';
     const picture = profile.picture || null;
-
-    // ==========================================
-    // GUARDAR O ACTUALIZAR USUARIO
-    // ==========================================
 
     const result = await pool.query(
       `
@@ -136,10 +108,6 @@ router.post('/', async (req, res) => {
 
     const user = result.rows[0];
 
-    // ==========================================
-    // GENERAR JWT DE NICA S-MART
-    // ==========================================
-
     const token = jwt.sign(
       {
         sub: String(user.id),
@@ -154,9 +122,6 @@ router.post('/', async (req, res) => {
       }
     );
 
-    // ==========================================
-    // RESPONDER AL FRONTEND
-    // ==========================================
 
     return res.status(200).json({
       message: 'Inicio de sesión con Google exitoso.',
