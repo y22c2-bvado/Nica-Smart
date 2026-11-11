@@ -5,9 +5,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# ==========================================
-# VARIABLES DE ENTORNO DE VITE
-# ==========================================
 
 ARG VITE_API_URL
 ARG VITE_GOOGLE_CLIENT_ID
@@ -24,4 +21,21 @@ ENV VITE_FACEBOOK_APP_ID=${VITE_FACEBOOK_APP_ID}
 COPY . .
 RUN npm run build
 
-# ... (el resto de tu Dockerfile con Nginx se mantiene igual)
+# ==========================================
+# ETAPA 2: SERVIDOR NGINX
+# ==========================================
+FROM nginx:1.27-alpine
+
+# ⚠️ IMPORTANTE: La variable PORT debe declararse ANTES de copiar el template.
+# Si no, envsubst borra el ${PORT} y Nginx falla con "listen ;"
+ENV PORT=80
+
+# Copiar el template
+COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
+
+# Copiar archivos compilados de Vite
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

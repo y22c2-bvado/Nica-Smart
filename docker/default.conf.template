@@ -1,6 +1,5 @@
 # ==========================================
 # NICA S-MART | NGINX
-# Frontend React + Backend Express Render
 # ==========================================
 
 server {
@@ -12,34 +11,26 @@ server {
 
     charset utf-8;
 
-    # ======================================
-    # TIPOS MIME
-    # ======================================
-
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
-
-    # ======================================
-    # SEGURIDAD BÁSICA
-    # ======================================
 
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     # ======================================
-    # RESOLVER DNS (Evita que Nginx se caiga en GitHub Actions)
+    # RESOLVER DNS
     # ======================================
-    resolver 8.8.8.8 1.1.1.1 valid=300s;
+    resolver 8.8.8.8 1.1.1.1 valid=30s;
     resolver_timeout 10s;
 
     # ======================================
     # API BACKEND - RENDER
     # ======================================
-
     location /api/ {
-        set $backend "https://nica-smart-backend.onrender.com";
-        proxy_pass $backend;
+        # Usamos una variable SIN el signo $ para que envsubst no la borre
+        set backend_url "https://nica-smart-backend.onrender.com";
+        proxy_pass $backend_url;
 
         proxy_ssl_server_name on;
         proxy_http_version 1.1;
@@ -57,10 +48,9 @@ server {
     # ======================================
     # IMÁGENES SUBIDAS AL BACKEND
     # ======================================
-
     location /uploads/ {
-        set $backend "https://nica-smart-backend.onrender.com";
-        proxy_pass $backend;
+        set backend_url "https://nica-smart-backend.onrender.com";
+        proxy_pass $backend_url;
 
         proxy_ssl_server_name on;
         proxy_http_version 1.1;
@@ -72,9 +62,8 @@ server {
     }
 
     # ======================================
-    # ARCHIVOS ESTÁTICOS DE VITE
+    # ARCHIVOS ESTÁTICOS
     # ======================================
-
     location /assets/ {
         try_files $uri =404;
         expires 1y;
@@ -82,21 +71,8 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
     }
 
-    # ======================================
-    # ARCHIVOS PÚBLICOS
-    # ======================================
-
-    location = /favicon.ico {
-        try_files $uri =404;
-    }
-
-    location = /robots.txt {
-        try_files $uri =404;
-    }
-
-    # ======================================
-    # REACT ROUTER
-    # ======================================
+    location = /favicon.ico { try_files $uri =404; }
+    location = /robots.txt  { try_files $uri =404; }
 
     location / {
         try_files $uri $uri/ /index.html;
