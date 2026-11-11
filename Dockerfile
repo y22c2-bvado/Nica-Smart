@@ -3,6 +3,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
+
 RUN npm ci
 
 
@@ -19,6 +20,7 @@ ENV VITE_FACEBOOK_APP_ID=${VITE_FACEBOOK_APP_ID}
 # ==========================================
 
 COPY . .
+
 RUN npm run build
 
 # ==========================================
@@ -26,11 +28,14 @@ RUN npm run build
 # ==========================================
 FROM nginx:1.27-alpine
 
-# ⚠️ IMPORTANTE: La variable PORT debe declararse ANTES de copiar el template.
-# Si no, envsubst borra el ${PORT} y Nginx falla con "listen ;"
+# Puerto que usará Nginx
 ENV PORT=80
 
-# Copiar el template
+# ⚠️ IMPORTANTE: Esta línea evita que envsubst borre 
+# las variables de Nginx (como $backend_url, $uri, etc.)
+ENV NGINX_ENVSUBST_FILTER=PORT
+
+# Configuración de Nginx
 COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
 
 # Copiar archivos compilados de Vite

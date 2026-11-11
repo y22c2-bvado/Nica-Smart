@@ -27,9 +27,10 @@ server {
     # ======================================
     # API BACKEND - RENDER
     # ======================================
+
     location /api/ {
-        # Usamos una variable SIN el signo $ para que envsubst no la borre
-        set backend_url "https://nica-smart-backend.onrender.com";
+        # Usamos un solo $ (ahora es seguro gracias al filtro del Dockerfile)
+        set $backend_url "https://nica-smart-backend.onrender.com";
         proxy_pass $backend_url;
 
         proxy_ssl_server_name on;
@@ -48,8 +49,9 @@ server {
     # ======================================
     # IMÁGENES SUBIDAS AL BACKEND
     # ======================================
+
     location /uploads/ {
-        set backend_url "https://nica-smart-backend.onrender.com";
+        set $backend_url "https://nica-smart-backend.onrender.com";
         proxy_pass $backend_url;
 
         proxy_ssl_server_name on;
@@ -64,6 +66,7 @@ server {
     # ======================================
     # ARCHIVOS ESTÁTICOS
     # ======================================
+
     location /assets/ {
         try_files $uri =404;
         expires 1y;
