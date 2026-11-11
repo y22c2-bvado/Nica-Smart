@@ -1,4 +1,3 @@
-
 # ==========================================
 # NICA S-MART | NGINX
 # Frontend React + Backend Express Render
@@ -15,37 +14,41 @@ server {
 
     # ======================================
     # TIPOS MIME
-    # ======================================
+    # ==========================================
 
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
     # ======================================
     # SEGURIDAD BÁSICA
-    # ======================================
+    # ==========================================
 
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     # ======================================
+    # RESOLVER DNS (Evita que Nginx se caiga)
+    # ======================================
+    resolver 8.8.8.8 1.1.1.1 valid=300s;
+    resolver_timeout 10s;
+
+    # ======================================
     # API BACKEND - RENDER
     # ======================================
 
     location /api/ {
-
-        proxy_pass https://nica-smart-backend.onrender.com;
+        # Guardamos la URL en una variable para que Nginx no la resuelva al arrancar
+        set $backend "https://nica-smart-backend.onrender.com";
+        
+        proxy_pass $backend;
 
         proxy_ssl_server_name on;
-
         proxy_http_version 1.1;
 
         proxy_set_header Host nica-smart-backend.onrender.com;
-
         proxy_set_header X-Real-IP $remote_addr;
-
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
         proxy_set_header X-Forwarded-Proto $scheme;
 
         proxy_connect_timeout 30s;
@@ -58,19 +61,16 @@ server {
     # ======================================
 
     location /uploads/ {
-
-        proxy_pass https://nica-smart-backend.onrender.com;
+        set $backend "https://nica-smart-backend.onrender.com";
+        
+        proxy_pass $backend;
 
         proxy_ssl_server_name on;
-
         proxy_http_version 1.1;
 
         proxy_set_header Host nica-smart-backend.onrender.com;
-
         proxy_set_header X-Real-IP $remote_addr;
-
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
@@ -79,13 +79,9 @@ server {
     # ======================================
 
     location /assets/ {
-
         try_files $uri =404;
-
         expires 1y;
-
         add_header Cache-Control "public, immutable";
-
         add_header X-Content-Type-Options "nosniff" always;
     }
 
@@ -104,22 +100,8 @@ server {
     # ======================================
     # REACT ROUTER
     # ======================================
-    # Permite recargar páginas directamente:
-    #
-    # /login
-    # /register
-    # /products
-    # /categories
-    # /orders
-    # /privacy
-    # /terms
-    # /data-deletion
-    #
-    # Y cualquier otra ruta definida en App.jsx
 
     location / {
-
         try_files $uri $uri/ /index.html;
-
     }
 }
