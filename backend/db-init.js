@@ -36,6 +36,17 @@ const createGoogleUsersTable = `
   );
 `;
 
+const createSocialAccountsTable = `
+  CREATE TABLE IF NOT EXISTS social_accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,
+    provider_user_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(provider, provider_user_id)
+  );
+`;
+
 const createUsersTable = `
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -43,6 +54,7 @@ const createUsersTable = `
     email VARCHAR(150) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) DEFAULT 'user',
+    is_blocked BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `;
@@ -93,9 +105,6 @@ const createOrderItemsTable = `
   );
 `;
 
-// ==========================================
-// MIGRACIONES PARA SEGUIMIENTO DE PEDIDOS Y PAGOS
-// ==========================================
 
 const migrateAddOrderTrackingFields = `
   ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMPTZ;
@@ -120,7 +129,6 @@ const createDeliveryConfirmationsTable = `
     photo_size INTEGER NOT NULL,
     confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
-    -- Restricciones de seguridad añadidas desde la guía
     CONSTRAINT chk_delivery_photo_mime CHECK (photo_mime IN ('image/jpeg', 'image/png', 'image/webp')),
     CONSTRAINT chk_delivery_photo_size CHECK (photo_size > 0 AND photo_size <= 5242880)
   );
@@ -132,7 +140,6 @@ const createOrderTrackingIndexes = `
   CREATE INDEX IF NOT EXISTS idx_delivery_confirmations_date ON delivery_confirmations(confirmed_at);
 `;
 
-// ⚠️ NUEVO: Restricción para que los estados solo sean los válidos
 const migrateOrdersStatusConstraint = `
   ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
   ALTER TABLE orders ADD CONSTRAINT orders_status_check 
@@ -141,7 +148,6 @@ const migrateOrdersStatusConstraint = `
   );
 `;
 
-// ⚠️ NUEVO: Vista para consultas administrativas rápidas
 const createAdminTrackingView = `
   CREATE OR REPLACE VIEW v_admin_delivery_tracking AS
   SELECT
@@ -170,9 +176,6 @@ const createAdminTrackingView = `
   LEFT JOIN delivery_confirmations dc ON dc.order_id = o.id;
 `;
 
-// ==========================================
-// MIGRACIONES DE PRODUCTOS EXISTENTES
-// ==========================================
 
 const insertSeedData = `
   INSERT INTO products (name, category, price, original_price, stock, image, description) VALUES
@@ -294,7 +297,6 @@ const assignBrandsToSeedData = [
   `UPDATE products SET brand = 'JBL', brand_url = 'https://www.jbl.com' WHERE name ILIKE '%Bocina%' AND brand IS NULL;`,
   `UPDATE products SET brand = 'MSI', brand_url = 'https://www.msi.com' WHERE name ILIKE '%MSI%' AND brand IS NULL;`
 ];
-// -----------------------------------------------------------------------
 
 async function init() {
   try {
@@ -310,6 +312,11 @@ async function init() {
     console.log('🔧 Creando tabla google_users...');
     await pool.query(createGoogleUsersTable);
     console.log('✅ Tabla google_users creada (o ya existía)');
+
+    // ⚠️ NUEVO: Creación de la tabla para Facebook
+    console.log('🔧 Creando tabla social_accounts (Facebook)...');
+    await pool.query(createSocialAccountsTable);
+    console.log('✅ Tabla social_accounts creada (o ya existía)');
 
     console.log('🔧 Creando tabla password_reset_tokens...');
     await pool.query(createPasswordResetTokensTable);

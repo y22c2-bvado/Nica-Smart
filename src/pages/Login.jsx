@@ -1,28 +1,49 @@
+
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 
 import '../styles/login.css'
 
+// ==========================================
+// NICA S-MART - CONFIGURACIÓN
+// ==========================================
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:3000' : '')
-).trim().replace(/\/$/, '')
+  (import.meta.env.DEV
+    ? 'http://localhost:3000'
+    : 'https://nica-smart-backend.onrender.com')
+).trim().replace(/\/+$/, '')
 
 const FACEBOOK_APP_ID = (
   import.meta.env.VITE_FACEBOOK_APP_ID || ''
 ).trim()
 
+const FACEBOOK_VERSION = 'v24.0'
+
+// ==========================================
+// COMPONENTE LOGIN
+// ==========================================
 
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+
+  const requestedFrom = location.state?.from
+
   const from =
-    location.state?.from === '/cart'
-      ? '/cart'
+    typeof requestedFrom === 'string' &&
+    requestedFrom.startsWith('/') &&
+    !requestedFrom.startsWith('//') &&
+    !requestedFrom.startsWith('/\\') &&
+    !requestedFrom.startsWith('/login')
+      ? requestedFrom
       : '/'
 
+  // ========================================
+  // ESTADOS
+  // ========================================
 
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -38,55 +59,82 @@ function Login() {
 
   const busy = loading || googleLoading || facebookLoading
 
+  // ========================================
+  // INICIALIZAR FACEBOOK SDK
+  // ========================================
 
   useEffect(() => {
     if (!FACEBOOK_APP_ID) return
 
     let active = true
+    let sdkScript = document.getElementById('facebook-jssdk')
 
     const initializeFacebook = () => {
       if (!active || !window.FB) return
 
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: false,
-        xfbml: false,
-        version: 'v24.0'
-      })
+      try {
+        window.FB.init({
+          appId: FACEBOOK_APP_ID,
+          cookie: false,
+          xfbml: false,
+          version: FACEBOOK_VERSION
+        })
 
-      setFacebookReady(true)
+        setFacebookReady(true)
+      } catch (err) {
+        console.error('Error inicializando Facebook:', err)
+        setFacebookReady(false)
+      }
     }
 
     window.fbAsyncInit = initializeFacebook
 
     if (window.FB) {
       initializeFacebook()
-    } else if (!document.getElementById('facebook-jssdk')) {
-      const script = document.createElement('script')
-
-      script.id = 'facebook-jssdk'
-      script.src =
+    } else if (!sdkScript) {
+      sdkScript = document.createElement('script')
+      sdkScript.id = 'facebook-jssdk'
+      sdkScript.src =
         'https://connect.facebook.net/es_LA/sdk.js'
-      script.async = true
-      script.defer = true
+      sdkScript.async = true
+      sdkScript.defer = true
 
-      script.onerror = () => {
+      sdkScript.onerror = () => {
         if (active) {
           setFacebookReady(false)
+          setError(
+            'No se pudo cargar Facebook. ' +
+            'Revisá tu conexión o los bloqueadores del navegador.'
+          )
         }
       }
 
-      document.body.appendChild(script)
+      document.body.appendChild(sdkScript)
+    } else {
+      sdkScript.addEventListener(
+        'load',
+        initializeFacebook
+      )
     }
 
     return () => {
       active = false
+
+      if (sdkScript) {
+        sdkScript.removeEventListener(
+          'load',
+          initializeFacebook
+        )
+      }
     }
   }, [])
 
+  // ========================================
+  // GUARDAR SESIÓN
+  // ========================================
 
   const saveSession = (data, sessionRemembered = false) => {
-    const token = data?.token || data?.access_token
+    const token = data?.token
     const user = data?.user
 
     if (!token || typeof token !== 'string') {
@@ -126,7 +174,6 @@ function Login() {
       String(sessionRemembered)
     )
 
-    // Actualizar componentes que dependen de la sesión.
     window.dispatchEvent(new Event('auth-change'))
 
     const isAdmin =
@@ -138,33 +185,69 @@ function Login() {
     })
   }
 
+  // ========================================
+  // PETICIÓN AL BACKEND
+  // ========================================
+
+  const authRequest = async (endpoint, body) => {
+    if (!API_URL) {
+      throw new Error('El servidor no está configurado.')
+    }
+
+    const response = await fetch(
+      `${API_URL}/api/auth/${endpoint}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(body)
+      }
+    )
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        data.error ||
+        'No se pudo completar la autenticación.'
+      )
+    }
+
+    return data
+  }
+
+  // ========================================
+  // VALIDACIONES
+  // ========================================
 
   const validateIdentifier = (value) => {
     const cleanValue = value.trim()
 
     if (!cleanValue) {
-      return 'Ingresa tu correo electrónico o usuario.'
+      return 'Ingresá tu correo electrónico o usuario.'
     }
 
-    if (cleanValue.length > 254) {
-      return 'El correo o usuario es demasiado largo.'
-    }
-
-    if (/[\x00-\x1F\x7F]/.test(cleanValue)) {
-      return 'El correo o usuario contiene caracteres no permitidos.'
+    if (
+      cleanValue.length > 254 ||
+      /[\x00-\x1F\x7F]/.test(cleanValue)
+    ) {
+      return 'El correo o usuario no es válido.'
     }
 
     if (cleanValue.includes('@')) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
       if (!emailRegex.test(cleanValue)) {
-        return 'Ingresa un correo electrónico válido.'
+        return 'Ingresá un correo electrónico válido.'
       }
     } else {
       const usernameRegex = /^[a-zA-Z0-9_.-]{3,60}$/
 
       if (!usernameRegex.test(cleanValue)) {
-        return 'Ingresa un nombre de usuario válido.'
+        return 'Ingresá un nombre de usuario válido.'
       }
     }
 
@@ -177,12 +260,15 @@ function Login() {
     }
 
     if (value.length > 128) {
-      return 'La contraseña no puede superar los 128 caracteres.'
+      return 'La contraseña no puede superar 128 caracteres.'
     }
 
     return null
   }
 
+  // ========================================
+  // LOGIN TRADICIONAL
+  // ========================================
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -199,45 +285,19 @@ function Login() {
       return
     }
 
-    if (!API_URL) {
-      setError('El servidor no está configurado.')
-      return
-    }
-
     setLoading(true)
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/auth/login`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            identifier: identifier.trim(),
-            password,
-            rememberMe
-          })
-        }
-      )
-
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(
-          response.status === 401
-            ? 'Usuario, correo o contraseña incorrectos.'
-            : data.message ||
-              data.error ||
-              'No se pudo iniciar sesión.'
-        )
-      }
+      const data = await authRequest('login', {
+        identifier: identifier.trim(),
+        password,
+        rememberMe
+      })
 
       saveSession(data, rememberMe)
 
     } catch (err) {
-      console.error('Error de autenticación:', err)
+      console.error('Error login:', err)
 
       setError(
         err instanceof TypeError
@@ -250,6 +310,9 @@ function Login() {
     }
   }
 
+  // ========================================
+  // GOOGLE LOGIN
+  // ========================================
 
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
@@ -260,39 +323,15 @@ function Login() {
       setGoogleLoading(true)
 
       try {
-        if (!API_URL) {
-          throw new Error('El servidor no está configurado.')
-        }
-
         if (!response.code) {
           throw new Error(
             'Google no devolvió un código de autorización.'
           )
         }
 
-        const result = await fetch(
-          `${API_URL}/api/auth/google`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XmlHttpRequest'
-            },
-            body: JSON.stringify({
-              code: response.code
-            })
-          }
-        )
-
-        const data = await result.json().catch(() => ({}))
-
-        if (!result.ok) {
-          throw new Error(
-            data.message ||
-            data.error ||
-            'No se pudo autenticar con Google.'
-          )
-        }
+        const data = await authRequest('google', {
+          code: response.code
+        })
 
         saveSession(data, false)
 
@@ -345,6 +384,9 @@ function Login() {
     googleLogin()
   }
 
+  // ========================================
+  // FACEBOOK LOGIN
+  // ========================================
 
   const handleFacebookLogin = () => {
     if (busy) return
@@ -353,20 +395,15 @@ function Login() {
 
     if (!FACEBOOK_APP_ID) {
       setError(
-        'Falta VITE_FACEBOOK_APP_ID en el archivo .env.'
+        'Falta configurar VITE_FACEBOOK_APP_ID.'
       )
-      return
-    }
-
-    if (!API_URL) {
-      setError('El servidor no está configurado.')
       return
     }
 
     if (!facebookReady || !window.FB) {
       setError(
         'Facebook todavía no está disponible. ' +
-        'Verifica el SDK y la configuración de Meta.'
+        'Verificá la configuración de Meta Developers.'
       )
       return
     }
@@ -388,29 +425,9 @@ function Login() {
           }
 
           try {
-            const response = await fetch(
-              `${API_URL}/api/auth/facebook`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Requested-With': 'XmlHttpRequest'
-                },
-                body: JSON.stringify({
-                  accessToken
-                })
-              }
-            )
-
-            const data = await response.json().catch(() => ({}))
-
-            if (!response.ok) {
-              throw new Error(
-                data.message ||
-                data.error ||
-                'No se pudo autenticar con Facebook.'
-              )
-            }
+            const data = await authRequest('facebook', {
+              accessToken
+            })
 
             saveSession(data, false)
 
@@ -433,8 +450,10 @@ function Login() {
           return_scopes: true
         }
       )
+
     } catch (err) {
       console.error('Error abriendo Facebook:', err)
+
       setFacebookLoading(false)
       setError(
         'No se pudo abrir la ventana de Facebook.'
@@ -442,21 +461,26 @@ function Login() {
     }
   }
 
+  // ========================================
+  // RECUPERAR CONTRASEÑA
+  // ========================================
+
   const handleForgotPassword = () => {
     navigate('/forgot-password')
   }
 
+  // ========================================
+  // INTERFAZ
+  // ========================================
 
   return (
     <main className="login-page">
 
       {/* FONDO DECORATIVO */}
-
       <div className="login-bg-shape login-bg-shape-left" />
       <div className="login-bg-shape login-bg-shape-right" />
 
       {/* DECORACIÓN IZQUIERDA */}
-
       <div className="login-side login-side-left">
         <div className="shopping-bag">
           <div className="bag-handle" />
@@ -467,7 +491,6 @@ function Login() {
       </div>
 
       {/* DECORACIÓN DERECHA */}
-
       <div className="login-side login-side-right">
         <div className="plant-box">
           <div className="plant" />
@@ -481,11 +504,9 @@ function Login() {
       </div>
 
       {/* TARJETA PRINCIPAL */}
-
       <section className="login-card">
 
         {/* LOGO */}
-
         <div className="brand-block">
           <div className="brand-row">
             <span className="brand-cart">🛒</span>
@@ -500,14 +521,12 @@ function Login() {
         </div>
 
         {/* ENCABEZADO */}
-
         <div className="login-heading">
           <h1>Iniciar sesión</h1>
-          <p>Ingresa tus datos para continuar.</p>
+          <p>Ingresá tus datos para continuar.</p>
         </div>
 
-        {/* ERROR */}
-
+        {/* ERRORES */}
         {error && (
           <div className="login-error" role="alert">
             {error}
@@ -515,7 +534,6 @@ function Login() {
         )}
 
         {/* FORMULARIO TRADICIONAL */}
-
         <form
           className="login-form"
           onSubmit={handleSubmit}
@@ -556,7 +574,7 @@ function Login() {
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Ingresa tu contraseña"
+                placeholder="Ingresá tu contraseña"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
@@ -585,7 +603,6 @@ function Login() {
           </div>
 
           {/* OPCIONES */}
-
           <div className="login-options">
             <label className="remember-box">
               <input
@@ -607,8 +624,7 @@ function Login() {
             </button>
           </div>
 
-          {/* INICIAR SESIÓN */}
-
+          {/* BOTÓN LOGIN */}
           <button
             type="submit"
             className="login-button"
@@ -624,21 +640,17 @@ function Login() {
               <span className="arrow">→</span>
             )}
           </button>
-
         </form>
 
         {/* DIVISOR */}
-
         <div className="divider">
           <span>o continúa con</span>
         </div>
 
         {/* BOTONES SOCIALES */}
-
         <div className="social-buttons">
 
           {/* GOOGLE */}
-
           <button
             type="button"
             className="social-button"
@@ -677,7 +689,6 @@ function Login() {
           </button>
 
           {/* FACEBOOK */}
-
           <button
             type="button"
             className="social-button"
@@ -696,9 +707,8 @@ function Login() {
         </div>
 
         {/* REGISTRARSE */}
-
         <div className="register-box">
-          <span>¿No tienes una cuenta?</span>
+          <span>¿No tenés una cuenta?</span>
 
           <button
             type="button"

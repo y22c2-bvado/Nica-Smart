@@ -1,4 +1,6 @@
+
 import './App.css'
+
 import {
   BrowserRouter,
   Routes,
@@ -9,6 +11,10 @@ import {
 
 import ScrollToTop from './components/ScrollToTop'
 
+// ==========================================
+// PÁGINAS PRINCIPALES
+// ==========================================
+
 import Home from './pages/Home'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
@@ -18,18 +24,44 @@ import Brands from './pages/Brands'
 import Contact from './pages/Contact'
 import Help from './pages/Help'
 import Tracking from './pages/Tracking'
+
+// ==========================================
+// PROMOCIONES
+// ==========================================
+
 import Promotions from './pages/Promotions'
 import PromoCart from './pages/PromoCart'
+
+// ==========================================
+// AUTENTICACIÓN
+// ==========================================
+
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+
+// ==========================================
+// COMPRAS Y USUARIOS
+// ==========================================
+
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import MyOrders from './pages/MyOrders'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 
+// ==========================================
+// PÁGINAS LEGALES - GOOGLE Y FACEBOOK
+// ==========================================
+
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import DataDeletion from './pages/DataDeletion'
+
+// ==========================================
+// PROTECCIÓN DE RUTAS PRIVADAS
+// ==========================================
 
 function RequireAuth({ children }) {
   const location = useLocation()
@@ -53,12 +85,16 @@ function RequireAuth({ children }) {
   return children
 }
 
+// ==========================================
+// APLICACIÓN PRINCIPAL
+// ==========================================
+
 function App() {
   return (
     <BrowserRouter>
-      
-      {/* SUBIR AL INICIO EN CADA CAMBIO DE PÁGINA */}
-      <ScrollToTop /> 
+
+      {/* SUBIR AL INICIO AL CAMBIAR DE PÁGINA */}
+      <ScrollToTop />
 
       <Routes>
 
@@ -273,6 +309,33 @@ function App() {
         />
 
         {/* ==================================
+            POLÍTICA DE PRIVACIDAD
+        ================================== */}
+
+        <Route
+          path="/privacy"
+          element={<Privacy />}
+        />
+
+        {/* ==================================
+            TÉRMINOS Y CONDICIONES
+        ================================== */}
+
+        <Route
+          path="/terms"
+          element={<Terms />}
+        />
+
+        {/* ==================================
+            ELIMINACIÓN DE DATOS
+        ================================== */}
+
+        <Route
+          path="/data-deletion"
+          element={<DataDeletion />}
+        />
+
+        {/* ==================================
             RUTA NO ENCONTRADA
         ================================== */}
 
@@ -287,6 +350,7 @@ function App() {
         />
 
       </Routes>
+
     </BrowserRouter>
   )
 }

@@ -1,4 +1,3 @@
-
 name: CI/CD Docker -> GHCR -> Render
 
 on:
@@ -25,6 +24,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   VITE_API_URL: ${{ vars.VITE_API_URL }}
   VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+  VITE_FACEBOOK_APP_ID: ${{ vars.VITE_FACEBOOK_APP_ID }}
 
 jobs:
 
@@ -72,6 +72,11 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$VITE_FACEBOOK_APP_ID" ]; then
+            echo "::error::Falta VITE_FACEBOOK_APP_ID en GitHub Actions Variables."
+            exit 1
+          fi
+
           echo "Variables de Vite configuradas."
 
       # ====================================
@@ -83,6 +88,7 @@ jobs:
           docker build \
             --build-arg VITE_API_URL="$VITE_API_URL" \
             --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" \
+            --build-arg VITE_FACEBOOK_APP_ID="$VITE_FACEBOOK_APP_ID" \
             -t smart-nica-db:test .
 
       # ====================================
@@ -92,16 +98,11 @@ jobs:
       - name: Preparar red Docker
         run: |
           docker network create nica-ci-network
-
-          # Contenedor auxiliar para resolver el
-          # hostname "backend" que utiliza Nginx.
-          # No reemplaza una prueba real del API.
           docker run -d \
             --name backend \
             --network nica-ci-network \
             alpine:3.20 \
             sleep 300
-
           echo "Red de pruebas configurada."
 
       # ====================================
@@ -111,7 +112,6 @@ jobs:
       - name: Verificar funcionamiento de NICA S-MART
         run: |
           echo "Iniciando NICA S-MART..."
-
           docker run -d \
             --name app \
             --network nica-ci-network \
@@ -119,17 +119,13 @@ jobs:
             smart-nica-db:test
 
           echo "Esperando respuesta de Nginx..."
-
           READY=false
 
           for i in $(seq 1 20); do
-            if curl -fsS \
-              http://localhost:8080/ \
-              -o /tmp/nica-smart.html; then
+            if curl -fsS http://localhost:8080/ -o /tmp/nica-smart.html; then
               READY=true
               break
             fi
-
             sleep 2
           done
 
@@ -140,24 +136,16 @@ jobs:
           fi
 
           echo "Verificando documento HTML..."
-
           test -s /tmp/nica-smart.html
 
           echo "Verificando nombre de la tienda..."
-
-          if ! grep -Eiq 'nica[[:space:]-]*s[[:space:]-]*mart' \
-            /tmp/nica-smart.html; then
+          if ! grep -Eiq 'nica[[:space:]-]*s[[:space:]-]*mart' /tmp/nica-smart.html; then
             echo "::error::El HTML no contiene NICA S-MART."
             exit 1
           fi
 
           echo "Verificando JavaScript de Vite..."
-
-          JS_FILE=$(grep -oE \
-            'src="/assets/[^"]+\.js"' \
-            /tmp/nica-smart.html \
-            | head -1 \
-            | cut -d'"' -f2)
+          JS_FILE=$(grep -oE 'src="/assets/[^"]+\.js"' /tmp/nica-smart.html | head -1 | cut -d'"' -f2)
 
           if [ -z "$JS_FILE" ]; then
             echo "::error::No se encontró JavaScript compilado."
@@ -165,16 +153,10 @@ jobs:
           fi
 
           echo "Comprobando archivo JavaScript..."
-
-          curl -fsS \
-            "http://localhost:8080$JS_FILE" \
-            -o /dev/null
+          curl -fsS "http://localhost:8080$JS_FILE" -o /dev/null
 
           echo "Comprobando tipo de contenido..."
-
-          curl -fsSI \
-            "http://localhost:8080$JS_FILE" \
-            | grep -Eiq 'content-type:.*(javascript|ecmascript)'
+          curl -fsSI "http://localhost:8080$JS_FILE" | grep -Eiq 'content-type:.*(javascript|ecmascript)'
 
           echo "NICA S-MART pasó las pruebas del frontend."
 
@@ -238,6 +220,7 @@ jobs:
           build-args: |
             VITE_API_URL=${{ env.VITE_API_URL }}
             VITE_GOOGLE_CLIENT_ID=${{ env.VITE_GOOGLE_CLIENT_ID }}
+            VITE_FACEBOOK_APP_ID=${{ env.VITE_FACEBOOK_APP_ID }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -249,11 +232,9 @@ jobs:
   deploy-render:
     name: Desplegar en Render
     needs: build-test-push
-
     if: >-
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main'
-
     runs-on: ubuntu-latest
 
     steps:
@@ -267,7 +248,7 @@ jobs:
             echo "::error::Falta RENDER_DEPLOY_HOOK_URL."
             exit 1
           fi
-
+          
           curl \
             --fail \
             --show-error \
@@ -275,5 +256,5 @@ jobs:
             --retry 3 \
             --request POST \
             "$RENDER_DEPLOY_HOOK_URL"
-
+            
           echo "Solicitud de despliegue enviada a Render."

@@ -2,35 +2,45 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const router = express.Router();
 const pool = require('../config/db');
 
 // ==========================================
-// CONFIGURACIÓN DE SEGURIDAD
+// NICA S-MART - AUTENTICACIÓN
 // ==========================================
 
 const JWT_ISSUER = 'nica-smart';
 const JWT_AUDIENCE = 'nica-smart-web';
 
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
+
+const FACEBOOK_API_VERSION =
+  process.env.FACEBOOK_API_VERSION || 'v24.0';
+
 // ==========================================
 // GENERAR TOKEN JWT
 // ==========================================
 
-const generateToken = (user, rememberMe = false) => {
-  const JWT_SECRET = process.env.JWT_SECRET;
-
-  if (!JWT_SECRET) {
+const generateToken = (
+  user,
+  rememberMe = false,
+  provider = 'local'
+) => {
+  if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET no está configurado.');
   }
 
   return jwt.sign(
     {
       sub: String(user.id),
-      provider: 'local',
+      id: user.id,
+      provider,
       role: user.role
     },
-    JWT_SECRET,
+    process.env.JWT_SECRET,
     {
       expiresIn: rememberMe ? '7d' : '2h',
       issuer: JWT_ISSUER,
@@ -41,6 +51,105 @@ const generateToken = (user, rememberMe = false) => {
 };
 
 // ==========================================
+// FORMATO DE RESPUESTA
+// ==========================================
+
+const authResponse = (
+  user,
+  provider = 'local',
+  rememberMe = false
+) => ({
+  token: generateToken(user, rememberMe, provider),
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    provider
+  }
+});
+
+// ==========================================
+// VERIFICAR TOKEN DE FACEBOOK
+// ==========================================
+
+async function verifyFacebookToken(accessToken) {
+  if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+    throw new Error('FACEBOOK_NOT_CONFIGURED');
+  }
+
+  const baseURL =
+    `https://graph.facebook.com/${FACEBOOK_API_VERSION}`;
+
+  // Verificar que el token pertenezca a
+  // nuestra aplicación de Meta.
+
+  const debugURL = new URL(`${baseURL}/debug_token`);
+
+  debugURL.searchParams.set(
+    'input_token',
+    accessToken
+  );
+
+  debugURL.searchParams.set(
+    'access_token',
+    `${FACEBOOK_APP_ID}|${FACEBOOK_APP_SECRET}`
+  );
+
+  const debugResponse = await fetch(debugURL);
+  const debugResult = await debugResponse.json();
+
+  const tokenInfo = debugResult.data;
+
+  if (
+    !debugResponse.ok ||
+    !tokenInfo?.is_valid ||
+    String(tokenInfo.app_id) !== String(FACEBOOK_APP_ID) ||
+    tokenInfo.type !== 'USER' ||
+    !tokenInfo.user_id
+  ) {
+    throw new Error('INVALID_FACEBOOK_TOKEN');
+  }
+
+  // Consultar el perfil directamente con Meta
+
+  const proof = crypto
+    .createHmac('sha256', FACEBOOK_APP_SECRET)
+    .update(accessToken)
+    .digest('hex');
+
+  const profileURL = new URL(`${baseURL}/me`);
+
+  profileURL.searchParams.set(
+    'fields',
+    'id,name,email'
+  );
+
+  profileURL.searchParams.set(
+    'access_token',
+    accessToken
+  );
+
+  profileURL.searchParams.set(
+    'appsecret_proof',
+    proof
+  );
+
+  const profileResponse = await fetch(profileURL);
+  const profile = await profileResponse.json();
+
+  if (
+    !profileResponse.ok ||
+    !profile.id ||
+    String(profile.id) !== String(tokenInfo.user_id)
+  ) {
+    throw new Error('INVALID_FACEBOOK_TOKEN');
+  }
+
+  return profile;
+}
+
+// ==========================================
 // REGISTRAR CLIENTE
 // POST /api/auth/register
 // ==========================================
@@ -48,10 +157,6 @@ const generateToken = (user, rememberMe = false) => {
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body || {};
-
-    // ==========================================
-    // VALIDAR TIPOS
-    // ==========================================
 
     if (
       typeof name !== 'string' ||
@@ -66,26 +171,18 @@ router.post('/register', async (req, res) => {
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    // ==========================================
-    // VALIDAR NOMBRE
-    // ==========================================
-
-    if (cleanName.length < 2 || cleanName.length > 80) {
+    // Validar nombre
+    if (
+      cleanName.length < 2 ||
+      cleanName.length > 80 ||
+      /[\x00-\x1F\x7F]/.test(cleanName)
+    ) {
       return res.status(400).json({
-        message: 'El nombre debe tener entre 2 y 80 caracteres.'
+        message: 'Nombre inválido.'
       });
     }
 
-    if (/[\x00-\x1F\x7F]/.test(cleanName)) {
-      return res.status(400).json({
-        message: 'El nombre contiene caracteres no permitidos.'
-      });
-    }
-
-    // ==========================================
-    // VALIDAR CORREO
-    // ==========================================
-
+    // Validar correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
@@ -97,10 +194,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // VALIDAR CONTRASEÑA
-    // ==========================================
-
+    // Validar contraseña
     if (
       password.length < 8 ||
       Buffer.byteLength(password, 'utf8') > 72
@@ -111,19 +205,11 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // VERIFICAR JWT
-    // ==========================================
-
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({
         message: 'Servicio de autenticación no disponible.'
       });
     }
-
-    // ==========================================
-    // VERIFICAR CORREO EXISTENTE
-    // ==========================================
 
     const existingUser = await pool.query(
       `
@@ -142,18 +228,10 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // CIFRAR CONTRASEÑA
-    // ==========================================
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // ==========================================
-    // CREAR USUARIO NORMAL
-    // ==========================================
-
-    // El registro público nunca permite crear
-    // administradores ni elegir el rol.
+    const hashedPassword = await bcrypt.hash(
+      password,
+      12
+    );
 
     const result = await pool.query(
       `
@@ -166,31 +244,14 @@ router.post('/register', async (req, res) => {
       VALUES ($1, $2, $3, 'USER')
       RETURNING id, name, email, role
       `,
-      [
-        cleanName,
-        cleanEmail,
-        hashedPassword
-      ]
+      [cleanName, cleanEmail, hashedPassword]
     );
 
     const user = result.rows[0];
 
-    // ==========================================
-    // GENERAR SESIÓN
-    // ==========================================
-
-    const token = generateToken(user);
-
     return res.status(201).json({
       message: 'Cuenta creada exitosamente.',
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        provider: 'local'
-      }
+      ...authResponse(user, 'local')
     });
 
   } catch (error) {
@@ -210,7 +271,7 @@ router.post('/register', async (req, res) => {
 });
 
 // ==========================================
-// INICIAR SESIÓN
+// INICIAR SESIÓN TRADICIONAL
 // POST /api/auth/login
 // ==========================================
 
@@ -223,23 +284,12 @@ router.post('/login', async (req, res) => {
       rememberMe = false
     } = req.body || {};
 
-    // ==========================================
-    // ACEPTAR CORREO O USUARIO
-    // ==========================================
-
-    // Se conserva "email" para compatibilidad
-    // con versiones anteriores de Login.jsx.
-
     const loginIdentifier =
       typeof identifier === 'string'
         ? identifier.trim()
         : typeof email === 'string'
           ? email.trim()
           : '';
-
-    // ==========================================
-    // VALIDAR DATOS
-    // ==========================================
 
     if (
       !loginIdentifier ||
@@ -251,7 +301,7 @@ router.post('/login', async (req, res) => {
     ) {
       return res.status(400).json({
         message:
-          'Ingresa un correo o usuario y una contraseña válidos.'
+          'Ingresa un correo y contraseña válidos.'
       });
     }
 
@@ -266,18 +316,6 @@ router.post('/login', async (req, res) => {
         message: 'Servicio de autenticación no disponible.'
       });
     }
-    // ==========================================
-    // BUSCAR USUARIO EN POSTGRESQL
-    // ==========================================
-
-    // Clientes:
-    //   Inician sesión utilizando su correo.
-    //
-    // Administradores:
-    //   Pueden utilizar correo o username.
-    //
-    // El username solamente se acepta
-    // si la cuenta tiene rol ADMIN.
 
     const result = await pool.query(
       `
@@ -295,10 +333,6 @@ router.post('/login', async (req, res) => {
       [loginIdentifier]
     );
 
-    // ==========================================
-    // CUENTA NO ENCONTRADA
-    // ==========================================
-
     if (result.rows.length === 0) {
       return res.status(401).json({
         message: 'Usuario o contraseña incorrectos.'
@@ -307,12 +341,16 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // ==========================================
-    // VERIFICAR CONTRASEÑA CON BCRYPT
-    // ==========================================
+    if (!user.password) {
+      return res.status(401).json({
+        message: 'Usuario o contraseña incorrectos.'
+      });
+    }
 
-
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!validPassword) {
       return res.status(401).json({
@@ -320,47 +358,17 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ==========================================
-    // VERIFICAR CUENTA BLOQUEADA
-    // ==========================================
-
-   const accountStatus = await pool.query(
-      'SELECT is_blocked FROM users WHERE id = $1',
-      [user.id]
-    );
-
-    if (
-      accountStatus.rows.length === 0 ||
-      accountStatus.rows[0].is_blocked
-    ) {
+    if (user.is_blocked) {
       return res.status(403).json({
-        message: 'Esta cuenta está bloqueada o no está disponible.'
+        message:
+          'Esta cuenta está bloqueada o no está disponible.'
       });
     }
 
-
-    // ==========================================
-    // GENERAR TOKEN JWT
-    // ==========================================
-
-    const token = generateToken(user, rememberMe);
-
-    // ==========================================
-    // RESPUESTA DEL SERVIDOR
-    // ==========================================
-
     return res.status(200).json({
       message: 'Inicio de sesión exitoso.',
-      token,
       rememberMe,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        username: user.username || null,
-        role: user.role,
-        provider: 'local'
-      }
+      ...authResponse(user, 'local', rememberMe)
     });
 
   } catch (error) {
@@ -369,6 +377,262 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({
       message: 'Error al iniciar sesión.'
     });
+  }
+});
+
+// ==========================================
+// INICIAR SESIÓN CON FACEBOOK
+// POST /api/auth/facebook
+// ==========================================
+
+router.post('/facebook', async (req, res) => {
+  const { accessToken } = req.body || {};
+
+  if (
+    typeof accessToken !== 'string' ||
+    !accessToken.trim() ||
+    accessToken.length > 4096
+  ) {
+    return res.status(400).json({
+      message: 'Token de Facebook obligatorio.'
+    });
+  }
+
+  if (!process.env.JWT_SECRET) {
+    return res.status(503).json({
+      message: 'Servicio de autenticación no disponible.'
+    });
+  }
+
+  let client;
+  let inTransaction = false;
+
+  try {
+    // ======================================
+    // 1. VERIFICAR FACEBOOK
+    // ======================================
+
+    const profile = await verifyFacebookToken(
+      accessToken
+    );
+
+    const facebookId = String(profile.id);
+
+    const name = String(
+      profile.name || 'Usuario Facebook'
+    ).trim().slice(0, 80);
+
+    const email = profile.email
+      ? String(profile.email).trim().toLowerCase()
+      : null;
+
+    // ======================================
+    // 2. BUSCAR IDENTIDAD EXISTENTE
+    // ======================================
+
+    client = await pool.connect();
+
+    // Evita crear duplicados en solicitudes
+    // simultáneas del mismo usuario Facebook.
+    await client.query('BEGIN');
+    inTransaction = true;
+
+    await client.query(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      [`facebook:${facebookId}`]
+    );
+
+    const existing = await client.query(
+      `
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u.is_blocked
+      FROM social_accounts s
+      INNER JOIN users u ON u.id = s.user_id
+      WHERE s.provider = 'facebook'
+        AND s.provider_user_id = $1
+      LIMIT 1
+      `,
+      [facebookId]
+    );
+
+    if (existing.rows.length > 0) {
+      const user = existing.rows[0];
+
+      if (user.is_blocked) {
+        await client.query('ROLLBACK');
+        inTransaction = false;
+
+        return res.status(403).json({
+          message: 'Esta cuenta está bloqueada.'
+        });
+      }
+
+      await client.query('COMMIT');
+      inTransaction = false;
+
+      return res.status(200).json({
+        message:
+          'Inicio de sesión con Facebook exitoso.',
+        ...authResponse(user, 'facebook')
+      });
+    }
+
+    // ======================================
+    // 3. VERIFICAR CORREO
+    // ======================================
+
+    if (
+      !email ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      email.length > 254
+    ) {
+      await client.query('ROLLBACK');
+      inTransaction = false;
+
+      return res.status(422).json({
+        message:
+          'Facebook no proporcionó un correo válido. ' +
+          'Revisá el correo de tu cuenta y autorizá ' +
+          'el permiso email.'
+      });
+    }
+
+    // ======================================
+    // 4. EVITAR VINCULACIÓN INSEGURA
+    // ======================================
+
+    const sameEmail = await client.query(
+      `
+      SELECT id
+      FROM users
+      WHERE LOWER(email) = $1
+      LIMIT 1
+      `,
+      [email]
+    );
+
+    if (sameEmail.rows.length > 0) {
+      await client.query('ROLLBACK');
+      inTransaction = false;
+
+      return res.status(409).json({
+        code: 'ACCOUNT_ALREADY_EXISTS',
+        message:
+          'Ya existe una cuenta con este correo. ' +
+          'Iniciá sesión con tu método habitual. ' +
+          'La vinculación con Facebook debe hacerse ' +
+          'desde una sesión autenticada.'
+      });
+    }
+
+    // ======================================
+    // 5. CREAR USUARIO
+    // ======================================
+
+    // Contraseña aleatoria para evitar que
+    // exista una contraseña local conocida.
+
+    const randomPassword = crypto
+      .randomBytes(48)
+      .toString('hex');
+
+    const hashedPassword = await bcrypt.hash(
+      randomPassword,
+      12
+    );
+
+    // El rol de un usuario social nuevo
+    // siempre será USER.
+
+    const newUserResult = await client.query(
+      `
+      INSERT INTO users (
+        name,
+        email,
+        password,
+        role
+      )
+      VALUES ($1, $2, $3, 'USER')
+      RETURNING id, name, email, role
+      `,
+      [name, email, hashedPassword]
+    );
+
+    const user = newUserResult.rows[0];
+
+    // ======================================
+    // 6. VINCULAR CUENTA DE FACEBOOK
+    // ======================================
+
+    await client.query(
+      `
+      INSERT INTO social_accounts (
+        user_id,
+        provider,
+        provider_user_id
+      )
+      VALUES ($1, 'facebook', $2)
+      `,
+      [user.id, facebookId]
+    );
+
+    await client.query('COMMIT');
+    inTransaction = false;
+
+    // ======================================
+    // 7. DEVOLVER JWT
+    // ======================================
+
+    return res.status(201).json({
+      message: 'Cuenta de Facebook creada.',
+      ...authResponse(user, 'facebook')
+    });
+
+  } catch (error) {
+    if (client && inTransaction) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback fallido:', rollbackError);
+      }
+    }
+
+    if (error.message === 'INVALID_FACEBOOK_TOKEN') {
+      return res.status(401).json({
+        message:
+          'Token de Facebook inválido o expirado.'
+      });
+    }
+
+    if (error.message === 'FACEBOOK_NOT_CONFIGURED') {
+      return res.status(503).json({
+        message:
+          'Facebook Login no está configurado en Render.'
+      });
+    }
+
+    if (error.code === '23505') {
+      return res.status(409).json({
+        message:
+          'La cuenta ya existe. Intentá iniciar sesión nuevamente.'
+      });
+    }
+
+    console.error('Error en Facebook Login:', error);
+
+    return res.status(500).json({
+      message:
+        'No se pudo iniciar sesión con Facebook.'
+    });
+
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 });
 
