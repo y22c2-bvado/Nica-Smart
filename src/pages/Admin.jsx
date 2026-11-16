@@ -14,10 +14,6 @@ import AdminSidebar from '../components/AdminSidebar'
 import ProductForm from '../components/ProductForm'
 import '../styles/admin.css'
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
-
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
@@ -287,27 +283,22 @@ function ProofViewer({ orderId, onClose }) {
 
 function Admin() {
   const navigate = useNavigate()
-
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
   const [orders, setOrders] = useState([])
   const [stats, setStats] = useState(null)
-
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-
   const [search, setSearch] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
   const [recentLimit, setRecentLimit] = useState(5)
   const [orderFilter, setOrderFilter] = useState('todos')
   const [proofOrderId, setProofOrderId] = useState(null)
   const [updatingOrderId, setUpdatingOrderId] = useState(null)
-
   const storedUser = getStoredUser()
 
   const isAdmin =

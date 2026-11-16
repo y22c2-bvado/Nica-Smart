@@ -1,5 +1,3 @@
-
-
 const API_URL = (
   import.meta.env.VITE_API_URL ||
   (
@@ -9,10 +7,6 @@ const API_URL = (
   )
 ).replace(/\/+$/, '');
 
-
-// ==========================================
-// OBTENER TODOS LOS PRODUCTOS
-// ==========================================
 
 export async function getProducts() {
   const response = await fetch(
@@ -26,11 +20,6 @@ export async function getProducts() {
   return response.json();
 }
 
-
-// ==========================================
-// FILTRAR PRODUCTOS POR CATEGORÍA
-// ==========================================
-
 export async function getProductsByCategory(category) {
   const response = await fetch(
     `${API_URL}/api/products/category/${encodeURIComponent(category)}`
@@ -42,11 +31,6 @@ export async function getProductsByCategory(category) {
 
   return response.json();
 }
-
-
-// ==========================================
-// OBTENER PRODUCTO POR ID
-// ==========================================
 
 export async function getProductById(id) {
   const response = await fetch(

@@ -5,10 +5,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 
-// ==========================================
-// CONFIGURACIÓN DE GOOGLE OAUTH
-// ==========================================
-
 const googleClientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
 
@@ -18,9 +14,6 @@ if (!googleClientId) {
   )
 }
 
-// ==========================================
-// INICIALIZAR REACT
-// ==========================================
 
 const root = createRoot(document.getElementById('root'))
 

@@ -10,7 +10,7 @@ const emptyForm = {
   stock: '',
   brand: '',
   brand_url: '',
-  is_new: true // <-- NUEVO: Por defecto, los productos nuevos entran con esta etiqueta activa
+  is_new: true
 }
 
 function ProductForm({
@@ -21,8 +21,6 @@ function ProductForm({
 }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
-  
-  // Estados para el manejo de imágenes
   const [newFiles, setNewFiles] = useState([])
   const [existingImages, setExistingImages] = useState([])
   const [previews, setPreviews] = useState([])
@@ -41,10 +39,9 @@ function ProductForm({
         stock: String(product.stock ?? ''),
         brand: product.brand || '',
         brand_url: product.brand_url || '',
-        is_new: product.is_new ?? false // <-- NUEVO: Cargamos el estado real al editar un producto existente
+        is_new: product.is_new ?? false
       })
       
-      // Cargar imágenes existentes si estamos editando
       const imgs = product.images || (product.image ? [product.image] : [])
       setExistingImages(imgs)
       setPreviews(imgs)
@@ -62,17 +59,14 @@ function ProductForm({
     const { name, value, type, checked } = event.target;
     setForm((previous) => ({
       ...previous,
-      // <-- NUEVO: Si el input es un checkbox, guardamos 'checked' (true/false), sino el 'value'
       [name]: type === 'checkbox' ? checked : value
     }))
     setError('')
   }
 
-  // Manejar la selección de archivos
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files)
     
-    // Validar que no supere el límite de 4 en total (existentes + nuevos)
     if (existingImages.length + selectedFiles.length > 4) {
       setError('Solo puedes tener un máximo de 4 imágenes por producto.')
       return
@@ -81,21 +75,17 @@ function ProductForm({
     setNewFiles(selectedFiles)
     setError('')
     
-    // Crear URLs temporales para previsualizar los nuevos archivos
     const newPreviews = selectedFiles.map(file => URL.createObjectURL(file))
     setPreviews([...existingImages, ...newPreviews])
   }
 
-  // Limpiar archivos nuevos seleccionados (volver a las imágenes originales)
   const clearNewFiles = () => {
     setNewFiles([])
     setPreviews(existingImages)
-    // Resetear el input file
     const fileInput = document.getElementById('adm-images')
     if (fileInput) fileInput.value = ''
   }
 
-  // Cálculos para la vista previa de precios
   const numericPrice = Number(form.price || 0)
   const numericOriginal = Number(form.original_price || 0)
   const hasPreviewDiscount =
@@ -185,7 +175,6 @@ function ProductForm({
       return
     }
 
-    // CONSTRUIR FORMDATA PARA ENVIAR IMÁGENES Y MARCA
     const formData = new FormData()
     formData.append('name', name)
     formData.append('category', category)
@@ -195,19 +184,16 @@ function ProductForm({
     formData.append('brand', brand)
     formData.append('brand_url', brand_url)
     
-    // <-- NUEVO: Enviamos el valor del checkbox al backend
     formData.append('is_new', form.is_new) 
 
     if (original_price !== null) {
       formData.append('original_price', original_price)
     }
 
-    // Agregar archivos nuevos (si los hay)
     newFiles.forEach(file => {
       formData.append('images', file)
     })
 
-    // Si estamos editando y NO se subieron archivos nuevos, conservar los existentes
     if (product && newFiles.length === 0 && existingImages.length > 0) {
       formData.append('existingImages', JSON.stringify(existingImages))
     }

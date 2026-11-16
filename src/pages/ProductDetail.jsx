@@ -9,12 +9,8 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { getProductById } from '../services/api'
 import { useCart } from '../context/CartContext'
-
 import '../styles/productDetail.css'
 
-// ==========================================
-// CONFIGURACIÓN PARA LAS IMÁGENES
-// ==========================================
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
@@ -36,7 +32,6 @@ const getImageUrl = (path) => {
   
   return path
 }
-// ==========================================
 
 function ProductDetail() {
   const { id } = useParams()

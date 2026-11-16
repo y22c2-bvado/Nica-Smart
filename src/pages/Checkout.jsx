@@ -1,11 +1,8 @@
-
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
 import { useCart } from '../context/CartContext'
 
 import '../styles/checkout.css'

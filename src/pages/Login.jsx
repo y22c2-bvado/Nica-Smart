@@ -1,13 +1,7 @@
-
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
-
 import '../styles/login.css'
-
-// ==========================================
-// NICA S-MART - CONFIGURACIÓN
-// ==========================================
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -21,10 +15,6 @@ const FACEBOOK_APP_ID = (
 ).trim()
 
 const FACEBOOK_VERSION = 'v24.0'
-
-// ==========================================
-// COMPONENTE LOGIN
-// ==========================================
 
 function Login() {
   const navigate = useNavigate()
@@ -41,27 +31,17 @@ function Login() {
       ? requestedFrom
       : '/'
 
-  // ========================================
-  // ESTADOS
-  // ========================================
-
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [facebookLoading, setFacebookLoading] = useState(false)
   const [facebookReady, setFacebookReady] = useState(false)
-
   const [error, setError] = useState('')
-
   const busy = loading || googleLoading || facebookLoading
 
-  // ========================================
-  // INICIALIZAR FACEBOOK SDK
-  // ========================================
 
   useEffect(() => {
     if (!FACEBOOK_APP_ID) return
@@ -129,10 +109,6 @@ function Login() {
     }
   }, [])
 
-  // ========================================
-  // GUARDAR SESIÓN
-  // ========================================
-
   const saveSession = (data, sessionRemembered = false) => {
     const token = data?.token
     const user = data?.user
@@ -185,9 +161,6 @@ function Login() {
     })
   }
 
-  // ========================================
-  // PETICIÓN AL BACKEND
-  // ========================================
 
   const authRequest = async (endpoint, body) => {
     if (!API_URL) {
@@ -218,10 +191,6 @@ function Login() {
 
     return data
   }
-
-  // ========================================
-  // VALIDACIONES
-  // ========================================
 
   const validateIdentifier = (value) => {
     const cleanValue = value.trim()
@@ -266,10 +235,6 @@ function Login() {
     return null
   }
 
-  // ========================================
-  // LOGIN TRADICIONAL
-  // ========================================
-
   const handleSubmit = async (event) => {
     event.preventDefault()
 
@@ -309,10 +274,6 @@ function Login() {
       setLoading(false)
     }
   }
-
-  // ========================================
-  // GOOGLE LOGIN
-  // ========================================
 
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
@@ -384,9 +345,6 @@ function Login() {
     googleLogin()
   }
 
-  // ========================================
-  // FACEBOOK LOGIN
-  // ========================================
 
   const handleFacebookLogin = () => {
     if (busy) return
@@ -461,17 +419,9 @@ function Login() {
     }
   }
 
-  // ========================================
-  // RECUPERAR CONTRASEÑA
-  // ========================================
-
   const handleForgotPassword = () => {
     navigate('/forgot-password')
   }
-
-  // ========================================
-  // INTERFAZ
-  // ========================================
 
   return (
     <main className="login-page">
