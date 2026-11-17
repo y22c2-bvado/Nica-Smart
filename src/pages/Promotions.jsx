@@ -17,8 +17,16 @@ import { addPromoProduct } from "../utils/promoCart";
 
 import "./Promotions.css";
 
+// ==========================================
+// CONFIGURACION GENERAL
+// ==========================================
+
 const TIMEZONE = "America/Managua";
 const PRODUCTS_TO_SHOW = 4;
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://nica-smart-backend.onrender.com/api";
 
 const money = (value) =>
   new Intl.NumberFormat("es-NI", {
@@ -26,6 +34,10 @@ const money = (value) =>
     currency: "NIO",
     maximumFractionDigits: 0,
   }).format(value);
+
+// ==========================================
+// CATEGORIAS DESTACADAS
+// ==========================================
 
 const categories = [
   ["🎧", "Audio"],
@@ -38,45 +50,81 @@ const categories = [
   ["🖥️", "Monitores"],
 ];
 
+// ==========================================
+// PALABRAS CLAVE POR TEMPORADA
+// ==========================================
+
 const seasonalKeywords = {
   halloween: [
-    "gaming", "gamer", "rgb", "teclado",
-    "mouse", "control", "audifono", "headset",
+    "gaming",
+    "gamer",
+    "rgb",
+    "teclado",
+    "mouse",
+    "control",
+    "audifono",
+    "headset",
     "consola",
   ],
 
   "black-november": [
-    "laptop", "computadora", "monitor",
-    "celular", "tablet", "ssd", "gaming",
+    "laptop",
+    "computadora",
+    "monitor",
+    "celular",
+    "tablet",
+    "ssd",
+    "gaming",
   ],
 
   "black-friday": [
-    "laptop", "monitor", "celular",
-    "computadora", "gaming",
+    "laptop",
+    "monitor",
+    "celular",
+    "computadora",
+    "gaming",
   ],
 
   christmas: [
-    "smartwatch", "reloj", "audifono",
-    "parlante", "gaming", "regalo",
+    "smartwatch",
+    "reloj",
+    "audifono",
+    "parlante",
+    "gaming",
+    "regalo",
   ],
 
   navidad: [
-    "smartwatch", "reloj", "audifono",
-    "parlante", "gaming", "regalo",
+    "smartwatch",
+    "reloj",
+    "audifono",
+    "parlante",
+    "gaming",
+    "regalo",
   ],
 
   agosto: [
-    "parlante", "audio", "audifono",
-    "cargador", "celular",
+    "parlante",
+    "audio",
+    "audifono",
+    "cargador",
+    "celular",
   ],
 
   patrio: [
-    "computadora", "laptop", "teclado",
-    "mouse", "memoria", "usb",
+    "computadora",
+    "laptop",
+    "teclado",
+    "mouse",
+    "memoria",
+    "usb",
   ],
 };
 
-// CONFIGURACIÓN GAMING
+// ==========================================
+// FILTROS DE GAMING
+// ==========================================
+
 const gamingFilters = [
   {
     id: "all",
@@ -96,18 +144,30 @@ const gamingFilters = [
   {
     id: "headset",
     label: "🎧 Audífonos",
-    keywords: ["audifono", "headset", "auricular"],
+    keywords: [
+      "audifono",
+      "headset",
+      "auricular",
+    ],
   },
   {
     id: "controller",
     label: "🎮 Controles",
-    keywords: ["control", "mando", "gamepad", "joystick"],
+    keywords: [
+      "control",
+      "mando",
+      "gamepad",
+      "joystick",
+    ],
   },
   {
     id: "console",
     label: "🕹️ Consolas",
     keywords: [
-      "consola", "playstation", "xbox", "nintendo",
+      "consola",
+      "playstation",
+      "xbox",
+      "nintendo",
     ],
   },
 ];
@@ -134,7 +194,10 @@ const gamingKeywords = [
   "volante",
 ];
 
-// NORMALIZAR TEXTO
+// ==========================================
+// NORMALIZACION DE TEXTO
+// ==========================================
+
 function normalize(value) {
   return String(value ?? "")
     .toLowerCase()
@@ -148,15 +211,20 @@ function getProductText(product) {
       ? product.category
       : product.category?.name || "";
 
-  return normalize([
-    product.name,
-    product.description,
-    product.category_name,
-    category,
-  ].join(" "));
+  return normalize(
+    [
+      product.name,
+      product.description,
+      product.category_name,
+      category,
+    ].join(" ")
+  );
 }
 
+// ==========================================
 // IDENTIFICAR PRODUCTOS GAMING
+// ==========================================
+
 function isGamingProduct(product) {
   const category =
     typeof product.category === "string"
@@ -181,7 +249,10 @@ function isGamingProduct(product) {
   );
 }
 
+// ==========================================
 // PRIORIDAD POR TEMPORADA
+// ==========================================
+
 function getSeasonalScore(product, campaign) {
   const keywords =
     campaign?.keywords ||
@@ -192,14 +263,16 @@ function getSeasonalScore(product, campaign) {
 
   return keywords.reduce(
     (score, keyword) =>
-      score + (
-        text.includes(normalize(keyword)) ? 1 : 0
-      ),
+      score +
+      (text.includes(normalize(keyword)) ? 1 : 0),
     0
   );
 }
 
+// ==========================================
 // NORMALIZAR PRECIOS Y DESCUENTOS
+// ==========================================
+
 function normalizeProduct(product, campaign) {
   const price = Number(product.price);
 
@@ -209,9 +282,9 @@ function normalizeProduct(product, campaign) {
 
   const original = Number(
     product.original_price ??
-    product.originalPrice ??
-    product.compare_at_price ??
-    price
+      product.originalPrice ??
+      product.compare_at_price ??
+      price
   );
 
   const hasDiscount =
@@ -235,54 +308,191 @@ function normalizeProduct(product, campaign) {
     original_price: finalOriginal,
     discount,
     hasDiscount,
-    savings: hasDiscount ? original - price : 0,
-    seasonScore: getSeasonalScore(product, campaign),
+    savings: hasDiscount
+      ? original - price
+      : 0,
+    seasonScore: getSeasonalScore(
+      product,
+      campaign
+    ),
   };
 }
 
+// ==========================================
+// SISTEMA DE IMAGENES
+// ==========================================
+
+// Extrae imagenes de distintos formatos
+// devueltos por la API.
+
+function extractImageValues(value) {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap(extractImageValues);
+  }
+
+  if (typeof value === "object") {
+    const fields = [
+      value.url,
+      value.image_url,
+      value.src,
+      value.path,
+      value.image,
+      value.images,
+    ];
+
+    return fields.flatMap(extractImageValues);
+  }
+
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  const text = value.trim();
+
+  if (
+    !text ||
+    text === "null" ||
+    text === "undefined"
+  ) {
+    return [];
+  }
+
+  if (
+    text.startsWith("[") ||
+    text.startsWith("{")
+  ) {
+    try {
+      return extractImageValues(
+        JSON.parse(text)
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  return [text];
+}
+
+// Convierte rutas relativas en URL completas.
+
+function imageUrls(raw) {
+  if (
+    /^(https?:|data:image\/|blob:)/i.test(raw)
+  ) {
+    return [raw];
+  }
+
+  if (raw.startsWith("//")) {
+    return [`https:${raw}`];
+  }
+
+  const backendOrigin = new URL(
+    API_URL,
+    window.location.origin
+  ).origin;
+
+  const frontendOrigin = window.location.origin;
+
+  const path = `/${raw.replace(/^\/+/, "")}`;
+
+  const urls =
+    /^\/(images|assets)\//i.test(path)
+      ? [
+          `${frontendOrigin}${path}`,
+          `${backendOrigin}${path}`,
+        ]
+      : [
+          `${backendOrigin}${path}`,
+          `${frontendOrigin}${path}`,
+        ];
+
+  if (path.startsWith("/api/")) {
+    urls.push(
+      `${backendOrigin}${path.replace(
+        /^\/api/,
+        ""
+      )}`
+    );
+  }
+
+  return [...new Set(urls)];
+}
+
+// Obtiene las imagenes disponibles.
+
+function getPromotionImages(product) {
+  const candidates = [
+    product.image_url,
+    product.imageUrl,
+    product.image,
+    product.images,
+    product.image_path,
+  ];
+
+  return [
+    ...new Set(
+      candidates
+        .flatMap(extractImageValues)
+        .flatMap(imageUrls)
+    ),
+  ];
+}
+
+// ==========================================
 // COMPONENTE DE IMAGEN
+// ==========================================
+
 function PromotionImage({ product }) {
-  const rawImage =
-    product.image_url ||
-    product.image ||
-    product.images?.[0]?.url ||
-    product.images?.[0] ||
-    null;
+  const images = useMemo(
+    () => getPromotionImages(product),
+    [product]
+  );
 
-  const image =
-    typeof rawImage === "string"
-      ? rawImage
-      : null;
-
-  const [failed, setFailed] = useState(false);
+  const [imageIndex, setImageIndex] =
+    useState(0);
 
   useEffect(() => {
-    setFailed(false);
-  }, [image]);
+    setImageIndex(0);
+  }, [images]);
 
-  if (!image || failed) {
+  if (imageIndex >= images.length) {
     return (
       <span
         className="promotion-image-fallback"
         role="img"
-        aria-label={product.name}
+        aria-label={
+          `Imagen no disponible: ${product.name}`
+        }
       >
-        🎮
+        📦
       </span>
     );
   }
 
   return (
     <img
-      src={image}
+      src={images[imageIndex]}
       alt={product.name}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => {
+        console.warn(
+          "Imagen no disponible:",
+          product.name,
+          images[imageIndex]
+        );
+
+        setImageIndex((index) => index + 1);
+      }}
     />
   );
 }
 
+// ==========================================
 // CONTADOR REGRESIVO
+// ==========================================
+
 function calculateCountdown(now, campaign) {
   const parts = new Intl.DateTimeFormat(
     "en-US",
@@ -294,14 +504,17 @@ function calculateCountdown(now, campaign) {
   ).formatToParts(now);
 
   const year = Number(
-    parts.find((p) => p.type === "year")?.value
+    parts.find(
+      (part) => part.type === "year"
+    )?.value
   );
 
   const month = Number(
-    parts.find((p) => p.type === "month")?.value
+    parts.find(
+      (part) => part.type === "month"
+    )?.value
   );
 
-  // Fin del mes en Managua, UTC-6
   let deadline = Date.UTC(
     year,
     month,
@@ -311,10 +524,10 @@ function calculateCountdown(now, campaign) {
     0
   );
 
-  // Utilizar la fecha final de la campaña
-  // cuando esté configurada y sea válida.
   if (campaign?.endsAt) {
-    const configured = Date.parse(campaign.endsAt);
+    const configured = Date.parse(
+      campaign.endsAt
+    );
 
     if (
       Number.isFinite(configured) &&
@@ -332,7 +545,9 @@ function calculateCountdown(now, campaign) {
   );
 
   return {
-    days: Math.floor(totalSeconds / 86400),
+    days: Math.floor(
+      totalSeconds / 86400
+    ),
     hours: Math.floor(
       (totalSeconds % 86400) / 3600
     ),
@@ -369,7 +584,10 @@ function Countdown({ now, campaign }) {
             className="promo-countdown-unit"
           >
             <strong>
-              {String(value).padStart(2, "0")}
+              {String(value).padStart(
+                2,
+                "0"
+              )}
             </strong>
 
             <small>{label}</small>
@@ -380,27 +598,45 @@ function Countdown({ now, campaign }) {
   );
 }
 
+// ==========================================
+// PAGINA PRINCIPAL DE PROMOCIONES
+// ==========================================
+
 export default function Promotions() {
   const campaign = useSeasonalPromotion();
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [cartError, setCartError] = useState("");
+  const [products, setProducts] =
+    useState([]);
 
-  const [gamingSearch, setGamingSearch] = useState("");
-  const [gamingFilter, setGamingFilter] = useState("all");
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [cartError, setCartError] =
+    useState("");
+
+  const [gamingSearch, setGamingSearch] =
+    useState("");
+
+  const [gamingFilter, setGamingFilter] =
+    useState("all");
 
   const [now, setNow] = useState(
     () => new Date()
   );
 
+  // ========================================
   // ACTUALIZAR RELOJ
+  // ========================================
+
   useEffect(() => {
-    const updateClock = () => setNow(new Date());
+    const updateClock = () =>
+      setNow(new Date());
 
     const timer = window.setInterval(
       updateClock,
@@ -432,7 +668,10 @@ export default function Promotions() {
     };
   }, []);
 
-  // CARGAR PRODUCTOS
+  // ========================================
+  // CARGAR PRODUCTOS DESDE LA API
+  // ========================================
+
   useEffect(() => {
     let active = true;
 
@@ -441,7 +680,8 @@ export default function Promotions() {
         setLoading(true);
         setError("");
 
-        const response = await getProducts();
+        const response =
+          await getProducts();
 
         if (!active) return;
 
@@ -453,7 +693,9 @@ export default function Promotions() {
             [];
 
         setProducts(
-          Array.isArray(items) ? items : []
+          Array.isArray(items)
+            ? items
+            : []
         );
       } catch (err) {
         if (!active) return;
@@ -480,7 +722,10 @@ export default function Promotions() {
     };
   }, []);
 
-  // NORMALIZAR CATÁLOGO
+  // ========================================
+  // NORMALIZAR CATALOGO
+  // ========================================
+
   const catalog = useMemo(() => {
     return products
       .filter(
@@ -489,12 +734,18 @@ export default function Promotions() {
           typeof product === "object"
       )
       .map((product) =>
-        normalizeProduct(product, campaign)
+        normalizeProduct(
+          product,
+          campaign
+        )
       )
       .filter(Boolean);
-  }, [products, campaign?.id]);
+  }, [products, campaign]);
 
-  // PRODUCTOS DESTACADOS DE TEMPORADA
+  // ========================================
+  // PRODUCTOS DE TEMPORADA
+  // ========================================
+
   const featuredProducts = useMemo(() => {
     return [...catalog]
       .sort((a, b) => {
@@ -506,12 +757,20 @@ export default function Promotions() {
           return discountPriority;
         }
 
-        if (b.seasonScore !== a.seasonScore) {
-          return b.seasonScore - a.seasonScore;
+        if (
+          b.seasonScore !== a.seasonScore
+        ) {
+          return (
+            b.seasonScore -
+            a.seasonScore
+          );
         }
 
         if (b.discount !== a.discount) {
-          return b.discount - a.discount;
+          return (
+            b.discount -
+            a.discount
+          );
         }
 
         return String(a.id).localeCompare(
@@ -521,54 +780,93 @@ export default function Promotions() {
       .slice(0, PRODUCTS_TO_SHOW);
   }, [catalog]);
 
-  // TODOS LOS PRODUCTOS GAMING
+  // ========================================
+  // PRODUCTOS GAMING
+  // ========================================
+
   const gamingProducts = useMemo(() => {
     return catalog
       .filter(isGamingProduct)
       .sort((a, b) => {
         if (b.discount !== a.discount) {
-          return b.discount - a.discount;
+          return (
+            b.discount -
+            a.discount
+          );
         }
 
-        return String(a.name).localeCompare(
+        return String(
+          a.name
+        ).localeCompare(
           String(b.name)
         );
       });
   }, [catalog]);
 
-  // FILTRAR PRODUCTOS GAMING
-  const filteredGamingProducts = useMemo(() => {
-    const selectedFilter = gamingFilters.find(
-      (filter) => filter.id === gamingFilter
-    );
+  // ========================================
+  // BUSQUEDA Y FILTROS GAMING
+  // ========================================
 
-    const search = normalize(gamingSearch.trim());
-
-    return gamingProducts.filter((product) => {
-      const text = getProductText(product);
-      const name = normalize(product.name);
-
-      const matchesSearch =
-        !search || text.includes(search);
-
-      const matchesFilter =
-        gamingFilter === "all" ||
-        selectedFilter?.keywords.some(
-          (keyword) => name.includes(normalize(keyword))
+  const filteredGamingProducts =
+    useMemo(() => {
+      const selectedFilter =
+        gamingFilters.find(
+          (filter) =>
+            filter.id === gamingFilter
         );
 
-      return matchesSearch && matchesFilter;
-    });
-  }, [gamingProducts, gamingSearch, gamingFilter]);
+      const search = normalize(
+        gamingSearch.trim()
+      );
 
-  // AGREGAR AL CARRITO PROMOCIONAL
-  const handleAddToPromoCart = (product) => {
+      return gamingProducts.filter(
+        (product) => {
+          const text =
+            getProductText(product);
+
+          const name = normalize(
+            product.name
+          );
+
+          const matchesSearch =
+            !search ||
+            text.includes(search);
+
+          const matchesFilter =
+            gamingFilter === "all" ||
+            selectedFilter?.keywords.some(
+              (keyword) =>
+                name.includes(
+                  normalize(keyword)
+                )
+            );
+
+          return (
+            matchesSearch &&
+            matchesFilter
+          );
+        }
+      );
+    }, [
+      gamingProducts,
+      gamingSearch,
+      gamingFilter,
+    ]);
+
+  // ========================================
+  // CARRITO PROMOCIONAL
+  // ========================================
+
+  const handleAddToPromoCart = (
+    product
+  ) => {
     try {
       setCartError("");
 
       const added = addPromoProduct({
         ...product,
-        original_price: product.original,
+        original_price:
+          product.original,
         price: product.price,
       });
 
@@ -581,7 +879,10 @@ export default function Promotions() {
 
       navigate("/promo-cart");
     } catch (err) {
-      console.error("Error en carrito:", err);
+      console.error(
+        "Error en carrito:",
+        err
+      );
 
       setCartError(
         "No se pudo guardar el producto."
@@ -589,11 +890,21 @@ export default function Promotions() {
     }
   };
 
-  // DESPLAZAMIENTO A SECCIONES
-  useEffect(() => {
-    const hash = location.hash.replace("#", "");
+  // ========================================
+  // NAVEGACION POR SECCIONES
+  // ========================================
 
-    if (!["offers", "gaming"].includes(hash)) {
+  useEffect(() => {
+    const hash = location.hash.replace(
+      "#",
+      ""
+    );
+
+    if (
+      !["offers", "gaming"].includes(
+        hash
+      )
+    ) {
       return;
     }
 
@@ -605,30 +916,39 @@ export default function Promotions() {
       });
   }, [location.hash, loading]);
 
+  // ========================================
   // HORA DE NICARAGUA
-  const currentTime = new Intl.DateTimeFormat(
-    "es-NI",
-    {
-      timeZone: TIMEZONE,
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }
-  ).format(now);
+  // ========================================
+
+  const currentTime =
+    new Intl.DateTimeFormat(
+      "es-NI",
+      {
+        timeZone: TIMEZONE,
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      }
+    ).format(now);
 
   const seasonName =
     campaign?.name ||
     campaign?.monthName ||
     "Temporada";
 
-  const hasDiscounts = featuredProducts.some(
-    (product) => product.hasDiscount
-  );
+  const hasDiscounts =
+    featuredProducts.some(
+      (product) => product.hasDiscount
+    );
+
+  // ========================================
+  // INTERFAZ
+  // ========================================
 
   return (
     <>
@@ -637,16 +957,25 @@ export default function Promotions() {
 
       <main className="promotions-page">
 
-        {/* BANNER AUTOMÁTICO */}
+        {/* BANNER DE TEMPORADA */}
+
         {campaign && (
-          <SeasonalBanner campaign={campaign} />
+          <SeasonalBanner
+            campaign={campaign}
+          />
         )}
 
-        {/* OFERTAS DE TEMPORADA */}
+        {/* ==================================
+            OFERTAS DE TEMPORADA
+        ================================== */}
+
         <section
           id="offers"
           className="promotions-content"
         >
+
+          {/* BENEFICIOS VIP */}
+
           <div className="promo-vip-bar">
             <div className="promo-vip-title">
               <span>👑</span>
@@ -663,6 +992,8 @@ export default function Promotions() {
               🎁 Recompensas especiales próximamente
             </span>
           </div>
+
+          {/* ENCABEZADO */}
 
           <div className="promo-season-header">
             <div>
@@ -687,6 +1018,8 @@ export default function Promotions() {
             />
           </div>
 
+          {/* ERRORES DEL CARRITO */}
+
           {cartError && (
             <p
               className="promotions-message"
@@ -696,12 +1029,18 @@ export default function Promotions() {
             </p>
           )}
 
+          {/* CARGANDO PRODUCTOS */}
+
           {loading && (
             <div className="promotions-empty">
               <span>⏳</span>
-              <h3>Cargando productos...</h3>
+              <h3>
+                Cargando productos...
+              </h3>
             </div>
           )}
+
+          {/* ERROR DE API */}
 
           {!loading && error && (
             <div
@@ -709,92 +1048,137 @@ export default function Promotions() {
               role="alert"
             >
               <span>⚠️</span>
-              <h3>No se pudo cargar el catálogo</h3>
+
+              <h3>
+                No se pudo cargar el catálogo
+              </h3>
+
               <p>{error}</p>
             </div>
           )}
+
+          {/* CATALOGO VACIO */}
 
           {!loading &&
             !error &&
             featuredProducts.length === 0 && (
               <div className="promotions-empty">
                 <span>📦</span>
-                <h3>No hay productos disponibles</h3>
+
+                <h3>
+                  No hay productos disponibles
+                </h3>
               </div>
             )}
+
+          {/* TARJETAS DE PROMOCIONES */}
 
           {!loading &&
             !error &&
             featuredProducts.length > 0 && (
               <div className="promo-season-grid">
-                {featuredProducts.map((product, index) => (
-                  <article
-                    key={product.id}
-                    className={`promo-season-card ${
-                      index === 0 && product.hasDiscount
-                        ? "promo-season-card-featured"
-                        : ""
-                    }`}
-                  >
-                    <div className="promo-season-image">
-                      {product.hasDiscount && (
-                        <span className="promo-season-discount">
-                          🔥 -{product.discount}%
-                        </span>
-                      )}
+                {featuredProducts.map(
+                  (product, index) => (
+                    <article
+                      key={product.id}
+                      className={`promo-season-card ${
+                        index === 0 &&
+                        product.hasDiscount
+                          ? "promo-season-card-featured"
+                          : ""
+                      }`}
+                    >
 
-                      <Link
-                        to={`/product/${product.id}`}
-                      >
-                        <PromotionImage product={product} />
-                      </Link>
-                    </div>
+                      {/* IMAGEN */}
 
-                    <div className="promo-season-info">
-                      <h3>{product.name}</h3>
-
-                      <p className="promo-season-description">
-                        {product.description
-                          ? String(product.description).slice(0, 90)
-                          : "Tecnología disponible en NICA S-MART"}
-                      </p>
-
-                      <div className="promo-season-prices">
+                      <div className="promo-season-image">
                         {product.hasDiscount && (
-                          <del>{money(product.original)}</del>
-                        )}
-
-                        <strong>
-                          {money(product.price)}
-                        </strong>
-
-                        {product.hasDiscount && (
-                          <span className="promo-season-saving">
-                            Ahorras {money(product.savings)}
+                          <span className="promo-season-discount">
+                            🔥 -{product.discount}%
                           </span>
                         )}
+
+                        <Link
+                          to={`/product/${product.id}`}
+                        >
+                          <PromotionImage
+                            product={product}
+                          />
+                        </Link>
                       </div>
 
-                      <div className="promo-season-benefit">
-                        {product.hasDiscount
-                          ? `✓ ${product.discount}% de descuento`
-                          : "✓ Producto destacado"}
-                      </div>
+                      {/* INFORMACION */}
 
-                      <button
-                        type="button"
-                        className="promo-season-buy"
-                        onClick={() =>
-                          handleAddToPromoCart(product)
-                        }
-                      >
-                        🛒 Agregar al carrito
-                      </button>
-                    </div>
-                  </article>
-                ))}
+                      <div className="promo-season-info">
+                        <h3>
+                          {product.name}
+                        </h3>
+
+                        <p className="promo-season-description">
+                          {product.description
+                            ? String(
+                                product.description
+                              ).slice(0, 90)
+                            : "Tecnología disponible en NICA S-MART"}
+                        </p>
+
+                        {/* PRECIOS */}
+
+                        <div className="promo-season-prices">
+                          {product.hasDiscount && (
+                            <del>
+                              {money(
+                                product.original
+                              )}
+                            </del>
+                          )}
+
+                          <strong>
+                            {money(
+                              product.price
+                            )}
+                          </strong>
+
+                          {product.hasDiscount && (
+                            <span className="promo-season-saving">
+                              Ahorras{" "}
+                              {money(
+                                product.savings
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* BENEFICIO */}
+
+                        <div className="promo-season-benefit">
+                          {product.hasDiscount
+                            ? `✓ ${product.discount}% de descuento`
+                            : "✓ Producto destacado"}
+                        </div>
+
+                        {/* BOTON CARRITO */}
+
+                        <button
+                          type="button"
+                          className="promo-season-buy"
+                          onClick={() =>
+                            handleAddToPromoCart(
+                              product
+                            )
+                          }
+                        >
+                          🛒 Agregar al carrito
+                        </button>
+
+                      </div>
+                    </article>
+                  )
+                )}
               </div>
             )}
+
+          {/* NAVEGACION PROMOCIONAL */}
 
           <div className="promo-season-footer">
             <Link to="/promo-cart">
@@ -809,20 +1193,26 @@ export default function Promotions() {
           </div>
         </section>
 
-        {/* =====================================
+        {/* ==================================
             GAMING ZONE
-        ===================================== */}
+        ================================== */}
+
         <section
           id="gaming"
           className="gaming-zone"
         >
+
+          {/* ENCABEZADO GAMING */}
+
           <div className="gaming-zone-header">
             <div>
               <span className="gaming-zone-label">
                 🎮 NICA S-MART GAMING
               </span>
 
-              <h2>Gaming Zone</h2>
+              <h2>
+                Gaming Zone
+              </h2>
 
               <p>
                 Descubre teclados RGB, mouse gamer,
@@ -836,44 +1226,57 @@ export default function Promotions() {
             </span>
           </div>
 
-          {/* BUSCADOR */}
+          {/* BUSCADOR GAMING */}
+
           <div className="gaming-zone-search">
             <input
               type="search"
               value={gamingSearch}
               onChange={(event) =>
-                setGamingSearch(event.target.value)
+                setGamingSearch(
+                  event.target.value
+                )
               }
               placeholder="🔎 Buscar productos gaming..."
               aria-label="Buscar productos gaming"
             />
           </div>
 
-          {/* FILTROS */}
+          {/* FILTROS GAMING */}
+
           <div className="gaming-zone-categories">
-            {gamingFilters.map((filter) => (
-              <button
-                key={filter.id}
-                type="button"
-                className={
-                  gamingFilter === filter.id
-                    ? "gaming-filter-active"
-                    : ""
-                }
-                onClick={() =>
-                  setGamingFilter(filter.id)
-                }
-              >
-                {filter.label}
-              </button>
-            ))}
+            {gamingFilters.map(
+              (filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  className={
+                    gamingFilter ===
+                    filter.id
+                      ? "gaming-filter-active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setGamingFilter(
+                      filter.id
+                    )
+                  }
+                >
+                  {filter.label}
+                </button>
+              )
+            )}
           </div>
+
+          {/* CARGANDO */}
 
           {loading && (
             <div className="gaming-zone-empty">
               Cargando productos gaming...
             </div>
           )}
+
+          {/* ERROR */}
 
           {!loading && error && (
             <div
@@ -883,6 +1286,8 @@ export default function Promotions() {
               No se pudo cargar el catálogo gaming.
             </div>
           )}
+
+          {/* SIN RESULTADOS */}
 
           {!loading &&
             !error &&
@@ -900,6 +1305,8 @@ export default function Promotions() {
               </div>
             )}
 
+          {/* PRODUCTOS GAMING */}
+
           {!loading &&
             !error &&
             filteredGamingProducts.length > 0 && (
@@ -910,7 +1317,9 @@ export default function Promotions() {
                       key={product.id}
                       className="gaming-zone-card"
                     >
+
                       {/* IMAGEN */}
+
                       <div className="gaming-zone-image">
                         {product.hasDiscount && (
                           <span className="gaming-zone-discount">
@@ -921,41 +1330,61 @@ export default function Promotions() {
                         <Link
                           to={`/product/${product.id}`}
                         >
-                          <PromotionImage product={product} />
+                          <PromotionImage
+                            product={product}
+                          />
                         </Link>
                       </div>
 
-                      {/* INFORMACIÓN */}
+                      {/* INFORMACION */}
+
                       <div className="gaming-zone-info">
                         <span className="gaming-zone-type">
                           GAMING
                         </span>
 
-                        <h3>{product.name}</h3>
+                        <h3>
+                          {product.name}
+                        </h3>
 
                         <p>
                           {product.description
-                            ? String(product.description).slice(0, 85)
+                            ? String(
+                                product.description
+                              ).slice(0, 85)
                             : "Producto gaming disponible en NICA S-MART"}
                         </p>
+
+                        {/* PRECIOS */}
 
                         <div className="gaming-zone-prices">
                           {product.hasDiscount && (
                             <del>
-                              {money(product.original)}
+                              {money(
+                                product.original
+                              )}
                             </del>
                           )}
 
                           <strong>
-                            {money(product.price)}
+                            {money(
+                              product.price
+                            )}
                           </strong>
                         </div>
 
+                        {/* AHORRO */}
+
                         {product.hasDiscount && (
                           <div className="gaming-zone-saving">
-                            Ahorras {money(product.savings)}
+                            Ahorras{" "}
+                            {money(
+                              product.savings
+                            )}
                           </div>
                         )}
+
+                        {/* ACCIONES */}
 
                         <div className="gaming-zone-actions">
                           <Link
@@ -969,21 +1398,28 @@ export default function Promotions() {
                             type="button"
                             className="gaming-zone-buy"
                             onClick={() =>
-                              handleAddToPromoCart(product)
+                              handleAddToPromoCart(
+                                product
+                              )
                             }
                           >
                             🛒 Agregar
                           </button>
                         </div>
+
                       </div>
                     </article>
                   )
                 )}
               </div>
             )}
+
         </section>
 
-        {/* CATEGORÍAS DESTACADAS */}
+        {/* ==================================
+            CATEGORIAS DESTACADAS
+        ================================== */}
+
         <section className="seasonal-categories">
           <div className="promotions-header">
             <div>
@@ -1008,19 +1444,29 @@ export default function Promotions() {
             </Link>
           </div>
 
+          {/* LISTADO DE CATEGORIAS */}
+
           <div className="seasonal-categories-grid">
-            {categories.map(([icon, name]) => (
-              <Link
-                key={name}
-                to="/categories"
-                className="seasonal-category"
-              >
-                <span>{icon}</span>
-                <strong>{name}</strong>
-              </Link>
-            ))}
+            {categories.map(
+              ([icon, name]) => (
+                <Link
+                  key={name}
+                  to="/categories"
+                  className="seasonal-category"
+                >
+                  <span>
+                    {icon}
+                  </span>
+
+                  <strong>
+                    {name}
+                  </strong>
+                </Link>
+              )
+            )}
           </div>
         </section>
+
       </main>
 
       <Footer />
