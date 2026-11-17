@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   Link,
@@ -16,6 +15,30 @@ import { getProducts } from "../services/api";
 import { addPromoProduct } from "../utils/promoCart";
 
 import "./Promotions.css";
+
+const API_URL = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+).trim().replace(/\/+$/, '');
+
+function getImageUrl(path) {
+  if (!path) return null;
+  // 1. Si ya es una URL completa o un base64
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  
+  // 2. Si la ruta ya incluye 'uploads/' (con o sin barra al inicio)
+  if (path.includes('uploads/')) {
+    const filename = path.split('uploads/')[1];
+    return `${API_URL}/uploads/${filename}`;
+  }
+  
+  if (!path.includes('/')) {
+    return `${API_URL}/uploads/${path}`;
+  }
+  
+
+  return path;
+}
 
 const TIMEZONE = "America/Managua";
 const PRODUCTS_TO_SHOW = 4;
@@ -76,7 +99,6 @@ const seasonalKeywords = {
   ],
 };
 
-// CONFIGURACIÓN GAMING
 const gamingFilters = [
   {
     id: "all",
@@ -134,7 +156,6 @@ const gamingKeywords = [
   "volante",
 ];
 
-// NORMALIZAR TEXTO
 function normalize(value) {
   return String(value ?? "")
     .toLowerCase()
@@ -156,7 +177,7 @@ function getProductText(product) {
   ].join(" "));
 }
 
-// IDENTIFICAR PRODUCTOS GAMING
+
 function isGamingProduct(product) {
   const category =
     typeof product.category === "string"
@@ -181,7 +202,7 @@ function isGamingProduct(product) {
   );
 }
 
-// PRIORIDAD POR TEMPORADA
+
 function getSeasonalScore(product, campaign) {
   const keywords =
     campaign?.keywords ||
@@ -199,7 +220,7 @@ function getSeasonalScore(product, campaign) {
   );
 }
 
-// NORMALIZAR PRECIOS Y DESCUENTOS
+
 function normalizeProduct(product, campaign) {
   const price = Number(product.price);
 
@@ -240,7 +261,7 @@ function normalizeProduct(product, campaign) {
   };
 }
 
-// COMPONENTE DE IMAGEN
+
 function PromotionImage({ product }) {
   const rawImage =
     product.image_url ||
@@ -249,18 +270,16 @@ function PromotionImage({ product }) {
     product.images?.[0] ||
     null;
 
-  const image =
-    typeof rawImage === "string"
-      ? rawImage
-      : null;
+  const imagePath = typeof rawImage === "string" ? rawImage : null;
+  const finalImage = getImageUrl(imagePath);
 
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setFailed(false);
-  }, [image]);
+  }, [finalImage]);
 
-  if (!image || failed) {
+  if (!finalImage || failed) {
     return (
       <span
         className="promotion-image-fallback"
@@ -274,7 +293,7 @@ function PromotionImage({ product }) {
 
   return (
     <img
-      src={image}
+      src={finalImage}
       alt={product.name}
       loading="lazy"
       onError={() => setFailed(true)}
@@ -282,7 +301,7 @@ function PromotionImage({ product }) {
   );
 }
 
-// CONTADOR REGRESIVO
+
 function calculateCountdown(now, campaign) {
   const parts = new Intl.DateTimeFormat(
     "en-US",
@@ -301,7 +320,7 @@ function calculateCountdown(now, campaign) {
     parts.find((p) => p.type === "month")?.value
   );
 
-  // Fin del mes en Managua, UTC-6
+
   let deadline = Date.UTC(
     year,
     month,
@@ -311,8 +330,6 @@ function calculateCountdown(now, campaign) {
     0
   );
 
-  // Utilizar la fecha final de la campaña
-  // cuando esté configurada y sea válida.
   if (campaign?.endsAt) {
     const configured = Date.parse(campaign.endsAt);
 
