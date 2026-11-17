@@ -28,7 +28,8 @@ import {
   FiRefreshCw,
   FiNavigation,
   FiArrowRight,
-  FiXCircle
+  FiXCircle,
+  FiDownload
 } from 'react-icons/fi'
 
 import Header from '../components/Header'
@@ -37,20 +38,10 @@ import Footer from '../components/Footer'
 
 import '../styles/myOrders.css'
 
-// ==========================================
-// CONFIGURACIÓN DE API
-// ==========================================
-
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '')
-)
-  .trim()
-  .replace(/\/+$/, '')
-
-// ==========================================
-// FORMATO DE MONEDA
-// ==========================================
+).trim().replace(/\/+$/, '')
 
 const formatMoney = (value) =>
   new Intl.NumberFormat('es-NI', {
@@ -58,10 +49,6 @@ const formatMoney = (value) =>
     currency: 'NIO',
     maximumFractionDigits: 0
   }).format(Number(value) || 0)
-
-// ==========================================
-// FORMATO DE FECHA
-// ==========================================
 
 const formatDate = (value) => {
   if (!value) return 'Fecha no disponible'
@@ -80,10 +67,6 @@ const formatDate = (value) => {
   }).format(date)
 }
 
-// ==========================================
-// IDENTIFICAR ESTADOS REALES
-// ==========================================
-
 const normalizeStatus = (value) =>
   String(value ?? '')
     .trim()
@@ -96,12 +79,8 @@ function getStatusInfo(value) {
   const status = normalizeStatus(value)
 
   if (
-    [
-      'delivered',
-      'entregado',
-      'completed',
-      'completado'
-    ].includes(status)
+    ['delivered', 'entregado', 'completed', 'completado']
+      .includes(status)
   ) {
     return {
       label: 'Entregado',
@@ -112,12 +91,8 @@ function getStatusInfo(value) {
   }
 
   if (
-    [
-      'cancelled',
-      'canceled',
-      'cancelado',
-      'rechazado'
-    ].includes(status)
+    ['cancelled', 'canceled', 'cancelado', 'rechazado']
+      .includes(status)
   ) {
     return {
       label: 'Cancelado',
@@ -189,48 +164,50 @@ function getStatusInfo(value) {
   }
 }
 
-// ==========================================
-// ETAPAS DE ENTREGA
-// ==========================================
-
 const ORDER_STEPS = [
-  {
-    label: 'Pedido recibido',
-    Icon: FiShoppingBag
-  },
-  {
-    label: 'En preparación',
-    Icon: FiPackage
-  },
-  {
-    label: 'En camino',
-    Icon: FiTruck
-  },
-  {
-    label: 'Entregado',
-    Icon: FiCheckCircle
-  }
+  { label: 'Pedido recibido', Icon: FiShoppingBag },
+  { label: 'En preparación', Icon: FiPackage },
+  { label: 'En camino', Icon: FiTruck },
+  { label: 'Entregado', Icon: FiCheckCircle }
 ]
 
-// ==========================================
-// OBTENER ARTÍCULOS
-// ==========================================
-
 function getOrderItems(order) {
-  if (Array.isArray(order.items)) {
+  if (Array.isArray(order?.items)) {
     return order.items
   }
 
-  if (Array.isArray(order.order_items)) {
+  if (Array.isArray(order?.order_items)) {
     return order.order_items
+  }
+
+  if (typeof order?.items === 'string') {
+    try {
+      const parsed = JSON.parse(order.items)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
   }
 
   return []
 }
 
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
+function getPaymentInfo(order) {
+  if (
+    order.payment_method === 'tarjeta_simulada' ||
+    order.payment_method === 'transferencia_simulada'
+  ) {
+    return {
+      label: 'Pago de demostración',
+      description: 'No se realizó un cobro bancario real.'
+    }
+  }
+
+  return {
+    label: 'Estado del pago',
+    description: order.payment_status || 'No disponible'
+  }
+}
 
 function MyOrders() {
   const navigate = useNavigate()
@@ -243,7 +220,7 @@ function MyOrders() {
   const [lastUpdated, setLastUpdated] = useState(null)
 
   // ==========================================
-  // CONSULTAR PEDIDOS DE POSTGRESQL
+  // CONSULTAR PEDIDOS DESDE POSTGRESQL
   // ==========================================
 
   const fetchOrders = useCallback(
@@ -278,9 +255,7 @@ function MyOrders() {
           }
         )
 
-        const data = await response
-          .json()
-          .catch(() => null)
+        const data = await response.json().catch(() => null)
 
         if (signal?.aborted) return
 
@@ -321,7 +296,6 @@ function MyOrders() {
         setOrders(sortedOrders)
         setError('')
         setLastUpdated(new Date())
-
       } catch (err) {
         if (signal?.aborted || err.name === 'AbortError') {
           return
@@ -332,7 +306,6 @@ function MyOrders() {
         setError(
           err.message || 'Error al cargar los pedidos.'
         )
-
       } finally {
         if (!signal?.aborted) {
           setLoading(false)
@@ -344,12 +317,11 @@ function MyOrders() {
   )
 
   // ==========================================
-  // CARGAR PEDIDOS Y ACTUALIZAR ESTADOS
+  // ACTUALIZACIÓN AUTOMÁTICA CADA 30 SEGUNDOS
   // ==========================================
 
   useEffect(() => {
     const controller = new AbortController()
-
     let inFlight = false
 
     const load = async (silent = false) => {
@@ -368,9 +340,6 @@ function MyOrders() {
     }
 
     load()
-
-    // Actualizar cada 30 segundos cuando
-    // la página esté visible.
 
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -392,17 +361,12 @@ function MyOrders() {
     return () => {
       controller.abort()
       window.clearInterval(interval)
-
       document.removeEventListener(
         'visibilitychange',
         handleVisibilityChange
       )
     }
   }, [fetchOrders])
-
-  // ==========================================
-  // ABRIR Y CERRAR DETALLES
-  // ==========================================
 
   const toggleOrder = (id) => {
     setExpandedOrders((previous) => ({
@@ -411,44 +375,30 @@ function MyOrders() {
     }))
   }
 
-  // ==========================================
-  // INTERFAZ
-  // ==========================================
-
   return (
     <>
       <Header />
       <Navbar />
 
       <main className="my-orders-page">
-
         <div className="my-orders-container">
 
-          {/* RUTA DE NAVEGACIÓN */}
+          {/* NAVEGACIÓN */}
 
           <nav
             className="my-orders-breadcrumb"
             aria-label="Ruta de navegación"
           >
             <Link to="/">Inicio</Link>
-
             <FiChevronRight />
-
-            <Link to="/profile">
-              Mi cuenta
-            </Link>
-
+            <Link to="/profile">Mi cuenta</Link>
             <FiChevronRight />
-
             <span>Mis pedidos</span>
           </nav>
 
-          {/* ==================================
-              ENCABEZADO
-          ================================== */}
+          {/* ENCABEZADO */}
 
           <div className="my-orders-heading">
-
             <div>
               <span className="my-orders-eyebrow">
                 NICA S-MART · MI CUENTA
@@ -457,9 +407,9 @@ function MyOrders() {
               <h1>Mis pedidos</h1>
 
               <p>
-                Consultá tus compras, revisá los
-                productos y seguí el estado de
-                tus entregas.
+                Consultá tus compras, descargá tus
+                comprobantes digitales y seguí el
+                estado de tus entregas.
               </p>
             </div>
 
@@ -467,22 +417,17 @@ function MyOrders() {
               <FiShoppingBag />
               <FiFileText />
             </div>
-
           </div>
 
-          {/* ==================================
-              BARRA DE ACTUALIZACIÓN
-          ================================== */}
+          {/* BARRA DE ACTUALIZACIÓN */}
 
           {!loading && (
             <div className="my-orders-toolbar">
-
               <div className="my-orders-toolbar-info">
                 <FiPackage />
 
                 <span>
-                  {orders.length}
-                  {' '}
+                  {orders.length}{' '}
                   {orders.length === 1
                     ? 'pedido registrado'
                     : 'pedidos registrados'}
@@ -507,48 +452,31 @@ function MyOrders() {
                 type="button"
                 className="my-orders-refresh"
                 disabled={refreshing}
-                onClick={() =>
-                  fetchOrders({ silent: true })
-                }
+                onClick={() => fetchOrders({ silent: true })}
               >
                 <FiRefreshCw />
-
                 {refreshing
                   ? 'Actualizando...'
                   : 'Actualizar pedidos'}
               </button>
-
             </div>
           )}
 
-          {/* ==================================
-              CARGANDO
-          ================================== */}
+          {/* CARGANDO */}
 
           {loading && (
             <div className="my-orders-message">
-
               <div className="my-orders-loader" />
-
               <h2>Cargando tus pedidos...</h2>
-
-              <p>
-                Estamos consultando tu historial
-                de compras.
-              </p>
-
+              <p>Estamos consultando tu historial de compras.</p>
             </div>
           )}
 
-          {/* ==================================
-              ERROR
-          ================================== */}
+          {/* ERROR */}
 
           {!loading && error && (
             <div className="my-orders-alert" role="alert">
-
               <FiAlertCircle />
-
               <span>{error}</span>
 
               <button
@@ -566,28 +494,22 @@ function MyOrders() {
                   Iniciar sesión
                 </button>
               )}
-
             </div>
           )}
 
-          {/* ==================================
-              SIN PEDIDOS
-          ================================== */}
+          {/* SIN PEDIDOS */}
 
           {!loading &&
             !error &&
             orders.length === 0 && (
-
               <div className="my-orders-message">
-
                 <FiPackage className="my-orders-message-icon" />
 
                 <h2>Aún no tenés pedidos</h2>
 
                 <p>
                   Cuando realicés tu primera compra,
-                  aparecerá aquí para que podás
-                  consultar su estado.
+                  aparecerá aquí junto con su comprobante.
                 </p>
 
                 <Link
@@ -597,30 +519,26 @@ function MyOrders() {
                   <FiShoppingCart />
                   Explorar productos
                 </Link>
-
               </div>
             )}
 
-          {/* ==================================
-              LISTADO DE PEDIDOS
-          ================================== */}
+          {/* LISTADO */}
 
           {!loading && orders.length > 0 && (
-
             <section className="my-orders-list">
-
               {orders.map((order) => {
                 const status = getStatusInfo(order.status)
-
                 const StatusIcon = status.Icon
 
-                const expanded = Boolean(
-                  expandedOrders[order.id]
-                )
-
-                const items = getOrderItems(order)
-
                 const orderId = order.id
+                const items = getOrderItems(order)
+                const expanded = Boolean(
+                  expandedOrders[orderId]
+                )
+                const payment = getPaymentInfo(order)
+
+                const invoiceUrl =
+                  `/invoice/${encodeURIComponent(orderId)}`
 
                 return (
                   <article
@@ -631,14 +549,9 @@ function MyOrders() {
                     {/* ENCABEZADO DEL PEDIDO */}
 
                     <div className="my-order-header">
-
                       <div className="my-order-title-block">
-
                         <div className="my-order-title-row">
-
-                          <h2>
-                            Pedido #{orderId}
-                          </h2>
+                          <h2>Pedido #{orderId}</h2>
 
                           <span
                             className={
@@ -648,7 +561,6 @@ function MyOrders() {
                             <StatusIcon />
                             {status.label}
                           </span>
-
                         </div>
 
                         <p>
@@ -658,19 +570,28 @@ function MyOrders() {
                             order.createdAt
                           )}
                         </p>
-
                       </div>
 
-                      {/* ACCIONES */}
+                      {/* BOTONES */}
 
                       <div className="my-order-actions">
-
                         <Link
                           to={`/tracking/${encodeURIComponent(orderId)}`}
                           className="my-orders-button primary"
                         >
                           <FiNavigation />
                           Seguir pedido
+                        </Link>
+
+                        {/* NUEVO: COMPROBANTE DIGITAL */}
+
+                        <Link
+                          to={invoiceUrl}
+                          className="my-orders-button secondary"
+                          title="Ver comprobante y descargar PDF"
+                        >
+                          <FiDownload />
+                          Ver comprobante
                         </Link>
 
                         <button
@@ -680,28 +601,20 @@ function MyOrders() {
                           aria-expanded={expanded}
                         >
                           <FiFileText />
-
                           {expanded
                             ? 'Ocultar detalles'
                             : 'Ver detalles'}
                         </button>
-
                       </div>
-
                     </div>
 
-                    {/* ==================================
-                        PROGRESO DEL PEDIDO
-                    ================================== */}
+                    {/* PROGRESO */}
 
                     {status.step > 0 && (
                       <div className="my-order-progress">
-
                         {ORDER_STEPS.map((step, index) => {
                           const StepIcon = step.Icon
-
-                          const done =
-                            index + 1 <= status.step
+                          const done = index + 1 <= status.step
 
                           return (
                             <div
@@ -712,97 +625,69 @@ function MyOrders() {
                               }
                               key={step.label}
                             >
-
                               <div className="my-order-progress-icon">
                                 <StepIcon />
                               </div>
 
-                              <span>
-                                {step.label}
-                              </span>
-
+                              <span>{step.label}</span>
                             </div>
                           )
                         })}
-
                       </div>
                     )}
 
-                    {/* ==================================
-                        RESUMEN
-                    ================================== */}
+                    {/* RESUMEN */}
 
                     <div className="my-order-summary">
 
-                      {/* TOTAL */}
-
                       <div className="my-order-summary-item">
-
                         <div className="my-order-summary-icon">
                           <FiCreditCard />
                         </div>
 
                         <div>
                           <span>Total del pedido</span>
-
                           <strong className="my-order-total">
                             {formatMoney(order.total)}
                           </strong>
                         </div>
-
                       </div>
 
-                      {/* CLIENTE */}
-
                       <div className="my-order-summary-item">
-
                         <div className="my-order-summary-icon">
                           <FiUser />
                         </div>
 
                         <div>
                           <span>Cliente</span>
-
                           <strong>
-                            {order.customer_name ||
-                              'Cliente'}
+                            {order.customer_name || 'Cliente'}
                           </strong>
                         </div>
-
                       </div>
 
-                      {/* DIRECCIÓN */}
-
                       <div className="my-order-summary-item">
-
                         <div className="my-order-summary-icon">
                           <FiMapPin />
                         </div>
 
                         <div>
                           <span>Dirección de entrega</span>
-
                           <strong>
                             {order.customer_address ||
                               'No registrada'}
                           </strong>
                         </div>
-
                       </div>
 
-                      {/* SUBTOTAL Y ENVÍO */}
-
                       <div className="my-order-summary-item">
-
                         <div className="my-order-summary-icon">
                           <FiTruck />
                         </div>
 
                         <div className="my-order-price-breakdown">
-
                           <div>
                             <span>Subtotal</span>
-
                             <strong>
                               {formatMoney(order.subtotal)}
                             </strong>
@@ -810,36 +695,24 @@ function MyOrders() {
 
                           <div>
                             <span>Envío</span>
-
                             <strong>
                               {formatMoney(order.shipping)}
                             </strong>
                           </div>
-
                         </div>
-
                       </div>
-
                     </div>
 
-                    {/* ==================================
-                        PRODUCTOS COMPRADOS
-                    ================================== */}
+                    {/* PRODUCTOS */}
 
                     {items.length > 0 && (
-
                       <div className="my-order-products">
-
                         <h3>
-                          Productos del pedido
-                          {' '}
-                          ({items.length})
+                          Productos del pedido ({items.length})
                         </h3>
 
                         <div className="my-order-product-list">
-
                           {items.map((item, index) => (
-
                             <div
                               key={
                                 item.id ??
@@ -848,9 +721,7 @@ function MyOrders() {
                               }
                               className="my-order-product"
                             >
-
                               <div className="my-order-product-image">
-
                                 {item.image ? (
                                   <img
                                     src={item.image}
@@ -864,11 +735,9 @@ function MyOrders() {
                                 ) : (
                                   <FiPackage />
                                 )}
-
                               </div>
 
                               <div className="my-order-product-info">
-
                                 <strong>
                                   {item.product_name ||
                                     item.name ||
@@ -876,59 +745,39 @@ function MyOrders() {
                                 </strong>
 
                                 <span>
-                                  Producto #
-                                  {item.product_id ?? 'N/D'}
+                                  Producto #{item.product_id ?? 'N/D'}
                                 </span>
-
                               </div>
 
                               <div className="my-order-product-quantity">
-
                                 <span>Cantidad</span>
-
                                 <strong>
                                   {item.quantity || 1}
                                 </strong>
-
                               </div>
 
                               <div className="my-order-product-price">
-
                                 <span>Precio</span>
-
                                 <strong>
                                   {formatMoney(item.price)}
                                 </strong>
-
                               </div>
-
                             </div>
                           ))}
-
                         </div>
-
                       </div>
                     )}
 
-                    {/* ==================================
-                        DETALLES ADICIONALES
-                    ================================== */}
+                    {/* DETALLES ADICIONALES */}
 
                     {expanded && (
-
                       <div className="my-order-details">
-
-                        <h3>
-                          Información de tu compra
-                        </h3>
+                        <h3>Información de tu compra</h3>
 
                         <div className="my-order-details-grid">
-
                           <div>
                             <FiCalendar />
-
                             <span>Fecha del pedido</span>
-
                             <strong>
                               {formatDate(
                                 order.created_at ||
@@ -939,9 +788,7 @@ function MyOrders() {
 
                           <div>
                             <FiPhone />
-
                             <span>Teléfono</span>
-
                             <strong>
                               {order.customer_phone ||
                                 'No registrado'}
@@ -950,9 +797,7 @@ function MyOrders() {
 
                           <div>
                             <FiMapPin />
-
                             <span>Dirección</span>
-
                             <strong>
                               {order.customer_address ||
                                 'No registrada'}
@@ -961,23 +806,36 @@ function MyOrders() {
 
                           <div>
                             <FiCreditCard />
-
                             <span>Total registrado</span>
-
                             <strong>
                               {formatMoney(order.total)}
                             </strong>
                           </div>
 
+                          <div>
+                            <FiFileText />
+                            <span>{payment.label}</span>
+                            <strong>
+                              {payment.description}
+                            </strong>
+                          </div>
                         </div>
 
                         {items.length === 0 && (
                           <p className="my-order-details-note">
-                            El servidor todavía no ha
-                            proporcionado el detalle
-                            de los productos de este pedido.
+                            El servidor todavía no ha proporcionado
+                            los productos de este pedido.
                           </p>
                         )}
+
+                        <Link
+                          to={invoiceUrl}
+                          className="my-orders-track-link"
+                        >
+                          <FiDownload />
+                          Abrir comprobante digital
+                          <FiArrowRight />
+                        </Link>
 
                         <Link
                           to={`/tracking/${encodeURIComponent(orderId)}`}
@@ -987,19 +845,14 @@ function MyOrders() {
                           Consultar seguimiento
                           <FiArrowRight />
                         </Link>
-
                       </div>
                     )}
-
                   </article>
                 )
               })}
-
             </section>
           )}
-
         </div>
-
       </main>
 
       <Footer />

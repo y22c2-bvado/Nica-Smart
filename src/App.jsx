@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 
 import ScrollToTop from './components/ScrollToTop'
+
 import Home from './pages/Home'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
@@ -28,11 +29,16 @@ import ResetPassword from './pages/ResetPassword'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import MyOrders from './pages/MyOrders'
+import Invoice from './pages/Invoice'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import DataDeletion from './pages/DataDeletion'
+
+// ==========================================
+// PROTEGER RUTAS PRIVADAS
+// ==========================================
 
 function RequireAuth({ children }) {
   const location = useLocation()
@@ -55,6 +61,10 @@ function RequireAuth({ children }) {
 
   return children
 }
+
+// ==========================================
+// APLICACIÓN PRINCIPAL
+// ==========================================
 
 function App() {
   return (
@@ -196,6 +206,20 @@ function App() {
           element={
             <RequireAuth>
               <Checkout />
+            </RequireAuth>
+          }
+        />
+
+        {/* ==================================
+            FACTURA DIGITAL
+            /invoice/123
+        ================================== */}
+
+        <Route
+          path="/invoice/:id"
+          element={
+            <RequireAuth>
+              <Invoice />
             </RequireAuth>
           }
         />
