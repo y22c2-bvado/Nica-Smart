@@ -1,0 +1,340 @@
+
+/* ========================================
+   NICA S-MART - COMPROBANTE DIGITAL
+======================================== */
+
+.invoice-page {
+  min-height: 100vh;
+  padding: 35px 20px 80px;
+  background: #eff1f4;
+  color: #121826;
+}
+
+.invoice-page * {
+  box-sizing: border-box;
+}
+
+.invoice-toolbar {
+  width: min(900px, 100%);
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.invoice-back {
+  color: #475569;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.invoice-back:hover {
+  color: #1565d8;
+}
+
+.invoice-download {
+  padding: 13px 22px;
+  color: white;
+  background: #1565d8;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.invoice-download:hover {
+  background: #104fa7;
+}
+
+.invoice-paper {
+  width: min(900px, 100%);
+  margin: auto;
+  padding: 45px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.invoice-header h1 {
+  margin: 0;
+  color: #121826;
+  font-size: 31px;
+  font-weight: 850;
+  letter-spacing: -1px;
+}
+
+.invoice-header h1 span {
+  color: #1565d8;
+}
+
+.invoice-header p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.invoice-heading-right {
+  text-align: right;
+}
+
+.invoice-heading-right h2 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.5px;
+}
+
+.invoice-demo-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.invoice-divider {
+  height: 1px;
+  margin: 30px 0;
+  background: #e2e8f0;
+}
+
+.invoice-information {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 35px;
+  margin-bottom: 30px;
+}
+
+.invoice-information h3,
+.invoice-customer h3,
+.invoice-products h3,
+.invoice-payment h3 {
+  margin: 0 0 13px;
+  color: #121826;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.invoice-information p,
+.invoice-customer p {
+  margin: 7px 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.invoice-customer {
+  padding: 22px;
+  margin-bottom: 32px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.invoice-customer strong {
+  font-size: 15px;
+}
+
+.invoice-products {
+  margin-bottom: 25px;
+}
+
+.invoice-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.invoice-products table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.invoice-products th {
+  padding: 15px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.invoice-products td {
+  padding: 17px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #121826;
+  font-size: 13px;
+}
+
+.invoice-products th:not(:first-child),
+.invoice-products td:not(:first-child) {
+  text-align: right;
+}
+
+.invoice-totals-container {
+  display: flex;
+  justify-content: flex-end;
+  margin: 30px 0;
+}
+
+.invoice-totals {
+  width: min(340px, 100%);
+}
+
+.invoice-totals > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.invoice-totals span {
+  color: #64748b;
+}
+
+.invoice-totals strong {
+  color: #121826;
+}
+
+.invoice-totals .invoice-total {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.invoice-total span {
+  color: #121826;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.invoice-total strong {
+  color: #1565d8;
+  font-size: 23px;
+  white-space: nowrap;
+}
+
+.invoice-payment {
+  padding: 22px;
+  margin: 30px 0;
+  background: #f1f5f9;
+  border-radius: 12px;
+}
+
+.invoice-payment p {
+  margin: 9px 0;
+  color: #475569;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.invoice-payment .invoice-unpaid {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.invoice-footer {
+  padding-top: 28px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.invoice-footer h3 {
+  margin: 0 0 12px;
+  color: #121826;
+  font-size: 17px;
+}
+
+.invoice-footer p {
+  margin: 7px 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.invoice-message {
+  width: min(900px, 100%);
+  margin: 35px auto;
+  padding: 35px;
+  background: #fff;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.invoice-error {
+  color: #b42318;
+}
+
+@media (max-width: 650px) {
+  .invoice-page {
+    padding: 20px 12px 50px;
+  }
+
+  .invoice-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .invoice-paper {
+    padding: 25px 18px;
+    border-radius: 13px;
+  }
+
+  .invoice-header {
+    flex-direction: column;
+  }
+
+  .invoice-heading-right {
+    text-align: left;
+  }
+
+  .invoice-header h1 {
+    font-size: 27px;
+  }
+
+  .invoice-information {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .invoice-products table {
+    min-width: 550px;
+  }
+
+  .invoice-total strong {
+    font-size: 19px;
+  }
+}
+
+@media print {
+  .invoice-toolbar {
+    display: none;
+  }
+
+  .invoice-page {
+    padding: 0;
+    background: white;
+  }
+
+  .invoice-paper {
+    width: 100%;
+    padding: 15mm;
+    border: none;
+    box-shadow: none;
+  }
+}
