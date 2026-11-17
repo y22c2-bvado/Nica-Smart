@@ -3,18 +3,23 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import '../styles/login.css'
 
-const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? 'http://localhost:3000'
-    : 'https://nica-smart-backend.onrender.com')
-).trim().replace(/\/+$/, '')
 
-const FACEBOOK_APP_ID = (
+const API_BASE = String(
+  import.meta.env.VITE_API_URL ||
+    (import.meta.env.DEV
+      ? 'http://localhost:3000'
+      : 'https://nica-smart-backend.onrender.com')
+)
+  .trim()
+  .replace(/\/+$/, '')
+  .replace(/\/api$/, '')
+
+const FACEBOOK_APP_ID = String(
   import.meta.env.VITE_FACEBOOK_APP_ID || ''
 ).trim()
 
 const FACEBOOK_VERSION = 'v24.0'
+
 
 function Login() {
   const navigate = useNavigate()
@@ -31,23 +36,29 @@ function Login() {
       ? requestedFrom
       : '/'
 
+
+
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [facebookLoading, setFacebookLoading] = useState(false)
   const [facebookReady, setFacebookReady] = useState(false)
   const [error, setError] = useState('')
+
   const busy = loading || googleLoading || facebookLoading
 
 
   useEffect(() => {
-    if (!FACEBOOK_APP_ID) return
+    if (!FACEBOOK_APP_ID) return undefined
 
     let active = true
-    let sdkScript = document.getElementById('facebook-jssdk')
+
+    const scriptId = 'facebook-jssdk'
+    let sdkScript = document.getElementById(scriptId)
 
     const initializeFacebook = () => {
       if (!active || !window.FB) return
@@ -55,15 +66,25 @@ function Login() {
       try {
         window.FB.init({
           appId: FACEBOOK_APP_ID,
-          cookie: false,
+          cookie: true,
           xfbml: false,
-          version: FACEBOOK_VERSION
+          version: FACEBOOK_VERSION,
         })
 
         setFacebookReady(true)
       } catch (err) {
-        console.error('Error inicializando Facebook:', err)
+        console.error(
+          'Error inicializando Facebook:',
+          err
+        )
+
         setFacebookReady(false)
+
+        setError(
+          `No se pudo inicializar Facebook: ${
+            err?.message || 'error desconocido'
+          }`
+        )
       }
     }
 
@@ -73,18 +94,22 @@ function Login() {
       initializeFacebook()
     } else if (!sdkScript) {
       sdkScript = document.createElement('script')
-      sdkScript.id = 'facebook-jssdk'
+
+      sdkScript.id = scriptId
       sdkScript.src =
         'https://connect.facebook.net/es_LA/sdk.js'
+
       sdkScript.async = true
       sdkScript.defer = true
 
       sdkScript.onerror = () => {
         if (active) {
           setFacebookReady(false)
+
           setError(
             'No se pudo cargar Facebook. ' +
-            'Revisá tu conexión o los bloqueadores del navegador.'
+            'Desactivá temporalmente los bloqueadores ' +
+            'y revisá la conexión.'
           )
         }
       }
@@ -100,20 +125,29 @@ function Login() {
     return () => {
       active = false
 
-      if (sdkScript) {
-        sdkScript.removeEventListener(
-          'load',
-          initializeFacebook
-        )
+      sdkScript?.removeEventListener(
+        'load',
+        initializeFacebook
+      )
+
+      if (window.fbAsyncInit === initializeFacebook) {
+        window.fbAsyncInit = undefined
       }
     }
   }, [])
 
-  const saveSession = (data, sessionRemembered = false) => {
+  // ========================================
+  // GUARDAR SESIÓN
+  // ========================================
+
+  const saveSession = (
+    data,
+    sessionRemembered = false
+  ) => {
     const token = data?.token
     const user = data?.user
 
-    if (!token || typeof token !== 'string') {
+    if (typeof token !== 'string' || !token) {
       throw new Error(
         'El servidor no devolvió un token de autenticación.'
       )
@@ -121,7 +155,6 @@ function Login() {
 
     if (
       !user ||
-      typeof user !== 'object' ||
       typeof user.email !== 'string' ||
       !user.email.trim()
     ) {
@@ -132,19 +165,27 @@ function Login() {
 
     const userData = {
       id: user.id,
+
       name:
-        typeof user.name === 'string' && user.name.trim()
+        typeof user.name === 'string' &&
+        user.name.trim()
           ? user.name.trim()
           : user.email.split('@')[0],
+
       email: user.email.trim(),
       username: user.username || null,
       picture: user.picture || null,
       role: user.role || 'USER',
-      provider: user.provider || 'local'
+      provider: user.provider || 'local',
     }
 
     localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(userData))
+
+    localStorage.setItem(
+      'user',
+      JSON.stringify(userData)
+    )
+
     localStorage.setItem(
       'rememberMe',
       String(sessionRemembered)
@@ -157,40 +198,47 @@ function Login() {
       String(userData.role).toUpperCase() === 'ADMIN'
 
     navigate(isAdmin ? '/admin' : from, {
-      replace: true
+      replace: true,
     })
   }
 
+  // ========================================
+  // PETICIONES DE AUTENTICACIÓN
+  // ========================================
 
   const authRequest = async (endpoint, body) => {
-    if (!API_URL) {
-      throw new Error('El servidor no está configurado.')
-    }
-
     const response = await fetch(
-      `${API_URL}/api/auth/${endpoint}`,
+      `${API_BASE}/api/auth/${endpoint}`,
       {
         method: 'POST',
+
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify(body)
+
+        body: JSON.stringify(body),
       }
     )
 
-    const data = await response.json().catch(() => ({}))
+    const data = await response
+      .json()
+      .catch(() => ({}))
 
     if (!response.ok) {
       throw new Error(
         data.message ||
         data.error ||
-        'No se pudo completar la autenticación.'
+        `Error HTTP ${response.status} al autenticar.`
       )
     }
 
     return data
   }
+
+  // ========================================
+  // VALIDAR CORREO O USUARIO
+  // ========================================
 
   const validateIdentifier = (value) => {
     const cleanValue = value.trim()
@@ -223,17 +271,9 @@ function Login() {
     return null
   }
 
-  const validatePassword = (value) => {
-    if (!value) {
-      return 'La contraseña es obligatoria.'
-    }
-
-    if (value.length > 128) {
-      return 'La contraseña no puede superar 128 caracteres.'
-    }
-
-    return null
-  }
+  // ========================================
+  // LOGIN TRADICIONAL
+  // ========================================
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -242,11 +282,23 @@ function Login() {
 
     setError('')
 
-    const identifierError = validateIdentifier(identifier)
-    const passwordError = validatePassword(password)
+    const validationError =
+      validateIdentifier(identifier)
 
-    if (identifierError || passwordError) {
-      setError(identifierError || passwordError)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    if (!password) {
+      setError('La contraseña es obligatoria.')
+      return
+    }
+
+    if (password.length > 128) {
+      setError(
+        'La contraseña no puede superar 128 caracteres.'
+      )
       return
     }
 
@@ -256,11 +308,10 @@ function Login() {
       const data = await authRequest('login', {
         identifier: identifier.trim(),
         password,
-        rememberMe
+        rememberMe,
       })
 
       saveSession(data, rememberMe)
-
     } catch (err) {
       console.error('Error login:', err)
 
@@ -269,11 +320,14 @@ function Login() {
           ? 'No se pudo conectar al servidor.'
           : err.message || 'Error al iniciar sesión.'
       )
-
     } finally {
       setLoading(false)
     }
   }
+
+  // ========================================
+  // GOOGLE LOGIN
+  // ========================================
 
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
@@ -291,11 +345,10 @@ function Login() {
         }
 
         const data = await authRequest('google', {
-          code: response.code
+          code: response.code,
         })
 
         saveSession(data, false)
-
       } catch (err) {
         console.error('Error Google:', err)
 
@@ -305,7 +358,6 @@ function Login() {
             : err.message ||
               'Error al iniciar sesión con Google.'
         )
-
       } finally {
         setGoogleLoading(false)
       }
@@ -313,7 +365,10 @@ function Login() {
 
     onError: () => {
       setGoogleLoading(false)
-      setError('No se pudo iniciar sesión con Google.')
+
+      setError(
+        'No se pudo iniciar sesión con Google.'
+      )
     },
 
     onNonOAuthError: (googleError) => {
@@ -324,7 +379,7 @@ function Login() {
           ? 'Se cerró la ventana de Google.'
           : 'No se pudo abrir la ventana de Google.'
       )
-    }
+    },
   })
 
   const handleGoogleLogin = () => {
@@ -332,19 +387,21 @@ function Login() {
 
     setError('')
 
-    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()) {
-      setError('Falta configurar el Client ID de Google.')
-      return
-    }
-
-    if (!API_URL) {
-      setError('El servidor no está configurado.')
+    if (
+      !import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
+    ) {
+      setError(
+        'Falta configurar el Client ID de Google.'
+      )
       return
     }
 
     googleLogin()
   }
 
+  // ========================================
+  // FACEBOOK LOGIN
+  // ========================================
 
   const handleFacebookLogin = () => {
     if (busy) return
@@ -353,15 +410,21 @@ function Login() {
 
     if (!FACEBOOK_APP_ID) {
       setError(
-        'Falta configurar VITE_FACEBOOK_APP_ID.'
+        'Falta configurar VITE_FACEBOOK_APP_ID ' +
+        'en el frontend de Render.'
       )
       return
     }
 
-    if (!facebookReady || !window.FB) {
+    if (
+      !facebookReady ||
+      !window.FB ||
+      typeof window.FB.login !== 'function'
+    ) {
       setError(
         'Facebook todavía no está disponible. ' +
-        'Verificá la configuración de Meta Developers.'
+        'Verificá el SDK y la configuración ' +
+        'de Meta Developers.'
       )
       return
     }
@@ -369,6 +432,9 @@ function Login() {
     setFacebookLoading(true)
 
     try {
+      // Importante: ejecutar FB.login
+      // directamente desde el clic del usuario.
+
       window.FB.login(
         async (facebookResponse) => {
           const accessToken =
@@ -376,21 +442,29 @@ function Login() {
 
           if (!accessToken) {
             setFacebookLoading(false)
+
             setError(
-              'No se completó la autorización de Facebook.'
+              'Facebook no autorizó el acceso. ' +
+              'Verificá si cancelaste el inicio ' +
+              'de sesión o si la aplicación está ' +
+              'disponible para tu usuario.'
             )
+
             return
           }
 
           try {
-            const data = await authRequest('facebook', {
-              accessToken
-            })
+            const data = await authRequest(
+              'facebook',
+              { accessToken }
+            )
 
             saveSession(data, false)
-
           } catch (err) {
-            console.error('Error Facebook:', err)
+            console.error(
+              'Error autenticando con Facebook:',
+              err
+            )
 
             setError(
               err instanceof TypeError
@@ -398,42 +472,49 @@ function Login() {
                 : err.message ||
                   'Error al iniciar sesión con Facebook.'
             )
-
           } finally {
             setFacebookLoading(false)
           }
         },
         {
           scope: 'public_profile,email',
-          return_scopes: true
+          return_scopes: true,
         }
       )
-
     } catch (err) {
-      console.error('Error abriendo Facebook:', err)
+      console.error(
+        'FB.login lanzó una excepción:',
+        err
+      )
 
       setFacebookLoading(false)
+
       setError(
-        'No se pudo abrir la ventana de Facebook.'
+        `Facebook no pudo iniciar sesión: ${
+          err?.message || 'error desconocido'
+        }. Revisá Meta Developers y los bloqueadores del navegador.`
       )
     }
   }
 
-  const handleForgotPassword = () => {
-    navigate('/forgot-password')
-  }
+  // ========================================
+  // INTERFAZ DEL LOGIN
+  // ========================================
 
   return (
     <main className="login-page">
 
       {/* FONDO DECORATIVO */}
+
       <div className="login-bg-shape login-bg-shape-left" />
       <div className="login-bg-shape login-bg-shape-right" />
 
       {/* DECORACIÓN IZQUIERDA */}
+
       <div className="login-side login-side-left">
         <div className="shopping-bag">
           <div className="bag-handle" />
+
           <div className="bag-body">
             <span className="bag-cart">🛒</span>
           </div>
@@ -441,6 +522,7 @@ function Login() {
       </div>
 
       {/* DECORACIÓN DERECHA */}
+
       <div className="login-side login-side-right">
         <div className="plant-box">
           <div className="plant" />
@@ -454,12 +536,15 @@ function Login() {
       </div>
 
       {/* TARJETA PRINCIPAL */}
+
       <section className="login-card">
 
         {/* LOGO */}
+
         <div className="brand-block">
           <div className="brand-row">
             <span className="brand-cart">🛒</span>
+
             <h2>
               Nica <span>S-Mart</span>
             </h2>
@@ -471,12 +556,17 @@ function Login() {
         </div>
 
         {/* ENCABEZADO */}
+
         <div className="login-heading">
           <h1>Iniciar sesión</h1>
-          <p>Ingresá tus datos para continuar.</p>
+
+          <p>
+            Ingresá tus datos para continuar.
+          </p>
         </div>
 
         {/* ERRORES */}
+
         {error && (
           <div className="login-error" role="alert">
             {error}
@@ -484,10 +574,13 @@ function Login() {
         )}
 
         {/* FORMULARIO TRADICIONAL */}
+
         <form
           className="login-form"
           onSubmit={handleSubmit}
         >
+
+          {/* CORREO O USUARIO */}
 
           <div className="form-group">
             <label htmlFor="identifier">
@@ -513,6 +606,8 @@ function Login() {
             </div>
           </div>
 
+          {/* CONTRASEÑA */}
+
           <div className="form-group">
             <label htmlFor="password">
               Contraseña
@@ -523,7 +618,9 @@ function Login() {
 
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={
+                  showPassword ? 'text' : 'password'
+                }
                 placeholder="Ingresá tu contraseña"
                 value={password}
                 onChange={(e) => {
@@ -539,7 +636,7 @@ function Login() {
                 type="button"
                 className="show-password"
                 onClick={() =>
-                  setShowPassword(!showPassword)
+                  setShowPassword((value) => !value)
                 }
                 aria-label={
                   showPassword
@@ -553,6 +650,7 @@ function Login() {
           </div>
 
           {/* OPCIONES */}
+
           <div className="login-options">
             <label className="remember-box">
               <input
@@ -562,19 +660,23 @@ function Login() {
                   setRememberMe(e.target.checked)
                 }
               />
+
               <span>Recordarme</span>
             </label>
 
             <button
               type="button"
               className="forgot-link"
-              onClick={handleForgotPassword}
+              onClick={() =>
+                navigate('/forgot-password')
+              }
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          {/* BOTÓN LOGIN */}
+          {/* BOTÓN DE INICIO DE SESIÓN */}
+
           <button
             type="submit"
             className="login-button"
@@ -593,14 +695,17 @@ function Login() {
         </form>
 
         {/* DIVISOR */}
+
         <div className="divider">
           <span>o continúa con</span>
         </div>
 
         {/* BOTONES SOCIALES */}
+
         <div className="social-buttons">
 
           {/* GOOGLE */}
+
           <button
             type="button"
             className="social-button"
@@ -617,14 +722,17 @@ function Login() {
                 fill="#EA4335"
                 d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
               />
+
               <path
                 fill="#4285F4"
                 d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.28 5.48-4.82 7.18l7.73 6C44.36 38.03 46.98 31.88 46.98 24.55z"
               />
+
               <path
                 fill="#FBBC05"
                 d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.88 23.88 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"
               />
+
               <path
                 fill="#34A853"
                 d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
@@ -639,13 +747,16 @@ function Login() {
           </button>
 
           {/* FACEBOOK */}
+
           <button
             type="button"
             className="social-button"
             onClick={handleFacebookLogin}
             disabled={busy}
           >
-            <span className="facebook-icon">f</span>
+            <span className="facebook-icon">
+              f
+            </span>
 
             <span>
               {facebookLoading
@@ -653,10 +764,10 @@ function Login() {
                 : 'Continuar con Facebook'}
             </span>
           </button>
-
         </div>
 
-        {/* REGISTRARSE */}
+        {/* CREAR CUENTA */}
+
         <div className="register-box">
           <span>¿No tenés una cuenta?</span>
 
