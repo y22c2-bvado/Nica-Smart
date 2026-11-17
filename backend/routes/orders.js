@@ -1,3 +1,4 @@
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -154,7 +155,12 @@ async function verifyCustomer(req, res, next) {
       }
     );
 
-    if (!['google', 'local'].includes(decoded.provider)) {
+    // Aceptar sesiones locales, de Google y Facebook.
+    if (
+      !['google', 'local', 'facebook'].includes(
+        decoded.provider
+      )
+    ) {
       return res.status(401).json({
         message: 'Sesión no autorizada.'
       });
@@ -185,6 +191,7 @@ async function verifyCustomer(req, res, next) {
         };
       }
     } else {
+      // Local y Facebook consultan la tabla users.
       if (!decoded.sub) {
         return res.status(401).json({
           message: 'Sesión inválida.'
@@ -407,13 +414,12 @@ const ORDER_SELECT_SQL = `
     ON dc.order_id = o.id
 `;
 
+// ==========================================
+// RUTAS DE ADMINISTRADOR
+// ==========================================
 
-// =========================================================================
-// ⚠️ RUTAS DE ADMINISTRADOR (DEBEN IR PRIMERO PARA EVITAR CONFLICTOS)
-// =========================================================================
-
-// LISTA ADMINISTRATIVA DE PEDIDOS
 // GET /api/orders/admin/all
+
 router.get(
   '/admin/all',
   verifyCustomer,
@@ -436,15 +442,14 @@ router.get(
       );
 
       return res.status(500).json({
-        message:
-          'No se pudieron cargar los pedidos.'
+        message: 'No se pudieron cargar los pedidos.'
       });
     }
   }
 );
 
-// ACTUALIZAR ESTADO COMO ADMINISTRADOR
 // PATCH /api/orders/admin/:id/status
+
 router.patch(
   '/admin/:id/status',
   verifyCustomer,
@@ -617,14 +622,10 @@ router.patch(
         }
       }
 
-      console.error(
-        'Error actualizando pedido:',
-        error
-      );
+      console.error('Error actualizando pedido:', error);
 
       return res.status(500).json({
-        message:
-          'No se pudo actualizar el estado.'
+        message: 'No se pudo actualizar el estado.'
       });
 
     } finally {
@@ -633,13 +634,12 @@ router.patch(
   }
 );
 
+// ==========================================
+// RUTAS DE CLIENTE
+// ==========================================
 
-// =========================================================================
-// RUTAS DE CLIENTE (SIEMPRE DEBAJO DE LAS DE ADMIN)
-// =========================================================================
-
-// CREAR PEDIDO
 // POST /api/orders
+
 router.post('/', verifyCustomer, async (req, res) => {
   let client;
   let transactionStarted = false;
@@ -757,6 +757,7 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `El producto #${item.product_id} no está disponible.`
         );
+
         error.status = 400;
         throw error;
       }
@@ -773,6 +774,7 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `Existencias insuficientes de "${product.name}".`
         );
+
         error.status = 400;
         throw error;
       }
@@ -781,6 +783,7 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           `Precio inválido de "${product.name}".`
         );
+
         error.status = 400;
         throw error;
       }
@@ -798,6 +801,7 @@ router.post('/', verifyCustomer, async (req, res) => {
         const error = new Error(
           'El total supera el límite permitido.'
         );
+
         error.status = 400;
         throw error;
       }
@@ -945,8 +949,12 @@ router.post('/', verifyCustomer, async (req, res) => {
   }
 });
 
+// ==========================================
 // CONSULTAR PEDIDOS DEL CLIENTE
+// ==========================================
+
 // GET /api/orders
+
 router.get('/', verifyCustomer, async (req, res) => {
   try {
     const result = await pool.query(
@@ -969,8 +977,8 @@ router.get('/', verifyCustomer, async (req, res) => {
   }
 });
 
-// CONSULTAR UN PEDIDO DEL CLIENTE
 // GET /api/orders/:id
+
 router.get('/:id', verifyCustomer, async (req, res) => {
   const orderId = Number(req.params.id);
 
@@ -1007,8 +1015,12 @@ router.get('/:id', verifyCustomer, async (req, res) => {
   }
 });
 
+// ==========================================
 // CONFIRMAR RECEPCIÓN DEL CLIENTE
+// ==========================================
+
 // POST /api/orders/:id/confirm-delivery
+
 router.post(
   '/:id/confirm-delivery',
   verifyCustomer,
@@ -1178,8 +1190,7 @@ router.post(
       );
 
       return res.status(500).json({
-        message:
-          'No se pudo confirmar la recepción.'
+        message: 'No se pudo confirmar la recepción.'
       });
 
     } finally {
@@ -1188,8 +1199,12 @@ router.post(
   }
 );
 
+// ==========================================
 // VER FOTO DE RECEPCIÓN
+// ==========================================
+
 // GET /api/orders/:id/proof
+
 router.get(
   '/:id/proof',
   verifyCustomer,
@@ -1252,8 +1267,7 @@ router.get(
       );
 
       return res.status(500).json({
-        message:
-          'No se pudo consultar la fotografía.'
+        message: 'No se pudo consultar la fotografía.'
       });
     }
   }
