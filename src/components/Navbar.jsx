@@ -4,9 +4,6 @@ import { Link } from 'react-router-dom'
 
 import '../styles/navbar.css'
 
-// ==========================================
-// OBTENER USUARIO AUTENTICADO
-// ==========================================
 
 function getAuthenticatedUser() {
   try {
