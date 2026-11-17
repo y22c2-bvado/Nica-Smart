@@ -1,67 +1,66 @@
-import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useGoogleLogin } from '@react-oauth/google'
-import '../styles/login.css'
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
+import "../styles/login.css";
 
 
 const API_BASE = String(
   import.meta.env.VITE_API_URL ||
     (import.meta.env.DEV
-      ? 'http://localhost:3000'
-      : 'https://nica-smart-backend.onrender.com')
+      ? "http://localhost:3000"
+      : "https://nica-smart-backend.onrender.com")
 )
   .trim()
-  .replace(/\/+$/, '')
-  .replace(/\/api$/, '')
+  .replace(/\/+$/, "")
+  .replace(/\/api$/, "");
 
 const FACEBOOK_APP_ID = String(
-  import.meta.env.VITE_FACEBOOK_APP_ID || ''
-).trim()
+  import.meta.env.VITE_FACEBOOK_APP_ID || ""
+).trim();
 
-const FACEBOOK_VERSION = 'v24.0'
+const FACEBOOK_VERSION = "v24.0";
 
 
 function Login() {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const requestedFrom = location.state?.from
+  const requestedFrom = location.state?.from;
 
   const from =
-    typeof requestedFrom === 'string' &&
-    requestedFrom.startsWith('/') &&
-    !requestedFrom.startsWith('//') &&
-    !requestedFrom.startsWith('/\\') &&
-    !requestedFrom.startsWith('/login')
+    typeof requestedFrom === "string" &&
+    requestedFrom.startsWith("/") &&
+    !requestedFrom.startsWith("//") &&
+    !requestedFrom.startsWith("/\\") &&
+    !requestedFrom.startsWith("/login")
       ? requestedFrom
-      : '/'
+      : "/";
 
 
 
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [facebookLoading, setFacebookLoading] = useState(false)
-  const [facebookReady, setFacebookReady] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
+  const [facebookReady, setFacebookReady] = useState(false);
+  const [error, setError] = useState("");
 
-  const busy = loading || googleLoading || facebookLoading
+  const busy = loading || googleLoading || facebookLoading;
 
 
   useEffect(() => {
-    if (!FACEBOOK_APP_ID) return undefined
+    if (!FACEBOOK_APP_ID) return undefined;
 
-    let active = true
-
-    const scriptId = 'facebook-jssdk'
-    let sdkScript = document.getElementById(scriptId)
+    let active = true;
+    const scriptId = "facebook-jssdk";
+    let sdkScript = document.getElementById(scriptId);
 
     const initializeFacebook = () => {
-      if (!active || !window.FB) return
+      if (!active || !window.FB) return;
 
       try {
         window.FB.init({
@@ -69,138 +68,131 @@ function Login() {
           cookie: true,
           xfbml: false,
           version: FACEBOOK_VERSION,
-        })
+        });
 
-        setFacebookReady(true)
+        setFacebookReady(true);
       } catch (err) {
         console.error(
-          'Error inicializando Facebook:',
+          "Error inicializando Facebook:",
           err
-        )
+        );
 
-        setFacebookReady(false)
+        setFacebookReady(false);
 
         setError(
           `No se pudo inicializar Facebook: ${
-            err?.message || 'error desconocido'
+            err?.message || "Error desconocido"
           }`
-        )
+        );
       }
-    }
+    };
 
-    window.fbAsyncInit = initializeFacebook
+    window.fbAsyncInit = initializeFacebook;
 
     if (window.FB) {
-      initializeFacebook()
+      initializeFacebook();
     } else if (!sdkScript) {
-      sdkScript = document.createElement('script')
-
-      sdkScript.id = scriptId
+      sdkScript = document.createElement("script");
+      sdkScript.id = scriptId;
       sdkScript.src =
-        'https://connect.facebook.net/es_LA/sdk.js'
-
-      sdkScript.async = true
-      sdkScript.defer = true
+        "https://connect.facebook.net/es_LA/sdk.js";
+      sdkScript.async = true;
+      sdkScript.defer = true;
 
       sdkScript.onerror = () => {
         if (active) {
-          setFacebookReady(false)
-
+          setFacebookReady(false);
           setError(
-            'No se pudo cargar Facebook. ' +
-            'Desactivá temporalmente los bloqueadores ' +
-            'y revisá la conexión.'
-          )
+            "No se pudo cargar Facebook. Revisá tu conexión " +
+            "y los bloqueadores del navegador."
+          );
         }
-      }
+      };
 
-      document.body.appendChild(sdkScript)
+      document.body.appendChild(sdkScript);
     } else {
       sdkScript.addEventListener(
-        'load',
+        "load",
         initializeFacebook
-      )
+      );
     }
 
     return () => {
-      active = false
+      active = false;
 
       sdkScript?.removeEventListener(
-        'load',
+        "load",
         initializeFacebook
-      )
+      );
 
       if (window.fbAsyncInit === initializeFacebook) {
-        window.fbAsyncInit = undefined
+        window.fbAsyncInit = undefined;
       }
-    }
-  }, [])
-
-  // ========================================
-  // GUARDAR SESIÓN
-  // ========================================
+    };
+  }, []);
 
   const saveSession = (
     data,
     sessionRemembered = false
   ) => {
-    const token = data?.token
-    const user = data?.user
+    const token = data?.token;
+    const user = data?.user;
 
-    if (typeof token !== 'string' || !token) {
+    if (!token || typeof token !== "string") {
       throw new Error(
-        'El servidor no devolvió un token de autenticación.'
-      )
+        "El servidor no devolvió un token de autenticación."
+      );
     }
 
     if (
       !user ||
-      typeof user.email !== 'string' ||
+      typeof user !== "object" ||
+      typeof user.email !== "string" ||
       !user.email.trim()
     ) {
       throw new Error(
-        'El servidor no devolvió los datos del usuario.'
-      )
+        "El servidor no devolvió los datos del usuario."
+      );
     }
 
     const userData = {
       id: user.id,
 
       name:
-        typeof user.name === 'string' &&
+        typeof user.name === "string" &&
         user.name.trim()
           ? user.name.trim()
-          : user.email.split('@')[0],
+          : user.email.split("@")[0],
 
       email: user.email.trim(),
       username: user.username || null,
       picture: user.picture || null,
-      role: user.role || 'USER',
-      provider: user.provider || 'local',
-    }
+      role: user.role || "USER",
+      provider: user.provider || "local",
+    };
 
-    localStorage.setItem('token', token)
+    localStorage.setItem("token", token);
 
     localStorage.setItem(
-      'user',
+      "user",
       JSON.stringify(userData)
-    )
+    );
 
     localStorage.setItem(
-      'rememberMe',
+      "rememberMe",
       String(sessionRemembered)
-    )
+    );
 
-    window.dispatchEvent(new Event('auth-change'))
+    window.dispatchEvent(new Event("auth-change"));
 
     const isAdmin =
-      userData.provider === 'local' &&
-      String(userData.role).toUpperCase() === 'ADMIN'
+      userData.provider === "local" &&
+      String(userData.role).toUpperCase() === "ADMIN";
 
-    navigate(isAdmin ? '/admin' : from, {
+    navigate(isAdmin ? "/admin" : from, {
       replace: true,
-    })
-  }
+    });
+  };
 
   // ========================================
   // PETICIONES DE AUTENTICACIÓN
@@ -210,295 +202,310 @@ function Login() {
     const response = await fetch(
       `${API_BASE}/api/auth/${endpoint}`,
       {
-        method: 'POST',
-
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
         },
-
         body: JSON.stringify(body),
       }
-    )
+    );
 
     const data = await response
       .json()
-      .catch(() => ({}))
+      .catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(
         data.message ||
         data.error ||
         `Error HTTP ${response.status} al autenticar.`
-      )
+      );
     }
 
-    return data
-  }
+    return data;
+  };
 
   // ========================================
-  // VALIDAR CORREO O USUARIO
+  // VALIDACIÓN DE USUARIO
   // ========================================
 
   const validateIdentifier = (value) => {
-    const cleanValue = value.trim()
+    const cleanValue = value.trim();
 
     if (!cleanValue) {
-      return 'Ingresá tu correo electrónico o usuario.'
+      return "Ingresá tu correo electrónico o usuario.";
     }
 
     if (
       cleanValue.length > 254 ||
       /[\x00-\x1F\x7F]/.test(cleanValue)
     ) {
-      return 'El correo o usuario no es válido.'
+      return "El correo o usuario no es válido.";
     }
 
-    if (cleanValue.includes('@')) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (cleanValue.includes("@")) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       if (!emailRegex.test(cleanValue)) {
-        return 'Ingresá un correo electrónico válido.'
+        return "Ingresá un correo electrónico válido.";
       }
     } else {
-      const usernameRegex = /^[a-zA-Z0-9_.-]{3,60}$/
+      const usernameRegex = /^[a-zA-Z0-9_.-]{3,60}$/;
 
       if (!usernameRegex.test(cleanValue)) {
-        return 'Ingresá un nombre de usuario válido.'
+        return "Ingresá un nombre de usuario válido.";
       }
     }
 
-    return null
-  }
+    return null;
+  };
 
   // ========================================
-  // LOGIN TRADICIONAL
+  // LOGIN CON CORREO Y CONTRASEÑA
   // ========================================
 
   const handleSubmit = async (event) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    if (busy) return
+    if (busy) return;
 
-    setError('')
+    setError("");
 
-    const validationError =
-      validateIdentifier(identifier)
+    const identifierError =
+      validateIdentifier(identifier);
 
-    if (validationError) {
-      setError(validationError)
-      return
+    if (identifierError) {
+      setError(identifierError);
+      return;
     }
 
     if (!password) {
-      setError('La contraseña es obligatoria.')
-      return
+      setError("La contraseña es obligatoria.");
+      return;
     }
 
     if (password.length > 128) {
       setError(
-        'La contraseña no puede superar 128 caracteres.'
-      )
-      return
+        "La contraseña no puede superar 128 caracteres."
+      );
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const data = await authRequest('login', {
+      const data = await authRequest("login", {
         identifier: identifier.trim(),
         password,
         rememberMe,
-      })
+      });
 
-      saveSession(data, rememberMe)
+      saveSession(data, rememberMe);
     } catch (err) {
-      console.error('Error login:', err)
+      console.error("Error login:", err);
 
       setError(
         err instanceof TypeError
-          ? 'No se pudo conectar al servidor.'
-          : err.message || 'Error al iniciar sesión.'
-      )
+          ? "No se pudo conectar al servidor."
+          : err.message || "Error al iniciar sesión."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // ========================================
   // GOOGLE LOGIN
   // ========================================
 
   const googleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    ux_mode: 'popup',
+    flow: "auth-code",
+    ux_mode: "popup",
 
     onSuccess: async (response) => {
-      setError('')
-      setGoogleLoading(true)
+      setError("");
+      setGoogleLoading(true);
 
       try {
         if (!response.code) {
           throw new Error(
-            'Google no devolvió un código de autorización.'
-          )
+            "Google no devolvió un código de autorización."
+          );
         }
 
-        const data = await authRequest('google', {
+        const data = await authRequest("google", {
           code: response.code,
-        })
+        });
 
-        saveSession(data, false)
+        saveSession(data, false);
       } catch (err) {
-        console.error('Error Google:', err)
+        console.error("Error Google:", err);
 
         setError(
           err instanceof TypeError
-            ? 'No se pudo conectar al backend de Google.'
+            ? "No se pudo conectar al backend de Google."
             : err.message ||
-              'Error al iniciar sesión con Google.'
-        )
+              "Error al iniciar sesión con Google."
+        );
       } finally {
-        setGoogleLoading(false)
+        setGoogleLoading(false);
       }
     },
 
     onError: () => {
-      setGoogleLoading(false)
+      setGoogleLoading(false);
 
       setError(
-        'No se pudo iniciar sesión con Google.'
-      )
+        "No se pudo iniciar sesión con Google."
+      );
     },
 
     onNonOAuthError: (googleError) => {
-      setGoogleLoading(false)
+      setGoogleLoading(false);
 
       setError(
-        googleError?.type === 'popup_closed'
-          ? 'Se cerró la ventana de Google.'
-          : 'No se pudo abrir la ventana de Google.'
-      )
+        googleError?.type === "popup_closed"
+          ? "Se cerró la ventana de Google."
+          : "No se pudo abrir la ventana de Google."
+      );
     },
-  })
+  });
 
   const handleGoogleLogin = () => {
-    if (busy) return
+    if (busy) return;
 
-    setError('')
+    setError("");
 
     if (
       !import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
     ) {
       setError(
-        'Falta configurar el Client ID de Google.'
-      )
-      return
+        "Falta configurar el Client ID de Google."
+      );
+      return;
     }
 
-    googleLogin()
-  }
+    googleLogin();
+  };
 
   // ========================================
-  // FACEBOOK LOGIN
+  // FACEBOOK LOGIN CORREGIDO
   // ========================================
 
   const handleFacebookLogin = () => {
-    if (busy) return
+    if (busy) return;
 
-    setError('')
+    setError("");
 
     if (!FACEBOOK_APP_ID) {
       setError(
-        'Falta configurar VITE_FACEBOOK_APP_ID ' +
-        'en el frontend de Render.'
-      )
-      return
+        "Falta configurar VITE_FACEBOOK_APP_ID."
+      );
+      return;
     }
 
     if (
       !facebookReady ||
       !window.FB ||
-      typeof window.FB.login !== 'function'
+      typeof window.FB.login !== "function"
     ) {
       setError(
-        'Facebook todavía no está disponible. ' +
-        'Verificá el SDK y la configuración ' +
-        'de Meta Developers.'
-      )
-      return
+        "Facebook todavía no está disponible. " +
+        "Verificá el SDK y Meta Developers."
+      );
+      return;
     }
 
-    setFacebookLoading(true)
+    setFacebookLoading(true);
+
+    // ======================================
+    // PROCESAR EL TOKEN CON EL BACKEND
+    // ======================================
+
+    const completeFacebookLogin = async (accessToken) => {
+      try {
+        const data = await authRequest(
+          "facebook",
+          { accessToken }
+        );
+
+        saveSession(data, false);
+      } catch (err) {
+        console.error(
+          "Error autenticando con Facebook:",
+          err
+        );
+
+        setError(
+          err instanceof TypeError
+            ? "No se pudo conectar al backend de Facebook."
+            : err?.message ||
+              "Error al iniciar sesión con Facebook."
+        );
+      } finally {
+        setFacebookLoading(false);
+      }
+    };
+
+    // ======================================
+    // ABRIR FACEBOOK CON CALLBACK NORMAL
+    // ======================================
 
     try {
-      // Importante: ejecutar FB.login
-      // directamente desde el clic del usuario.
-
       window.FB.login(
-        async (facebookResponse) => {
+        (facebookResponse) => {
           const accessToken =
-            facebookResponse?.authResponse?.accessToken
+            facebookResponse?.authResponse?.accessToken;
 
           if (!accessToken) {
-            setFacebookLoading(false)
+            setFacebookLoading(false);
 
             setError(
-              'Facebook no autorizó el acceso. ' +
-              'Verificá si cancelaste el inicio ' +
-              'de sesión o si la aplicación está ' +
-              'disponible para tu usuario.'
-            )
+              "No se completó la autorización de Facebook. " +
+              "Verificá si cancelaste el inicio de sesión " +
+              "o si tu cuenta tiene acceso a la aplicación."
+            );
 
-            return
+            return;
           }
 
-          try {
-            const data = await authRequest(
-              'facebook',
-              { accessToken }
-            )
+          // La petición asíncrona se ejecuta
+          // fuera del callback del SDK.
 
-            saveSession(data, false)
-          } catch (err) {
-            console.error(
-              'Error autenticando con Facebook:',
-              err
-            )
-
-            setError(
-              err instanceof TypeError
-                ? 'No se pudo conectar al backend de Facebook.'
-                : err.message ||
-                  'Error al iniciar sesión con Facebook.'
-            )
-          } finally {
-            setFacebookLoading(false)
-          }
+          void completeFacebookLogin(accessToken);
         },
         {
-          scope: 'public_profile,email',
+          scope: "public_profile,email",
           return_scopes: true,
         }
-      )
+      );
     } catch (err) {
       console.error(
-        'FB.login lanzó una excepción:',
+        "Error abriendo Facebook:",
         err
-      )
+      );
 
-      setFacebookLoading(false)
+      setFacebookLoading(false);
 
       setError(
         `Facebook no pudo iniciar sesión: ${
-          err?.message || 'error desconocido'
-        }. Revisá Meta Developers y los bloqueadores del navegador.`
-      )
+          err?.message || "Error desconocido"
+        }`
+      );
     }
-  }
+  };
 
   // ========================================
-  // INTERFAZ DEL LOGIN
+  // RECUPERAR CONTRASEÑA
+  // ========================================
+
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
+
+  // ========================================
+  // INTERFAZ LOGIN
   // ========================================
 
   return (
@@ -565,15 +572,18 @@ function Login() {
           </p>
         </div>
 
-        {/* ERRORES */}
+        {/* MENSAJES DE ERROR */}
 
         {error && (
-          <div className="login-error" role="alert">
+          <div
+            className="login-error"
+            role="alert"
+          >
             {error}
           </div>
         )}
 
-        {/* FORMULARIO TRADICIONAL */}
+        {/* LOGIN TRADICIONAL */}
 
         <form
           className="login-form"
@@ -596,8 +606,8 @@ function Login() {
                 placeholder="Correo electrónico o usuario"
                 value={identifier}
                 onChange={(e) => {
-                  setIdentifier(e.target.value)
-                  setError('')
+                  setIdentifier(e.target.value);
+                  setError("");
                 }}
                 maxLength={254}
                 autoComplete="username"
@@ -619,13 +629,15 @@ function Login() {
               <input
                 id="password"
                 type={
-                  showPassword ? 'text' : 'password'
+                  showPassword
+                    ? "text"
+                    : "password"
                 }
                 placeholder="Ingresá tu contraseña"
                 value={password}
                 onChange={(e) => {
-                  setPassword(e.target.value)
-                  setError('')
+                  setPassword(e.target.value);
+                  setError("");
                 }}
                 maxLength={128}
                 autoComplete="current-password"
@@ -636,15 +648,17 @@ function Login() {
                 type="button"
                 className="show-password"
                 onClick={() =>
-                  setShowPassword((value) => !value)
+                  setShowPassword(
+                    (value) => !value
+                  )
                 }
                 aria-label={
                   showPassword
-                    ? 'Ocultar contraseña'
-                    : 'Mostrar contraseña'
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
                 }
               >
-                {showPassword ? '🙈' : '👁'}
+                {showPassword ? "🙈" : "👁"}
               </button>
             </div>
           </div>
@@ -657,7 +671,9 @@ function Login() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) =>
-                  setRememberMe(e.target.checked)
+                  setRememberMe(
+                    e.target.checked
+                  )
                 }
               />
 
@@ -667,15 +683,13 @@ function Login() {
             <button
               type="button"
               className="forgot-link"
-              onClick={() =>
-                navigate('/forgot-password')
-              }
+              onClick={handleForgotPassword}
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          {/* BOTÓN DE INICIO DE SESIÓN */}
+          {/* INICIAR SESIÓN */}
 
           <button
             type="submit"
@@ -684,12 +698,14 @@ function Login() {
           >
             <span>
               {loading
-                ? 'Iniciando sesión...'
-                : 'Iniciar sesión'}
+                ? "Iniciando sesión..."
+                : "Iniciar sesión"}
             </span>
 
             {!loading && (
-              <span className="arrow">→</span>
+              <span className="arrow">
+                →
+              </span>
             )}
           </button>
         </form>
@@ -697,7 +713,9 @@ function Login() {
         {/* DIVISOR */}
 
         <div className="divider">
-          <span>o continúa con</span>
+          <span>
+            o continúa con
+          </span>
         </div>
 
         {/* BOTONES SOCIALES */}
@@ -741,8 +759,8 @@ function Login() {
 
             <span>
               {googleLoading
-                ? 'Conectando con Google...'
-                : 'Continuar con Google'}
+                ? "Conectando con Google..."
+                : "Continuar con Google"}
             </span>
           </button>
 
@@ -760,20 +778,24 @@ function Login() {
 
             <span>
               {facebookLoading
-                ? 'Conectando con Facebook...'
-                : 'Continuar con Facebook'}
+                ? "Conectando con Facebook..."
+                : "Continuar con Facebook"}
             </span>
           </button>
         </div>
 
-        {/* CREAR CUENTA */}
+        {/* REGISTRARSE */}
 
         <div className="register-box">
-          <span>¿No tenés una cuenta?</span>
+          <span>
+            ¿No tenés una cuenta?
+          </span>
 
           <button
             type="button"
-            onClick={() => navigate('/register')}
+            onClick={() =>
+              navigate("/register")
+            }
           >
             Crear cuenta
           </button>
@@ -781,7 +803,7 @@ function Login() {
 
       </section>
     </main>
-  )
+  );
 }
 
-export default Login
+export default Login;
