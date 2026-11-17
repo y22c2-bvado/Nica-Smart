@@ -81,10 +81,16 @@ async function verifyFacebookToken(accessToken) {
   const baseURL =
     `https://graph.facebook.com/${FACEBOOK_API_VERSION}`;
 
-  // Verificar que el token pertenezca a
-  // nuestra aplicación de Meta.
+  const appAccessToken =
+    `${FACEBOOK_APP_ID}|${FACEBOOK_APP_SECRET}`;
 
-  const debugURL = new URL(`${baseURL}/debug_token`);
+  // ========================================
+  // 1. VERIFICAR TOKEN CON META
+  // ========================================
+
+  const debugURL = new URL(
+    `${baseURL}/debug_token`
+  );
 
   debugURL.searchParams.set(
     'input_token',
@@ -93,32 +99,114 @@ async function verifyFacebookToken(accessToken) {
 
   debugURL.searchParams.set(
     'access_token',
-    `${FACEBOOK_APP_ID}|${FACEBOOK_APP_SECRET}`
+    appAccessToken
   );
 
-  const debugResponse = await fetch(debugURL);
-  const debugResult = await debugResponse.json();
+  let debugResponse;
+  let debugResult;
 
-  const tokenInfo = debugResult.data;
+  try {
+    debugResponse = await fetch(debugURL, {
+      signal: AbortSignal.timeout(12000)
+    });
+
+    debugResult = await debugResponse.json();
+
+  } catch (err) {
+    console.error('FACEBOOK_DIAGNOSTICO:', {
+      etapa: 'debug_token',
+      causa: 'NETWORK_OR_TIMEOUT',
+      tipoError: err?.name || 'Error'
+    });
+
+    throw new Error('FACEBOOK_META_UNAVAILABLE');
+  }
+
+  const tokenInfo = debugResult?.data;
+
+  // ========================================
+  // DIAGNÓSTICO SEGURO
+  // ========================================
+
+  const diagnostico = {
+    etapa: 'debug_token',
+    httpStatus: debugResponse.status,
+    tokenValido: tokenInfo?.is_valid === true,
+    appIdRecibido: tokenInfo?.app_id ?? null,
+    appIdConfigurado: FACEBOOK_APP_ID,
+    tipoToken: tokenInfo?.type ?? null,
+    tieneUserId: Boolean(tokenInfo?.user_id),
+    codigoMeta:
+      debugResult?.error?.code ??
+      tokenInfo?.error?.code ??
+      null,
+    subcodigoMeta:
+      debugResult?.error?.error_subcode ?? null
+  };
+
+  // Nunca imprimir el accessToken,
+  // App Secret ni las URLs completas.
 
   if (
     !debugResponse.ok ||
-    !tokenInfo?.is_valid ||
-    String(tokenInfo.app_id) !== String(FACEBOOK_APP_ID) ||
+    !tokenInfo?.is_valid
+  ) {
+    console.warn(
+      'FACEBOOK_DIAGNOSTICO:',
+      diagnostico
+    );
+
+    throw new Error(
+      !debugResponse.ok
+        ? 'FACEBOOK_META_REJECTED'
+        : 'INVALID_FACEBOOK_TOKEN'
+    );
+  }
+
+  // ========================================
+  // COMPROBAR APP ID
+  // ========================================
+
+  if (
+    String(tokenInfo.app_id) !==
+    String(FACEBOOK_APP_ID)
+  ) {
+    console.warn('FACEBOOK_DIAGNOSTICO:', {
+      ...diagnostico,
+      causa: 'APP_ID_MISMATCH'
+    });
+
+    throw new Error('FACEBOOK_APP_MISMATCH');
+  }
+
+  // ========================================
+  // COMPROBAR TIPO DE TOKEN
+  // ========================================
+
+  if (
     tokenInfo.type !== 'USER' ||
     !tokenInfo.user_id
   ) {
+    console.warn('FACEBOOK_DIAGNOSTICO:', {
+      ...diagnostico,
+      causa: 'NOT_USER_TOKEN'
+    });
+
     throw new Error('INVALID_FACEBOOK_TOKEN');
   }
 
-  // Consultar el perfil directamente con Meta
+  // ========================================
+  // 2. OBTENER PERFIL DE FACEBOOK
+  // ========================================
 
   const proof = crypto
     .createHmac('sha256', FACEBOOK_APP_SECRET)
     .update(accessToken)
     .digest('hex');
 
-  const profileURL = new URL(`${baseURL}/me`);
+  const profileURL = new URL(
+    `${baseURL}/me`
+  );
 
   profileURL.searchParams.set(
     'fields',
@@ -135,14 +223,47 @@ async function verifyFacebookToken(accessToken) {
     proof
   );
 
-  const profileResponse = await fetch(profileURL);
-  const profile = await profileResponse.json();
+  let profileResponse;
+  let profile;
+
+  try {
+    profileResponse = await fetch(profileURL, {
+      signal: AbortSignal.timeout(12000)
+    });
+
+    profile = await profileResponse.json();
+
+  } catch (err) {
+    console.error('FACEBOOK_DIAGNOSTICO:', {
+      etapa: 'profile',
+      causa: 'NETWORK_OR_TIMEOUT',
+      tipoError: err?.name || 'Error'
+    });
+
+    throw new Error('FACEBOOK_META_UNAVAILABLE');
+  }
+
+  // ========================================
+  // COMPROBAR IDENTIDAD
+  // ========================================
 
   if (
     !profileResponse.ok ||
-    !profile.id ||
+    !profile?.id ||
     String(profile.id) !== String(tokenInfo.user_id)
   ) {
+    console.warn('FACEBOOK_DIAGNOSTICO:', {
+      etapa: 'profile',
+      httpStatus: profileResponse.status,
+      codigoMeta: profile?.error?.code ?? null,
+      subcodigoMeta:
+        profile?.error?.error_subcode ?? null,
+      coincideUsuario:
+        Boolean(profile?.id) &&
+        String(profile.id) ===
+          String(tokenInfo.user_id)
+    });
+
     throw new Error('INVALID_FACEBOOK_TOKEN');
   }
 
@@ -164,14 +285,18 @@ router.post('/register', async (req, res) => {
       typeof password !== 'string'
     ) {
       return res.status(400).json({
-        message: 'Completa todos los campos obligatorios.'
+        message:
+          'Completa todos los campos obligatorios.'
       });
     }
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    // Validar nombre
+    // ======================================
+    // VALIDAR NOMBRE
+    // ======================================
+
     if (
       cleanName.length < 2 ||
       cleanName.length > 80 ||
@@ -182,19 +307,27 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Validar correo
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // ======================================
+    // VALIDAR CORREO
+    // ======================================
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
       cleanEmail.length > 254 ||
       !emailRegex.test(cleanEmail)
     ) {
       return res.status(400).json({
-        message: 'Ingresa un correo electrónico válido.'
+        message:
+          'Ingresa un correo electrónico válido.'
       });
     }
 
-    // Validar contraseña
+    // ======================================
+    // VALIDAR CONTRASEÑA
+    // ======================================
+
     if (
       password.length < 8 ||
       Buffer.byteLength(password, 'utf8') > 72
@@ -207,9 +340,14 @@ router.post('/register', async (req, res) => {
 
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({
-        message: 'Servicio de autenticación no disponible.'
+        message:
+          'Servicio de autenticación no disponible.'
       });
     }
+
+    // ======================================
+    // COMPROBAR CORREO EXISTENTE
+    // ======================================
 
     const existingUser = await pool.query(
       `
@@ -228,10 +366,18 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // ======================================
+    // ENCRIPTAR CONTRASEÑA
+    // ======================================
+
     const hashedPassword = await bcrypt.hash(
       password,
       12
     );
+
+    // ======================================
+    // GUARDAR CLIENTE
+    // ======================================
 
     const result = await pool.query(
       `
@@ -262,7 +408,10 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    console.error('Error registrando usuario:', error);
+    console.error(
+      'Error registrando usuario:',
+      error
+    );
 
     return res.status(500).json({
       message: 'No se pudo crear la cuenta.'
@@ -271,7 +420,7 @@ router.post('/register', async (req, res) => {
 });
 
 // ==========================================
-// INICIAR SESIÓN TRADICIONAL
+// INICIO DE SESIÓN TRADICIONAL
 // POST /api/auth/login
 // ==========================================
 
@@ -291,6 +440,10 @@ router.post('/login', async (req, res) => {
           ? email.trim()
           : '';
 
+    // ======================================
+    // VALIDAR DATOS
+    // ======================================
+
     if (
       !loginIdentifier ||
       loginIdentifier.length > 254 ||
@@ -307,15 +460,21 @@ router.post('/login', async (req, res) => {
 
     if (typeof rememberMe !== 'boolean') {
       return res.status(400).json({
-        message: 'La opción Recordarme no es válida.'
+        message:
+          'La opción Recordarme no es válida.'
       });
     }
 
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({
-        message: 'Servicio de autenticación no disponible.'
+        message:
+          'Servicio de autenticación no disponible.'
       });
     }
+
+    // ======================================
+    // BUSCAR USUARIO
+    // ======================================
 
     const result = await pool.query(
       `
@@ -335,7 +494,8 @@ router.post('/login', async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(401).json({
-        message: 'Usuario o contraseña incorrectos.'
+        message:
+          'Usuario o contraseña incorrectos.'
       });
     }
 
@@ -343,9 +503,14 @@ router.post('/login', async (req, res) => {
 
     if (!user.password) {
       return res.status(401).json({
-        message: 'Usuario o contraseña incorrectos.'
+        message:
+          'Usuario o contraseña incorrectos.'
       });
     }
+
+    // ======================================
+    // VERIFICAR CONTRASEÑA
+    // ======================================
 
     const validPassword = await bcrypt.compare(
       password,
@@ -354,9 +519,14 @@ router.post('/login', async (req, res) => {
 
     if (!validPassword) {
       return res.status(401).json({
-        message: 'Usuario o contraseña incorrectos.'
+        message:
+          'Usuario o contraseña incorrectos.'
       });
     }
+
+    // ======================================
+    // VERIFICAR BLOQUEO
+    // ======================================
 
     if (user.is_blocked) {
       return res.status(403).json({
@@ -365,14 +535,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // ======================================
+    // GENERAR SESIÓN
+    // ======================================
+
     return res.status(200).json({
       message: 'Inicio de sesión exitoso.',
       rememberMe,
-      ...authResponse(user, 'local', rememberMe)
+      ...authResponse(
+        user,
+        'local',
+        rememberMe
+      )
     });
 
   } catch (error) {
-    console.error('Error en login:', error);
+    console.error(
+      'Error en login:',
+      error
+    );
 
     return res.status(500).json({
       message: 'Error al iniciar sesión.'
@@ -388,19 +569,25 @@ router.post('/login', async (req, res) => {
 router.post('/facebook', async (req, res) => {
   const { accessToken } = req.body || {};
 
+  // ========================================
+  // VALIDAR TOKEN RECIBIDO
+  // ========================================
+
   if (
     typeof accessToken !== 'string' ||
     !accessToken.trim() ||
     accessToken.length > 4096
   ) {
     return res.status(400).json({
-      message: 'Token de Facebook obligatorio.'
+      message:
+        'Token de Facebook obligatorio.'
     });
   }
 
   if (!process.env.JWT_SECRET) {
     return res.status(503).json({
-      message: 'Servicio de autenticación no disponible.'
+      message:
+        'Servicio de autenticación no disponible.'
     });
   }
 
@@ -423,24 +610,29 @@ router.post('/facebook', async (req, res) => {
     ).trim().slice(0, 80);
 
     const email = profile.email
-      ? String(profile.email).trim().toLowerCase()
+      ? String(profile.email)
+          .trim()
+          .toLowerCase()
       : null;
 
     // ======================================
-    // 2. BUSCAR IDENTIDAD EXISTENTE
+    // 2. CONECTAR A POSTGRESQL
     // ======================================
 
     client = await pool.connect();
 
-    // Evita crear duplicados en solicitudes
-    // simultáneas del mismo usuario Facebook.
     await client.query('BEGIN');
     inTransaction = true;
 
+    // Evitar duplicados simultáneos
     await client.query(
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       [`facebook:${facebookId}`]
     );
+
+    // ======================================
+    // 3. BUSCAR FACEBOOK EXISTENTE
+    // ======================================
 
     const existing = await client.query(
       `
@@ -451,13 +643,18 @@ router.post('/facebook', async (req, res) => {
         u.role,
         u.is_blocked
       FROM social_accounts s
-      INNER JOIN users u ON u.id = s.user_id
+      INNER JOIN users u
+        ON u.id = s.user_id
       WHERE s.provider = 'facebook'
         AND s.provider_user_id = $1
       LIMIT 1
       `,
       [facebookId]
     );
+
+    // ======================================
+    // USUARIO YA REGISTRADO
+    // ======================================
 
     if (existing.rows.length > 0) {
       const user = existing.rows[0];
@@ -467,7 +664,8 @@ router.post('/facebook', async (req, res) => {
         inTransaction = false;
 
         return res.status(403).json({
-          message: 'Esta cuenta está bloqueada.'
+          message:
+            'Esta cuenta está bloqueada.'
         });
       }
 
@@ -482,12 +680,15 @@ router.post('/facebook', async (req, res) => {
     }
 
     // ======================================
-    // 3. VERIFICAR CORREO
+    // 4. VALIDAR CORREO DE FACEBOOK
     // ======================================
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
       !email ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      !emailRegex.test(email) ||
       email.length > 254
     ) {
       await client.query('ROLLBACK');
@@ -502,7 +703,7 @@ router.post('/facebook', async (req, res) => {
     }
 
     // ======================================
-    // 4. EVITAR VINCULACIÓN INSEGURA
+    // 5. EVITAR VINCULACIÓN INSEGURA
     // ======================================
 
     const sameEmail = await client.query(
@@ -530,11 +731,8 @@ router.post('/facebook', async (req, res) => {
     }
 
     // ======================================
-    // 5. CREAR USUARIO
+    // 6. CREAR NUEVO CLIENTE
     // ======================================
-
-    // Contraseña aleatoria para evitar que
-    // exista una contraseña local conocida.
 
     const randomPassword = crypto
       .randomBytes(48)
@@ -545,8 +743,8 @@ router.post('/facebook', async (req, res) => {
       12
     );
 
-    // El rol de un usuario social nuevo
-    // siempre será USER.
+    // Los usuarios nuevos de Facebook
+    // siempre tienen rol USER.
 
     const newUserResult = await client.query(
       `
@@ -565,7 +763,7 @@ router.post('/facebook', async (req, res) => {
     const user = newUserResult.rows[0];
 
     // ======================================
-    // 6. VINCULAR CUENTA DE FACEBOOK
+    // 7. VINCULAR CUENTA SOCIAL
     // ======================================
 
     await client.query(
@@ -580,40 +778,112 @@ router.post('/facebook', async (req, res) => {
       [user.id, facebookId]
     );
 
+    // Guardar ambos registros juntos
     await client.query('COMMIT');
     inTransaction = false;
 
     // ======================================
-    // 7. DEVOLVER JWT
+    // 8. GENERAR JWT
     // ======================================
 
     return res.status(201).json({
-      message: 'Cuenta de Facebook creada.',
+      message:
+        'Cuenta de Facebook creada.',
       ...authResponse(user, 'facebook')
     });
 
   } catch (error) {
+    // ======================================
+    // REVERTIR TRANSACCIÓN SI FALLA
+    // ======================================
+
     if (client && inTransaction) {
       try {
         await client.query('ROLLBACK');
       } catch (rollbackError) {
-        console.error('Rollback fallido:', rollbackError);
+        console.error(
+          'Rollback fallido:',
+          rollbackError
+        );
       }
     }
 
-    if (error.message === 'INVALID_FACEBOOK_TOKEN') {
+    // ======================================
+    // TOKEN INVÁLIDO
+    // ======================================
+
+    if (
+      error.message === 'INVALID_FACEBOOK_TOKEN'
+    ) {
       return res.status(401).json({
+        code: 'INVALID_FACEBOOK_TOKEN',
         message:
           'Token de Facebook inválido o expirado.'
       });
     }
 
-    if (error.message === 'FACEBOOK_NOT_CONFIGURED') {
+    // ======================================
+    // APLICACIÓN INCORRECTA
+    // ======================================
+
+    if (
+      error.message === 'FACEBOOK_APP_MISMATCH'
+    ) {
+      return res.status(401).json({
+        code: 'FACEBOOK_APP_MISMATCH',
+        message:
+          'El token pertenece a otra aplicación de Facebook. ' +
+          'Revisá los App ID del frontend y backend.'
+      });
+    }
+
+    // ======================================
+    // META RECHAZÓ LAS CREDENCIALES
+    // ======================================
+
+    if (
+      error.message === 'FACEBOOK_META_REJECTED'
+    ) {
+      return res.status(401).json({
+        code: 'FACEBOOK_META_REJECTED',
+        message:
+          'Meta rechazó la validación. Revisá el App ID, ' +
+          'el App Secret y los logs del backend.'
+      });
+    }
+
+    // ======================================
+    // META NO DISPONIBLE
+    // ======================================
+
+    if (
+      error.message === 'FACEBOOK_META_UNAVAILABLE'
+    ) {
       return res.status(503).json({
+        code: 'FACEBOOK_META_UNAVAILABLE',
+        message:
+          'No se pudo consultar Facebook en este momento. ' +
+          'Intentá nuevamente.'
+      });
+    }
+
+    // ======================================
+    // FACEBOOK SIN CONFIGURAR
+    // ======================================
+
+    if (
+      error.message === 'FACEBOOK_NOT_CONFIGURED'
+    ) {
+      return res.status(503).json({
+        code: 'FACEBOOK_NOT_CONFIGURED',
         message:
           'Facebook Login no está configurado en Render.'
       });
     }
+
+    // ======================================
+    // USUARIO DUPLICADO
+    // ======================================
 
     if (error.code === '23505') {
       return res.status(409).json({
@@ -622,7 +892,14 @@ router.post('/facebook', async (req, res) => {
       });
     }
 
-    console.error('Error en Facebook Login:', error);
+    // ======================================
+    // ERROR GENERAL
+    // ======================================
+
+    console.error(
+      'Error en Facebook Login:',
+      error
+    );
 
     return res.status(500).json({
       message:
