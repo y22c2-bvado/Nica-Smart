@@ -1,4 +1,3 @@
-
 import './App.css'
 
 import {
@@ -8,6 +7,8 @@ import {
   Navigate,
   useLocation
 } from 'react-router-dom'
+
+import { jwtDecode } from 'jwt-decode' // <-- NUEVA IMPORTACIÓN
 
 import ScrollToTop from './components/ScrollToTop'
 import Home from './pages/Home'
@@ -34,10 +35,11 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import DataDeletion from './pages/DataDeletion'
 
-function RequireAuth({ children }) {
+function RequireAuth({ children, requireAdmin = false }) {
   const location = useLocation()
   const token = localStorage.getItem('token')
 
+  // 1. Si no hay token, redirigir al login
   if (!token) {
     return (
       <Navigate
@@ -51,6 +53,26 @@ function RequireAuth({ children }) {
         }}
       />
     )
+  }
+
+  try {
+    const decoded = jwtDecode(token)
+
+
+    if (decoded.exp * 1000 < Date.now()) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      return <Navigate to="/login" replace />
+    }
+
+    if (requireAdmin && decoded.role?.toLowerCase() !== 'admin') {
+      return <Navigate to="/" replace />
+    }
+
+  } catch (error) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    return <Navigate to="/login" replace />
   }
 
   return children
@@ -263,13 +285,13 @@ function App() {
         />
 
         {/* ==================================
-            PANEL ADMINISTRATIVO
+            PANEL ADMINISTRATIVO (Protegido con Rol)
         ================================== */}
 
         <Route
           path="/admin"
           element={
-            <RequireAuth>
+            <RequireAuth requireAdmin={true}>
               <Admin />
             </RequireAuth>
           }
