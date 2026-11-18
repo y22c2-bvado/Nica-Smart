@@ -4,6 +4,10 @@
    DISEÑO ESTILO APPLE STORE
 ========================================== */
 
+/* ==========================================
+   1. CONFIGURACIÓN GENERAL
+========================================== */
+
 .checkout-page {
   min-height: 100vh;
   padding: 48px 20px 80px;
@@ -18,7 +22,9 @@
   box-sizing: border-box;
 }
 
-/* CONTENEDOR PRINCIPAL */
+/* ==========================================
+   2. CONTENEDOR PRINCIPAL
+========================================== */
 
 .checkout-shell {
   display: grid;
@@ -34,7 +40,9 @@
   min-width: 0;
 }
 
-/* ENCABEZADO */
+/* ==========================================
+   3. ENCABEZADO
+========================================== */
 
 .checkout-heading {
   margin-bottom: 35px;
@@ -64,7 +72,9 @@
   line-height: 1.7;
 }
 
-/* FORMULARIO */
+/* ==========================================
+   4. FORMULARIO Y TARJETAS
+========================================== */
 
 .checkout-form {
   display: flex;
@@ -74,7 +84,7 @@
 
 .checkout-card,
 .summary-card {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e5e5e7;
   border-radius: 22px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.035);
@@ -103,7 +113,9 @@
   line-height: 1.7;
 }
 
-/* CLIENTE AUTENTICADO */
+/* ==========================================
+   5. INFORMACIÓN DEL CLIENTE
+========================================== */
 
 .checkout-customer {
   display: flex;
@@ -154,7 +166,9 @@
   overflow-wrap: anywhere;
 }
 
-/* CAMPOS GENERALES */
+/* ==========================================
+   6. CAMPOS DEL FORMULARIO
+========================================== */
 
 .form-grid {
   display: grid;
@@ -186,7 +200,7 @@
   width: 100%;
   min-height: 52px;
   padding: 14px 16px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #d2d2d7;
   border-radius: 13px;
   color: #1d1d1f;
@@ -222,7 +236,9 @@
   box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
 }
 
-/* INFORMACIÓN DEL ENVÍO */
+/* ==========================================
+   7. INFORMACIÓN DEL ENVÍO
+========================================== */
 
 .checkout-shipping-info {
   display: flex;
@@ -252,7 +268,9 @@
   line-height: 1.6;
 }
 
-/* MÉTODOS DE PAGO */
+/* ==========================================
+   8. MÉTODOS DE PAGO
+========================================== */
 
 .payment-methods {
   display: flex;
@@ -266,7 +284,7 @@
   align-items: center;
   gap: 16px;
   padding: 19px 20px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #dedee3;
   border-radius: 16px;
   cursor: pointer;
@@ -314,7 +332,9 @@
   line-height: 1.5;
 }
 
-/* CUADRO DE PAGO */
+/* ==========================================
+   9. CONTENEDOR DE PAGO
+========================================== */
 
 .payment-box {
   padding: 24px;
@@ -342,28 +362,6 @@
   margin: 0;
 }
 
-.card-brands {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.card-brands span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 52px;
-  height: 32px;
-  padding: 0 8px;
-  background: #fff;
-  border: 1px solid #e5e5e7;
-  border-radius: 8px;
-  color: #1d1d1f;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
 .checkout-payment-description {
   margin: 0;
   color: #6e6e73;
@@ -371,12 +369,14 @@
   line-height: 1.8;
 }
 
-/* TARJETA ESTILO APPLE */
+/* ==========================================
+   10. TARJETA DE CRÉDITO O DÉBITO
+========================================== */
 
 .checkout-card-entry {
   padding: 25px;
   margin-top: 20px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e5e5e7;
   border-radius: 20px;
   box-shadow: 0 7px 28px rgba(0, 0, 0, 0.035);
@@ -405,6 +405,32 @@
   font-size: 13px;
 }
 
+/* ==========================================
+   11. LOGOTIPOS VISA Y MASTERCARD
+========================================== */
+
+.card-brands {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-brands span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 32px;
+  padding: 0 8px;
+  background: #ffffff;
+  border: 1px solid #e5e5e7;
+  border-radius: 8px;
+  color: #1d1d1f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
 .checkout-card-entry .card-brands {
   display: flex;
   flex-wrap: wrap;
@@ -412,9 +438,6 @@
 }
 
 .checkout-card-entry .card-brands span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   min-width: 55px;
   height: auto;
   padding: 7px 9px;
@@ -424,7 +447,10 @@
   color: #59606b;
   font-size: 12px;
   font-weight: 800;
-  transition: all 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .checkout-card-entry .card-brands .selected-brand {
@@ -433,11 +459,21 @@
   background: #eef5ff;
 }
 
+/* ==========================================
+   12. NÚMERO DE TARJETA
+========================================== */
+
+.checkout-card-number-wrapper {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
 .checkout-card-entry input[name="cardNumber"] {
   display: block;
   width: 100%;
-  padding: 15px 16px;
-  background: #fff;
+  padding: 15px 116px 15px 16px;
+  background: #ffffff;
   border: 1px solid #bfc3cc;
   border-radius: 11px;
   color: #1d1d1f;
@@ -453,14 +489,99 @@
   box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
 }
 
+.checkout-detected-brand {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  max-width: 96px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: #eef5ff;
+  color: #1565d8;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 .checkout-card-entry .card-detection {
   display: block;
+  min-height: 19px;
   margin-top: 9px;
   color: #61646d;
   font-size: 13px;
 }
 
-/* TARJETAS DE EJEMPLO */
+/* ==========================================
+   13. TITULAR, VENCIMIENTO Y CVV
+========================================== */
+
+.checkout-card-entry .form-group,
+.checkout-card-extra-fields .form-group {
+  min-width: 0;
+}
+
+.checkout-card-extra-fields {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.checkout-card-extra-fields .form-grid.two-columns {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.checkout-card-extra-fields .form-group input {
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 12px;
+  color: #1d1d1f;
+  font-family: inherit;
+  font-size: 15px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.checkout-card-extra-fields .form-group input:focus {
+  outline: none;
+  border-color: #0071e3;
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+}
+
+.checkout-card-extra-fields input[name="cardHolder"] {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.checkout-card-extra-fields input[name="cardExpiry"],
+.checkout-card-extra-fields input[name="cardCvv"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-card-extra-fields input[name="cardCvv"] {
+  letter-spacing: 0.15em;
+}
+
+/* ==========================================
+   14. TARJETAS DE EJEMPLO
+========================================== */
 
 .checkout-demo-examples {
   display: grid;
@@ -469,7 +590,7 @@
 }
 
 .checkout-demo-examples > span {
-  color: #666;
+  color: #666666;
   font-size: 13px;
 }
 
@@ -504,7 +625,43 @@
   outline-offset: 2px;
 }
 
-/* AVISOS */
+/* ==========================================
+   15. TRANSFERENCIA BANCARIA
+========================================== */
+
+.checkout-copy-reference {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 11px 16px;
+  background: #ffffff;
+  border: 1px solid #0071e3;
+  border-radius: 11px;
+  color: #0071e3;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.checkout-copy-reference:hover {
+  background: #eff6ff;
+  box-shadow: 0 3px 10px rgba(0, 113, 227, 0.1);
+}
+
+.checkout-copy-reference:focus-visible {
+  outline: 3px solid #0071e3;
+  outline-offset: 3px;
+}
+
+/* ==========================================
+   16. AVISOS DE SEGURIDAD
+========================================== */
 
 .secure-note {
   display: flex;
@@ -512,7 +669,7 @@
   gap: 12px;
   margin-top: 20px;
   padding: 15px 16px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e5e5e7;
   border-radius: 12px;
   color: #55555c;
@@ -536,7 +693,9 @@
   line-height: 1.8;
 }
 
-/* ALERTAS */
+/* ==========================================
+   17. ALERTAS
+========================================== */
 
 .checkout-alert {
   padding: 16px 18px;
@@ -557,7 +716,9 @@
   color: #027a48;
 }
 
-/* BOTONES DE COMPRA */
+/* ==========================================
+   18. BOTÓN CONFIRMAR PEDIDO
+========================================== */
 
 .checkout-actions {
   display: flex;
@@ -575,7 +736,7 @@
   background: #0071e3;
   border: none;
   border-radius: 14px;
-  color: #fff;
+  color: #ffffff;
   font-family: inherit;
   font-size: 16px;
   font-weight: 700;
@@ -590,7 +751,7 @@
 
 .pay-button:hover:not(:disabled) {
   background: #005ecb;
-  color: #fff;
+  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(0, 113, 227, 0.18);
 }
@@ -609,7 +770,7 @@
   width: 100%;
   min-height: 54px;
   padding: 14px 18px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #d2d2d7;
   border-radius: 14px;
   color: #1d1d1f;
@@ -635,7 +796,9 @@
   outline-offset: 3px;
 }
 
-/* RESUMEN DEL PEDIDO */
+/* ==========================================
+   19. RESUMEN DEL PEDIDO
+========================================== */
 
 .summary-card {
   position: sticky;
@@ -675,28 +838,45 @@
   gap: 15px;
 }
 
+/* ==========================================
+   20. IMÁGENES DE LOS PRODUCTOS
+========================================== */
+
 .checkout-summary-image {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 78px;
-  height: 78px;
+  width: 82px;
+  height: 82px;
   flex-shrink: 0;
   overflow: hidden;
-  background: #f5f5f7;
+  background: #ffffff;
   border: 1px solid #ededf0;
   border-radius: 13px;
 }
 
 .checkout-summary-image img {
+  display: block;
   width: 100%;
   height: 100%;
+  padding: 5px;
   object-fit: contain;
+  object-position: center;
 }
 
 .checkout-product-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f5f5f7;
   font-size: 27px;
 }
+
+/* ==========================================
+   21. INFORMACIÓN DE LOS PRODUCTOS
+========================================== */
 
 .summary-item-info {
   flex: 1;
@@ -732,7 +912,9 @@
   font-size: 14px;
 }
 
-/* TOTALES */
+/* ==========================================
+   22. SUBTOTAL, ENVÍO Y TOTAL
+========================================== */
 
 .summary-totals {
   display: flex;
@@ -774,7 +956,9 @@
   white-space: nowrap;
 }
 
-/* INFORMACIÓN ADICIONAL */
+/* ==========================================
+   23. INFORMACIÓN ADICIONAL
+========================================== */
 
 .summary-security {
   display: flex;
@@ -805,13 +989,15 @@
   line-height: 1.7;
 }
 
-/* PANTALLA DE CONFIRMACIÓN */
+/* ==========================================
+   24. PANTALLA DE CONFIRMACIÓN
+========================================== */
 
 .checkout-success-page {
   width: min(650px, 100%);
   margin: 35px auto;
   padding: 50px 38px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e5e5e7;
   border-radius: 24px;
   text-align: center;
@@ -932,7 +1118,9 @@
   text-decoration: underline;
 }
 
-/* RESPONSIVE - TABLETS */
+/* ==========================================
+   25. RESPONSIVE - TABLETS
+========================================== */
 
 @media (max-width: 1080px) {
   .checkout-shell {
@@ -945,7 +1133,9 @@
   }
 }
 
-/* RESPONSIVE - CELULARES */
+/* ==========================================
+   26. RESPONSIVE - PANTALLAS MEDIANAS
+========================================== */
 
 @media (max-width: 768px) {
   .checkout-page {
@@ -970,11 +1160,19 @@
     grid-template-columns: 1fr;
   }
 
+  .checkout-card-extra-fields .form-grid.two-columns {
+    grid-template-columns: 1fr;
+  }
+
   .checkout-success-page {
     padding: 38px 25px;
     margin: 20px auto;
   }
 }
+
+/* ==========================================
+   27. RESPONSIVE - CELULARES
+========================================== */
 
 @media (max-width: 600px) {
   .checkout-card-entry {
@@ -985,6 +1183,10 @@
     flex: 1;
   }
 }
+
+/* ==========================================
+   28. RESPONSIVE - CELULARES PEQUEÑOS
+========================================== */
 
 @media (max-width: 480px) {
   .checkout-page {
@@ -1012,8 +1214,8 @@
   }
 
   .checkout-summary-image {
-    width: 65px;
-    height: 65px;
+    width: 68px;
+    height: 68px;
   }
 
   .summary-total-final strong {
@@ -1041,79 +1243,7 @@
   .checkout-demo-buttons button {
     width: 100%;
   }
-}
 
-/* TARJETA: MARCA AUTOMÁTICA EN EL CAMPO */
-
-.checkout-card-number-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.checkout-card-entry
-.checkout-card-number-wrapper input[name="cardNumber"] {
-  width: 100%;
-  padding-right: 116px;
-}
-
-.checkout-detected-brand {
-  position: absolute;
-  top: 50%;
-  right: 14px;
-  transform: translateY(-50%);
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 62px;
-  padding: 7px 9px;
-  border-radius: 7px;
-  background: #eef5ff;
-  color: #1565d8;
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.checkout-card-entry .card-detection {
-  min-height: 19px;
-}
-
-/* TRANSFERENCIA: REFERENCIA Y COPIAR */
-
-.checkout-copy-reference {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 11px 16px;
-  border: 1px solid #0071e3;
-  border-radius: 11px;
-  background: #fff;
-  color: #0071e3;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.checkout-copy-reference:hover {
-  background: #eff6ff;
-  box-shadow: 0 3px 10px rgba(0, 113, 227, 0.1);
-}
-
-.checkout-copy-reference:focus-visible {
-  outline: 3px solid #0071e3;
-  outline-offset: 3px;
-}
-
-/* RESPONSIVE PARA TARJETA Y TRANSFERENCIA */
-
-@media (max-width: 480px) {
   .checkout-card-entry
   .checkout-card-number-wrapper input[name="cardNumber"] {
     padding-right: 93px;
@@ -1131,54 +1261,7 @@
   .checkout-copy-reference {
     width: 100%;
   }
-}
 
-/* ==========================================
-   NICA S-MART - DATOS ADICIONALES DE TARJETA
-   NOMBRE DEL TITULAR, VENCIMIENTO Y CVV
-========================================== */
-
-.checkout-card-extra-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-top: 22px;
-}
-
-.checkout-card-extra-fields .form-grid.two-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.checkout-card-extra-fields .form-group {
-  min-width: 0;
-}
-
-.checkout-card-extra-fields .form-group input {
-  width: 100%;
-  min-height: 54px;
-  padding: 14px 16px;
-  background: #ffffff;
-  border: 1px solid #d2d2d7;
-  border-radius: 12px;
-  color: #1d1d1f;
-  font-family: inherit;
-  font-size: 15px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.checkout-card-extra-fields .form-group input:focus {
-  outline: none;
-  border-color: #0071e3;
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
-}
-
-.checkout-card-extra-fields input[name="cardCvv"] {
-  letter-spacing: 0.15em;
-}
-
-@media (max-width: 480px) {
   .checkout-card-extra-fields .form-grid.two-columns {
     grid-template-columns: 1fr;
   }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
@@ -30,7 +30,6 @@ const DEMO_CARDS = {
   }
 }
 
-
 const money = (value) =>
   `C$ ${Number(value || 0).toLocaleString('es-NI', {
     maximumFractionDigits: 0
@@ -45,20 +44,69 @@ function getStoredUser() {
   }
 }
 
+// ==========================================
+// DETECCIÓN DE VISA Y MASTERCARD
+// ==========================================
+
 function getCardBrand(number) {
   const digits = String(number || '').replace(/\D/g, '')
 
-  if (/^4/.test(digits)) {
+  if (digits.startsWith('4')) {
     return 'visa'
   }
 
+  const firstTwo = Number(digits.slice(0, 2))
+  const firstFour = Number(digits.slice(0, 4))
+
   if (
-    /^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))/.test(digits)
+    (digits.length >= 2 &&
+      firstTwo >= 51 &&
+      firstTwo <= 55) ||
+    (digits.length >= 4 &&
+      firstFour >= 2221 &&
+      firstFour <= 2720)
   ) {
     return 'mastercard'
   }
 
   return ''
+}
+
+// Permite escribir únicamente prefijos que
+// puedan formar Visa o Mastercard.
+
+function isPossibleCardPrefix(value) {
+  const digits = String(value || '').replace(/\D/g, '')
+
+  if (!digits) return true
+
+  if (digits.startsWith('4')) {
+    return true
+  }
+
+  if (digits.startsWith('5')) {
+    if (digits.length === 1) return true
+
+    const firstTwo = Number(digits.slice(0, 2))
+
+    return firstTwo >= 51 && firstTwo <= 55
+  }
+
+  if (digits.startsWith('2')) {
+    const prefix = digits.slice(0, Math.min(4, digits.length))
+    const remaining = 4 - prefix.length
+
+    const minimum = Number(prefix.padEnd(4, '0'))
+    const maximum = Number(prefix.padEnd(4, '9'))
+
+    return (
+      remaining >= 0 &&
+      minimum <= 2720 &&
+      maximum >= 2221
+    )
+  }
+
+  return false
 }
 
 function formatCardNumber(value) {
@@ -70,22 +118,48 @@ function formatCardNumber(value) {
 }
 
 
+function formatExpiry(value) {
+  const digits = String(value || '')
+    .replace(/\D/g, '')
+    .slice(0, 4)
+
+  return digits.length > 2
+    ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+    : digits
+}
+
+
+
 function getProductImage(product) {
+  if (!product) return ''
+
+  const data = product.product || product
+
   const candidates = [
-    product?.images,
-    product?.image_url,
-    product?.image
+    product.image_url,
+    product.image,
+    product.images,
+    product.imageUrl,
+    product.thumbnail,
+    product.photo,
+    product.picture,
+    data.image_url,
+    data.image,
+    data.images,
+    data.imageUrl,
+    data.thumbnail,
+    data.photo,
+    data.picture
   ]
 
   function extract(value) {
     if (!value) return ''
 
     if (Array.isArray(value)) {
-      for (const item of value) {
-        const result = extract(item)
-        if (result) return result
+      for (const entry of value) {
+        const found = extract(entry)
+        if (found) return found
       }
-
       return ''
     }
 
@@ -94,44 +168,59 @@ function getProductImage(product) {
         value.url ||
         value.src ||
         value.image_url ||
+        value.imageUrl ||
+        value.path ||
         value.image
       )
     }
 
-    if (typeof value !== 'string') {
-      return ''
-    }
+    if (typeof value !== 'string') return ''
 
-    const trimmed = value.trim()
+    const text = value.trim()
+    if (!text) return ''
 
-    if (
-      trimmed.startsWith('[') ||
-      trimmed.startsWith('{')
-    ) {
+    if (text.startsWith('[') || text.startsWith('{')) {
       try {
-        return extract(JSON.parse(trimmed))
+        return extract(JSON.parse(text))
       } catch {
         return ''
       }
     }
 
-    const first = trimmed.split(',')[0].trim()
+    const first = text
+      .split(',')[0]
+      .trim()
+      .replace(/\\/g, '/')
 
-    if (
-      first.startsWith('https://') ||
-      first.startsWith('http://') ||
-      first.startsWith('/') ||
-      first.startsWith('data:image/')
-    ) {
+    if (/^(https?:\/\/|data:image\/|blob:)/i.test(first)) {
       return first
     }
 
-    return ''
+    if (first.startsWith('//')) {
+      return `${window.location.protocol}${first}`
+    }
+
+    if (/^\/?public\//i.test(first)) {
+      return `/${first.replace(/^\/*public\//i, '')}`
+    }
+
+    if (/^\/?(assets|images)\//i.test(first)) {
+      return `/${first.replace(/^\/+/, '')}`
+    }
+
+    if (/^\/?uploads\//i.test(first)) {
+      return `${API_URL}/${first.replace(/^\/+/, '')}`
+    }
+
+    if (first.startsWith('/')) {
+      return first
+    }
+
+    return `${API_URL}/${first.replace(/^\/+/, '')}`
   }
 
   for (const candidate of candidates) {
     const image = extract(candidate)
-
     if (image) return image
   }
 
@@ -139,13 +228,17 @@ function getProductImage(product) {
 }
 
 function ProductThumbnail({ product }) {
-  const [failed, setFailed] = useState(false)
+  const [failedUrl, setFailedUrl] = useState('')
   const image = getProductImage(product)
 
-  if (!image || failed) {
+  if (!image || failedUrl === image) {
     return (
-      <div className="checkout-product-placeholder">
-        📦
+      <div
+        className="checkout-product-placeholder"
+        role="img"
+        aria-label="Imagen no disponible"
+      >
+        🖥️
       </div>
     )
   }
@@ -155,7 +248,8 @@ function ProductThumbnail({ product }) {
       src={image}
       alt={product.name || 'Producto'}
       loading="lazy"
-      onError={() => setFailed(true)}
+      decoding="async"
+      onError={() => setFailedUrl(image)}
     />
   )
 }
@@ -171,6 +265,78 @@ function Checkout() {
   } = useCart()
 
   const [user] = useState(getStoredUser)
+  const [catalogImages, setCatalogImages] = useState({})
+
+  // ==========================================
+  // RECUPERAR IMÁGENES DEL CATÁLOGO
+  // ==========================================
+
+  useEffect(() => {
+    const missing = cartItems.filter(
+      (item) => !getProductImage(item)
+    )
+
+    if (!missing.length) return
+
+    const controller = new AbortController()
+
+    async function loadImages() {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/products`,
+          { signal: controller.signal }
+        )
+
+        if (!response.ok) return
+
+        const json = await response.json()
+
+        const products = Array.isArray(json)
+          ? json
+          : Array.isArray(json.products)
+            ? json.products
+            : Array.isArray(json.data)
+              ? json.data
+              : Array.isArray(json.data?.products)
+                ? json.data.products
+                : []
+
+        const next = {}
+
+        for (const item of missing) {
+          const id = String(item.id ?? item.product_id)
+
+          const match = products.find(
+            (product) =>
+              String(product.id ?? product.product_id) === id
+          )
+
+          if (match && getProductImage(match)) {
+            next[id] = match
+          }
+        }
+
+        if (!controller.signal.aborted) {
+          setCatalogImages((previous) => ({
+            ...previous,
+            ...next
+          }))
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn('No se pudieron cargar las imágenes.')
+        }
+      }
+    }
+
+    loadImages()
+
+    return () => controller.abort()
+  }, [cartItems])
+
+  // ==========================================
+  // FORMULARIO
+  // ==========================================
 
   const [formData, setFormData] = useState({
     phone: '',
@@ -187,43 +353,60 @@ function Checkout() {
   const [error, setError] = useState('')
 
   const subtotal = Number(cartTotal) || 0
-  const shipping =
-    cartItems.length > 0 ? SHIPPING_COST : 0
+  const shipping = cartItems.length > 0
+    ? SHIPPING_COST
+    : 0
+
   const estimatedTotal = subtotal + shipping
 
   const itemCount = useMemo(
-    () =>
-      cartItems.reduce(
-        (sum, item) =>
-          sum + (Number(item.quantity) || 1),
-        0
-      ),
+    () => cartItems.reduce(
+      (sum, item) => sum + (Number(item.quantity) || 1),
+      0
+    ),
     [cartItems]
   )
 
   const cardDigits =
     formData.cardNumber.replace(/\D/g, '')
+
   const cardBrand =
     getCardBrand(formData.cardNumber)
 
 
   const handleChange = (event) => {
     const { name, value } = event.target
+
     let formattedValue = value
 
     if (name === 'cardNumber') {
-      formattedValue = formatCardNumber(value)
-    } else if (name === 'cardHolder') {
+      const digits = value.replace(/\D/g, '').slice(0, 16)
+
+      // No permite otros prefijos.
+      if (!isPossibleCardPrefix(digits)) {
+        setError(
+          'Solo se admiten números con formato Visa o Mastercard.'
+        )
+        return
+      }
+
+      formattedValue = formatCardNumber(digits)
+    }
+
+    if (name === 'cardHolder') {
       formattedValue = value
         .replace(/[^a-zA-ZÁÉÍÓÚÜÑáéíóúüñ\s]/g, '')
         .slice(0, 70)
-    } else if (name === 'cardExpiry') {
-      const digits = value.replace(/\D/g, '').slice(0, 4)
-      formattedValue = digits.length > 2
-        ? `${digits.slice(0, 2)}/${digits.slice(2)}`
-        : digits
-    } else if (name === 'cardCvv') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 3)
+    }
+
+    if (name === 'cardExpiry') {
+      formattedValue = formatExpiry(value)
+    }
+
+    if (name === 'cardCvv') {
+      formattedValue = value
+        .replace(/\D/g, '')
+        .slice(0, 3)
     }
 
     setFormData((previous) => ({
@@ -281,8 +464,12 @@ function Checkout() {
         return 'Ingresá el nombre del titular.'
       }
 
-      if (!DEMO_CARDS[cardDigits]) {
-        return 'Ingresá un número de tarjeta habilitado para pruebas.'
+      if (!/^\d{16}$/.test(cardDigits)) {
+        return 'Ingresá un número de tarjeta de 16 dígitos.'
+      }
+
+      if (!cardBrand) {
+        return 'Tarjeta no admitida. Solo Visa o Mastercard.'
       }
 
       if (!/^\d{2}\/\d{2}$/.test(formData.cardExpiry)) {
@@ -308,7 +495,7 @@ function Checkout() {
       }
 
       if (!/^\d{3}$/.test(formData.cardCvv)) {
-        return 'Ingresá un CVV de prueba de 3 dígitos.'
+        return 'Ingresá un código de seguridad de 3 dígitos.'
       }
     }
 
@@ -342,7 +529,7 @@ function Checkout() {
 
     try {
       const items = cartItems.map((item) => ({
-        product_id: Number(item.id),
+        product_id: Number(item.id ?? item.product_id),
         quantity: Number(item.quantity) || 1
       }))
 
@@ -361,13 +548,13 @@ function Checkout() {
         items
       }
 
-      if (
-        formData.paymentMethod === PAYMENT_METHODS.card
-      ) {
-        const selectedCard = DEMO_CARDS[cardDigits]
 
-        body.payment_card_brand = selectedCard.brand
-        body.payment_test_card = selectedCard.testId
+      if (formData.paymentMethod === PAYMENT_METHODS.card) {
+        body.payment_card_brand = cardBrand
+        body.payment_test_card =
+          cardBrand === 'visa'
+            ? 'VISA_TEST'
+            : 'MASTERCARD_TEST'
       }
 
       const response = await fetch(
@@ -406,18 +593,25 @@ function Checkout() {
         data.payment_status !== 'aprobado_simulado'
       ) {
         throw new Error(
-          'El servidor no confirmó el pedido.'
+          'El servidor no confirmó el pedido simulado.'
         )
       }
 
-      const orderId =
-        data.orderId ?? data.order?.id
+      const orderId = data.orderId ?? data.order?.id
 
       if (orderId == null) {
         throw new Error(
           'El servidor no devolvió el número del pedido.'
         )
       }
+
+      setFormData((previous) => ({
+        ...previous,
+        cardNumber: '',
+        cardHolder: '',
+        cardExpiry: '',
+        cardCvv: ''
+      }))
 
       if (typeof clearCart === 'function') {
         clearCart()
@@ -429,10 +623,7 @@ function Checkout() {
       )
 
     } catch (err) {
-      console.error(
-        'Error al registrar pedido:',
-        err
-      )
+      console.error('Error al registrar pedido:', err)
 
       setError(
         err instanceof TypeError
@@ -440,7 +631,6 @@ function Checkout() {
           : err.message ||
             'Ocurrió un error inesperado.'
       )
-
     } finally {
       setLoading(false)
     }
@@ -458,17 +648,11 @@ function Checkout() {
       <main className="checkout-page">
         <div className="checkout-shell">
 
-          {/* COLUMNA PRINCIPAL */}
-
           <section className="checkout-main">
-
-            {/* ENCABEZADO */}
 
             <div className="checkout-heading">
               <span>COMPRA EN NICA S-MART</span>
-
               <h1>Finalizar compra.</h1>
-
               <p>
                 Completá tus datos de entrega
                 y confirmá tu pedido.
@@ -485,9 +669,7 @@ function Checkout() {
               <div className="checkout-card">
                 <div className="section-header">
                   <h2>Información de contacto</h2>
-                  <p>
-                    Datos para gestionar tu pedido.
-                  </p>
+                  <p>Datos para gestionar tu pedido.</p>
                 </div>
 
                 {user && (
@@ -510,10 +692,7 @@ function Checkout() {
                           user.username ||
                           'Cliente'}
                       </strong>
-
-                      <span>
-                        {user.email || ''}
-                      </span>
+                      <span>{user.email || ''}</span>
                     </div>
                   </div>
                 )}
@@ -539,17 +718,16 @@ function Checkout() {
                 </div>
               </div>
 
-              {/* INFORMACIÓN DE ENTREGA */}
+              {/* ENTREGA */}
 
               <div className="checkout-card">
                 <div className="section-header">
                   <h2>Entrega de tu pedido</h2>
-                  <p>
-                    ¿Dónde querés recibir tus productos?
-                  </p>
+                  <p>¿Dónde querés recibir tus productos?</p>
                 </div>
 
                 <div className="form-grid">
+
                   <div className="form-group">
                     <label htmlFor="checkout-address">
                       Dirección de entrega
@@ -586,37 +764,28 @@ function Checkout() {
 
                   <div className="checkout-shipping-info">
                     <span>🚚</span>
-
                     <div>
-                      <strong>
-                        Entrega a domicilio
-                      </strong>
-                      <p>
-                        Costo de envío: {money(shipping)}
-                      </p>
+                      <strong>Entrega a domicilio</strong>
+                      <p>Costo de envío: {money(shipping)}</p>
                     </div>
                   </div>
+
                 </div>
               </div>
 
-              {/* MÉTODO DE PAGO */}
+              {/* MÉTODOS DE PAGO */}
 
               <div className="checkout-card">
                 <div className="section-header">
                   <h2>Método de pago</h2>
-                  <p>
-                    Elegí cómo registrar tu compra.
-                  </p>
+                  <p>Elegí cómo registrar tu compra.</p>
                 </div>
 
                 <div className="payment-methods">
 
-                  {/* TARJETA */}
-
                   <label
                     className={
-                      formData.paymentMethod ===
-                      PAYMENT_METHODS.card
+                      formData.paymentMethod === PAYMENT_METHODS.card
                         ? 'payment-option active'
                         : 'payment-option'
                     }
@@ -626,28 +795,19 @@ function Checkout() {
                       name="paymentMethod"
                       value={PAYMENT_METHODS.card}
                       checked={
-                        formData.paymentMethod ===
-                        PAYMENT_METHODS.card
+                        formData.paymentMethod === PAYMENT_METHODS.card
                       }
                       onChange={handleChange}
                     />
-
                     <div>
-                      <strong>
-                        Tarjeta de crédito o débito
-                      </strong>
-                      <span>
-                        Visa y Mastercard
-                      </span>
+                      <strong>Tarjeta de crédito o débito</strong>
+                      <span>Visa y Mastercard</span>
                     </div>
                   </label>
 
-                  {/* TRANSFERENCIA */}
-
                   <label
                     className={
-                      formData.paymentMethod ===
-                      PAYMENT_METHODS.transfer
+                      formData.paymentMethod === PAYMENT_METHODS.transfer
                         ? 'payment-option active'
                         : 'payment-option'
                     }
@@ -657,35 +817,25 @@ function Checkout() {
                       name="paymentMethod"
                       value={PAYMENT_METHODS.transfer}
                       checked={
-                        formData.paymentMethod ===
-                        PAYMENT_METHODS.transfer
+                        formData.paymentMethod === PAYMENT_METHODS.transfer
                       }
                       onChange={handleChange}
                     />
-
                     <div>
-                      <strong>
-                        Transferencia bancaria
-                      </strong>
-                      <span>
-                        Registro de transferencia
-                      </span>
+                      <strong>Transferencia bancaria</strong>
+                      <span>Registro de transferencia</span>
                     </div>
                   </label>
                 </div>
 
-                {/* FORMULARIO DE TARJETA */}
+                {/* TARJETA */}
 
-                {formData.paymentMethod ===
-                  PAYMENT_METHODS.card && (
-
+                {formData.paymentMethod === PAYMENT_METHODS.card && (
                   <div className="payment-box checkout-card-entry">
+
                     <div className="payment-box-top">
                       <div>
-                        <h3>
-                          Datos de la tarjeta
-                        </h3>
-
+                        <h3>Datos de la tarjeta</h3>
                         <p className="checkout-card-subtitle">
                           La marca se detecta automáticamente
                           al escribir.
@@ -695,9 +845,7 @@ function Checkout() {
                       <div className="card-brands">
                         <span
                           className={
-                            cardBrand === 'visa'
-                              ? 'selected-brand'
-                              : ''
+                            cardBrand === 'visa' ? 'selected-brand' : ''
                           }
                         >
                           VISA
@@ -714,8 +862,6 @@ function Checkout() {
                         </span>
                       </div>
                     </div>
-
-                    {/* NÚMERO DE TARJETA */}
 
                     <div className="form-group">
                       <label htmlFor="checkout-card-number">
@@ -810,21 +956,15 @@ function Checkout() {
                   </div>
                 )}
 
-                {/* TRANSFERENCIA BANCARIA */}
+                {/* TRANSFERENCIA */}
 
-                {formData.paymentMethod ===
-                  PAYMENT_METHODS.transfer && (
-
+                {formData.paymentMethod === PAYMENT_METHODS.transfer && (
                   <div className="payment-box">
-                    <h3>
-                      Transferencia bancaria
-                    </h3>
+                    <h3>Transferencia bancaria</h3>
 
                     <p className="checkout-payment-description">
                       Referencia indicada:{' '}
-                      <strong>
-                        {TRANSFER_REFERENCE}
-                      </strong>.
+                      <strong>{TRANSFER_REFERENCE}</strong>.
                       {' '}No realicés transferencias:
                       el pedido se registra sin mover dinero.
                     </p>
@@ -838,9 +978,7 @@ function Checkout() {
                             TRANSFER_REFERENCE
                           )
                         } catch {
-                          setError(
-                            'No se pudo copiar la referencia.'
-                          )
+                          setError('No se pudo copiar la referencia.')
                         }
                       }}
                     >
@@ -851,43 +989,28 @@ function Checkout() {
               </div>
 
               <p className="checkout-demo-disclosure">
-                Entorno de pruebas: los pedidos no generan
-                cobros ni transferencias bancarias.
+                Entorno de demostración. No se realizan cobros
+                reales. No ingresés datos bancarios auténticos.
               </p>
 
-              {/* MENSAJES DE ERROR */}
-
               {error && (
-                <div
-                  className="checkout-alert error"
-                  role="alert"
-                >
+                <div className="checkout-alert error" role="alert">
                   {error}
                 </div>
               )}
-
-              {/* CONFIRMAR PEDIDO */}
 
               <div className="checkout-actions">
                 <button
                   type="submit"
                   className="pay-button"
-                  disabled={
-                    loading ||
-                    cartItems.length === 0
-                  }
+                  disabled={loading || cartItems.length === 0}
                 >
                   {loading
                     ? 'Registrando pedido...'
-                    : `Confirmar pedido · ${money(
-                        estimatedTotal
-                      )}`}
+                    : `Confirmar pedido · ${money(estimatedTotal)}`}
                 </button>
 
-                <Link
-                  to="/cart"
-                  className="back-to-cart"
-                >
+                <Link to="/cart" className="back-to-cart">
                   ← Volver al carrito
                 </Link>
               </div>
@@ -903,47 +1026,49 @@ function Checkout() {
               <div className="summary-meta">
                 <span>
                   {itemCount}{' '}
-                  {itemCount === 1
-                    ? 'artículo'
-                    : 'artículos'}
+                  {itemCount === 1 ? 'artículo' : 'artículos'}
                 </span>
-
-                <span>
-                  NICA S-MART
-                </span>
+                <span>NICA S-MART</span>
               </div>
 
               <div className="summary-items">
                 {cartItems.length > 0 ? (
-                  cartItems.map((item) => (
-                    <div
-                      className="summary-item"
-                      key={item.id}
-                    >
-                      <div className="checkout-summary-image">
-                        <ProductThumbnail
-                          product={item}
-                        />
-                      </div>
+                  cartItems.map((item) => {
+                    const productId = String(
+                      item.id ?? item.product_id
+                    )
 
-                      <div className="summary-item-info">
-                        <strong>
-                          {item.name}
-                        </strong>
+                    const productWithImage = getProductImage(item)
+                      ? item
+                      : {
+                          ...item,
+                          ...catalogImages[productId]
+                        }
 
-                        <span>
-                          Cantidad: {item.quantity || 1}
-                        </span>
+                    return (
+                      <div className="summary-item" key={productId}>
+                        <div className="checkout-summary-image">
+                          <ProductThumbnail
+                            product={productWithImage}
+                          />
+                        </div>
 
-                        <div className="summary-item-price">
-                          {money(
-                            Number(item.price) *
-                            (Number(item.quantity) || 1)
-                          )}
+                        <div className="summary-item-info">
+                          <strong>{item.name}</strong>
+                          <span>
+                            Cantidad: {item.quantity || 1}
+                          </span>
+
+                          <div className="summary-item-price">
+                            {money(
+                              Number(item.price) *
+                              (Number(item.quantity) || 1)
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 ) : (
                   <p className="empty-summary">
                     No hay productos en el carrito.
@@ -951,37 +1076,23 @@ function Checkout() {
                 )}
               </div>
 
-              {/* TOTALES */}
-
               <div className="summary-totals">
                 <div>
                   <span>Subtotal</span>
-
-                  <strong>
-                    {money(subtotal)}
-                  </strong>
+                  <strong>{money(subtotal)}</strong>
                 </div>
-
                 <div>
                   <span>Envío</span>
-
-                  <strong>
-                    {money(shipping)}
-                  </strong>
+                  <strong>{money(shipping)}</strong>
                 </div>
-
                 <div className="summary-total-final">
                   <span>Total estimado</span>
-
-                  <strong>
-                    {money(estimatedTotal)}
-                  </strong>
+                  <strong>{money(estimatedTotal)}</strong>
                 </div>
               </div>
 
               <div className="summary-security">
                 <span>📦</span>
-
                 <p>
                   Los precios y las existencias se
                   verificarán al confirmar el pedido.
