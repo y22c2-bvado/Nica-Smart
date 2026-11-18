@@ -26,27 +26,22 @@ const API_URL = String(
 
 function getImageUrl(path) {
   if (!path) return null;
-  // 1. Si ya es una URL completa o un base64
+
   if (path.startsWith('http') || path.startsWith('data:')) return path;
   
-  // 2. Si la ruta ya incluye 'uploads/' (con o sin barra al inicio)
   if (path.includes('uploads/')) {
     const filename = path.split('uploads/')[1];
     return `${API_URL}/uploads/${filename}`;
   }
-  
-  // 3. Si es solo el nombre del archivo suelto (ej: "179375...jpg")
+
   if (!path.includes('/')) {
     return `${API_URL}/uploads/${path}`;
   }
   
-  // 4. Si es una imagen estática del frontend (ej: "/Imagenes/logo.png")
   return path;
 }
 
-// ==========================================
-// CONSTANTES DEL COMPONENTE
-// ==========================================
+
 const TIMEZONE = "America/Managua";
 const PRODUCTS_TO_SHOW = 4;
 
@@ -106,7 +101,6 @@ const seasonalKeywords = {
   ],
 };
 
-// CONFIGURACIÓN GAMING
 const gamingFilters = [
   {
     id: "all",
@@ -164,7 +158,6 @@ const gamingKeywords = [
   "volante",
 ];
 
-// NORMALIZAR TEXTO
 function normalize(value) {
   return String(value ?? "")
     .toLowerCase()
@@ -186,7 +179,6 @@ function getProductText(product) {
   ].join(" "));
 }
 
-// IDENTIFICAR PRODUCTOS GAMING
 function isGamingProduct(product) {
   const category =
     typeof product.category === "string"
@@ -211,7 +203,6 @@ function isGamingProduct(product) {
   );
 }
 
-// PRIORIDAD POR TEMPORADA
 function getSeasonalScore(product, campaign) {
   const keywords =
     campaign?.keywords ||
@@ -229,7 +220,6 @@ function getSeasonalScore(product, campaign) {
   );
 }
 
-// NORMALIZAR PRECIOS Y DESCUENTOS
 function normalizeProduct(product, campaign) {
   const price = Number(product.price);
 
@@ -270,7 +260,6 @@ function normalizeProduct(product, campaign) {
   };
 }
 
-// COMPONENTE DE IMAGEN ACTUALIZADO
 function PromotionImage({ product }) {
   const rawImage =
     product.image_url ||
@@ -279,7 +268,6 @@ function PromotionImage({ product }) {
     product.images?.[0] ||
     null;
 
-  // Validamos que sea string y aplicamos la función getImageUrl
   const imagePath = typeof rawImage === "string" ? rawImage : null;
   const finalImage = getImageUrl(imagePath);
 
@@ -311,7 +299,6 @@ function PromotionImage({ product }) {
   );
 }
 
-// CONTADOR REGRESIVO
 function calculateCountdown(now, campaign) {
   const parts = new Intl.DateTimeFormat(
     "en-US",
@@ -330,7 +317,6 @@ function calculateCountdown(now, campaign) {
     parts.find((p) => p.type === "month")?.value
   );
 
-  // Fin del mes en Managua, UTC-6
   let deadline = Date.UTC(
     year,
     month,
@@ -340,8 +326,6 @@ function calculateCountdown(now, campaign) {
     0
   );
 
-  // Utilizar la fecha final de la campaña
-  // cuando esté configurada y sea válida.
   if (campaign?.endsAt) {
     const configured = Date.parse(campaign.endsAt);
 
@@ -427,7 +411,6 @@ export default function Promotions() {
     () => new Date()
   );
 
-  // ACTUALIZAR RELOJ
   useEffect(() => {
     const updateClock = () => setNow(new Date());
 
@@ -461,7 +444,6 @@ export default function Promotions() {
     };
   }, []);
 
-  // CARGAR PRODUCTOS
   useEffect(() => {
     let active = true;
 
@@ -509,7 +491,6 @@ export default function Promotions() {
     };
   }, []);
 
-  // NORMALIZAR CATÁLOGO
   const catalog = useMemo(() => {
     return products
       .filter(
@@ -523,7 +504,6 @@ export default function Promotions() {
       .filter(Boolean);
   }, [products, campaign?.id]);
 
-  // PRODUCTOS DESTACADOS DE TEMPORADA
   const featuredProducts = useMemo(() => {
     return [...catalog]
       .sort((a, b) => {
@@ -550,7 +530,6 @@ export default function Promotions() {
       .slice(0, PRODUCTS_TO_SHOW);
   }, [catalog]);
 
-  // TODOS LOS PRODUCTOS GAMING
   const gamingProducts = useMemo(() => {
     return catalog
       .filter(isGamingProduct)
@@ -565,7 +544,6 @@ export default function Promotions() {
       });
   }, [catalog]);
 
-  // FILTRAR PRODUCTOS GAMING
   const filteredGamingProducts = useMemo(() => {
     const selectedFilter = gamingFilters.find(
       (filter) => filter.id === gamingFilter
