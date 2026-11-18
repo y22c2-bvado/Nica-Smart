@@ -1,214 +1,379 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { getProducts } from "../services/api";
-import "./SeasonalBanner.css";
 
-// ⚠️ IMPORTANTE: Agregamos la URL del backend
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { getProducts } from '../services/api'
+
+import './SeasonalBanner.css'
+
+// ==========================================
+// NICA S-MART - SEASONAL BANNER
+// DISEÑO RESPONSIVE
+// ==========================================
+
+// ==========================================
+// 1. CONFIGURACIÓN DE API
+// ==========================================
+
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:3000" : "")
-).trim().replace(/\/+$/, "");
+  (import.meta.env.DEV ? 'http://localhost:3000' : '')
+)
+  .trim()
+  .replace(/\/+$/, '')
 
-// FORMATO DE PRECIOS
-const money = (value) =>
-  new Intl.NumberFormat("es-NI", {
-    style: "currency",
-    currency: "NIO",
-    maximumFractionDigits: 0,
-  }).format(value);
+// ==========================================
+// 2. FORMATO DE PRECIOS
+// ==========================================
 
-// TEMAS DECORATIVOS
+function money(value) {
+  return new Intl.NumberFormat('es-NI', {
+    style: 'currency',
+    currency: 'NIO',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0)
+}
+
+// ==========================================
+// 3. DECORACIONES POR TEMPORADA
+// ==========================================
+
 const decorations = {
   halloween: {
-    main: "🎃",
-    second: "🎃",
-    top: "🦇",
-    side: "🦇",
-    details: "🍂",
-    combo: "🎮",
-    special: "🎧",
-    background: "/seasons/halloween-decoracion.png",
+    main: '🎃',
+    second: '🎃',
+    top: '🦇',
+    side: '🦇',
+    details: '🍂',
+    combo: '🎮',
+    special: '🎧',
+    background: '/seasons/halloween-decoracion.png'
   },
-  "black-november": {
-    main: "🛍️",
-    second: "🎁",
-    top: "⚡",
-    side: "✨",
-    details: "💎",
-    combo: "🎮",
-    special: "💻",
-    background: "/seasons/noviembre-banner.png",
+
+  'black-november': {
+    main: '🛍️',
+    second: '🎁',
+    top: '⚡',
+    side: '✨',
+    details: '💎',
+    combo: '🎮',
+    special: '💻',
+    background: '/seasons/noviembre-banner.png'
   },
-  "black-friday": {
-    main: "🛍️",
-    second: "🎁",
-    top: "⚡",
-    side: "✨",
-    details: "💎",
-    combo: "🎮",
-    special: "💻",
-    background: "/seasons/noviembre-banner.png",
+
+  'black-friday': {
+    main: '🛍️',
+    second: '🎁',
+    top: '⚡',
+    side: '✨',
+    details: '💎',
+    combo: '🎮',
+    special: '💻',
+    background: '/seasons/noviembre-banner.png'
   },
+
   navidad: {
-    main: "🎄",
-    second: "🎁",
-    top: "⭐",
-    side: "❄️",
-    details: "🎀",
-    combo: "🎧",
-    special: "🎁",
-    background: "/seasons/diciembre-banner.png",
+    main: '🎄',
+    second: '🎁',
+    top: '⭐',
+    side: '❄️',
+    details: '🎀',
+    combo: '🎧',
+    special: '🎁',
+    background: '/seasons/diciembre-banner.png'
   },
+
   christmas: {
-    main: "🎄",
-    second: "🎁",
-    top: "⭐",
-    side: "❄️",
-    details: "🎀",
-    combo: "🎧",
-    special: "🎁",
-    background: "/seasons/diciembre-banner.png",
+    main: '🎄',
+    second: '🎁',
+    top: '⭐',
+    side: '❄️',
+    details: '🎀',
+    combo: '🎧',
+    special: '🎁',
+    background: '/seasons/diciembre-banner.png'
   },
+
   agosto: {
-    main: "🇳🇮",
-    second: "🎉",
-    top: "✨",
-    side: "🎊",
-    details: "🎆",
-    combo: "⌚",
-    special: "🎧",
-    background: "/seasons/agosto-banner.png",
+    main: '🇳🇮',
+    second: '🎉',
+    top: '✨',
+    side: '🎊',
+    details: '🎆',
+    combo: '⌚',
+    special: '🎧',
+    background: '/seasons/agosto-banner.png'
   },
+
   patrio: {
-    main: "🇳🇮",
-    second: "🎉",
-    top: "⭐",
-    side: "🎊",
-    details: "🌼",
-    combo: "⌚",
-    special: "💻",
-    background: "/seasons/septiembre-banner.png",
-  },
-};
+    main: '🇳🇮',
+    second: '🎉',
+    top: '⭐',
+    side: '🎊',
+    details: '🌼',
+    combo: '⌚',
+    special: '💻',
+    background: '/seasons/septiembre-banner.png'
+  }
+}
+
+// ==========================================
+// 4. DECORACIÓN PREDETERMINADA
+// ==========================================
 
 const defaultDecor = {
-  main: "🎁",
-  second: "✨",
-  top: "⭐",
-  side: "🎊",
-  details: "✨",
-  combo: "🎧",
-  special: "💻",
-  background: null,
-};
+  main: '🎁',
+  second: '✨',
+  top: '⭐',
+  side: '🎊',
+  details: '✨',
+  combo: '🎧',
+  special: '💻',
+  background: null
+}
 
-const categoryIcons = ["🎧", "⌚", "🔌", "🎮"];
+const categoryIcons = ['🎧', '⌚', '🔌', '🎮']
 
-// ⚠️ NUEVA FUNCIÓN PARA MANEJAR IMÁGENES
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (typeof path !== "string") return null;
-  if (path.startsWith("http") || path.startsWith("data:")) return path;
-  
-  // Si la imagen está en el backend
-  if (path.startsWith("/uploads/")) {
-    return `${API_URL}${path}`;
+// ==========================================
+// 5. OBTENER IMÁGENES DE PRODUCTOS
+// ==========================================
+
+function getImageUrl(value) {
+  if (!value) return null
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const image = getImageUrl(entry)
+
+      if (image) return image
+    }
+
+    return null
   }
-  
-  // Si es una imagen del frontend (como /Imagenes/... o /seasons/...)
-  return path;
-};
 
-// IMAGEN DE PRODUCTO
-function ProductImage({ src, name, fallbackIcon }) {
-  const [failed, setFailed] = useState(false);
+  if (typeof value === 'object') {
+    return getImageUrl(
+      value.url ||
+      value.src ||
+      value.image_url ||
+      value.imageUrl ||
+      value.path ||
+      value.image
+    )
+  }
 
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
+  if (typeof value !== 'string') return null
 
-  if (!src || failed) {
+  const image = value.trim()
+
+  if (!image) return null
+
+  // Imágenes guardadas como JSON
+
+  if (
+    image.startsWith('[') ||
+    image.startsWith('{')
+  ) {
+    try {
+      return getImageUrl(JSON.parse(image))
+    } catch {
+      return null
+    }
+  }
+
+  // Imágenes con URL completa
+
+  if (
+    /^(https?:\/\/|data:image\/|blob:)/i.test(image)
+  ) {
+    return image
+  }
+
+  if (image.startsWith('//')) {
+    return `${window.location.protocol}${image}`
+  }
+
+  const normalized = image.replace(/\\/g, '/')
+
+  // Archivos públicos del frontend
+
+  if (/^\/?public\//i.test(normalized)) {
+    return `/${normalized.replace(/^\/*public\//i, '')}`
+  }
+
+  if (
+    /^\/?(seasons|imagenes|images|assets)\//i.test(normalized)
+  ) {
+    return `/${normalized.replace(/^\/+/, '')}`
+  }
+
+  // Imágenes del backend
+
+  if (/^\/?uploads\//i.test(normalized)) {
+    return `${API_URL}/${normalized.replace(/^\/+/, '')}`
+  }
+
+  // Rutas absolutas del frontend
+
+  if (normalized.startsWith('/')) {
+    return normalized
+  }
+
+  // Rutas relativas del backend
+
+  return `${API_URL}/${normalized}`
+}
+
+// ==========================================
+// 6. IMAGEN DE UN PRODUCTO
+// ==========================================
+
+function getProductImage(product) {
+  const candidates = [
+    product?.image_url,
+    product?.image,
+    product?.images,
+    product?.imageUrl,
+    product?.thumbnail,
+    product?.photo,
+    product?.picture
+  ]
+
+  for (const candidate of candidates) {
+    const image = getImageUrl(candidate)
+
+    if (image) return image
+  }
+
+  return null
+}
+
+// ==========================================
+// 7. COMPONENTE DE IMAGEN
+// ==========================================
+
+function ProductImage({
+  src,
+  name,
+  fallbackIcon
+}) {
+  const [failedUrl, setFailedUrl] = useState(null)
+
+  const failed = Boolean(
+    !src || failedUrl === src
+  )
+
+  if (failed) {
     return (
       <span
         className="seasonal-product-fallback"
         role="img"
-        aria-label={name}
+        aria-label={`Imagen no disponible: ${name}`}
       >
         {fallbackIcon}
       </span>
-    );
+    )
   }
 
   return (
     <img
       src={src}
-      alt={name}
+      alt={name || 'Producto'}
       loading="lazy"
-      onError={() => setFailed(true)}
+      decoding="async"
+      onError={() => setFailedUrl(src)}
     />
-  );
+  )
 }
 
-// BANNER PRINCIPAL
-export default function SeasonalBanner({ campaign }) {
-  const [products, setProducts] = useState([]);
-  const [backgroundFailed, setBackgroundFailed] =
-    useState(false);
-  const [showShipping, setShowShipping] = useState(false);
+// ==========================================
+// 8. COMPONENTE PRINCIPAL
+// ==========================================
 
+export default function SeasonalBanner({
+  campaign
+}) {
+  // ==========================================
+  // ESTADOS
+  // ==========================================
+
+  const [products, setProducts] = useState([])
+  const [backgroundFailed, setBackgroundFailed] =
+    useState(false)
+
+  const [showShipping, setShowShipping] =
+    useState(false)
+
+  const closeButtonRef = useRef(null)
+
+  // ==========================================
   // CARGAR PRODUCTOS
+  // ==========================================
+
   useEffect(() => {
-    let active = true;
+    let active = true
 
     getProducts()
       .then((data) => {
-        if (!active) return;
+        if (!active) return
 
         const items = Array.isArray(data)
           ? data
-          : data?.products || data?.data || [];
+          : Array.isArray(data?.products)
+            ? data.products
+            : Array.isArray(data?.data)
+              ? data.data
+              : Array.isArray(data?.data?.products)
+                ? data.data.products
+                : []
 
-        setProducts(
-          Array.isArray(items) ? items : []
-        );
+        setProducts(items)
       })
       .catch((error) => {
+        if (!active) return
+
         console.error(
-          "Error cargando productos del banner:",
+          'Error cargando productos del banner:',
           error
-        );
-      });
+        )
+
+        setProducts([])
+      })
 
     return () => {
-      active = false;
-    };
-  }, []);
+      active = false
+    }
+  }, [])
 
-  // MOSTRAR PRIMERO PRODUCTOS CON DESCUENTOS
+  // ==========================================
+  // PRODUCTOS DESTACADOS
+  // ==========================================
+
   const displayedProducts = useMemo(() => {
     return products
       .map((product, index) => {
-        const price = Number(product.price);
+        const price = Number(product.price)
 
         const original = Number(
           product.original_price ??
           product.originalPrice ??
           price
-        );
+        )
 
         const validPrice =
-          Number.isFinite(price) && price >= 0;
+          Number.isFinite(price) &&
+          price >= 0
 
         const hasDiscount =
           validPrice &&
           Number.isFinite(original) &&
-          original > price;
+          original > price
 
         const discount = hasDiscount
           ? Math.round(
               ((original - price) / original) * 100
             )
-          : 0;
+          : 0
 
         return {
           ...product,
@@ -217,103 +382,174 @@ export default function SeasonalBanner({ campaign }) {
           discount,
           validPrice,
           fallbackIcon:
-            categoryIcons[index % categoryIcons.length],
-        };
+            categoryIcons[
+              index % categoryIcons.length
+            ]
+        }
       })
       .filter((product) => product.validPrice)
       .sort((a, b) => b.discount - a.discount)
-      .slice(0, 4);
-  }, [products]);
+      .slice(0, 4)
+  }, [products])
+
+  // ==========================================
+  // TEMA Y CONFIGURACIÓN DE CAMPAÑA
+  // ==========================================
 
   const theme =
-    decorations[campaign?.id] || defaultDecor;
+    decorations[campaign?.id] || defaultDecor
+
+  const colors =
+    Array.isArray(campaign?.colors) &&
+    campaign.colors.length >= 2
+      ? campaign.colors
+      : ['#0755d7', '#38bdf8']
+
+  const name =
+    campaign?.name ||
+    campaign?.monthName ||
+    'temporada'
+
+  const title =
+    campaign?.titleMain ||
+    campaign?.title ||
+    `Ofertas de ${name}`
+
+  const accent =
+    campaign?.titleAccent ||
+    (campaign?.titleMain ? 'Tech' : '')
+
+  // Evita duplicar la palabra del acento
+  // si ya está al final del título.
+
+  const normalizedTitle = String(title).trim()
+  const normalizedAccent = String(accent).trim()
+
+  const titleHasAccent =
+    normalizedAccent &&
+    normalizedTitle
+      .toLowerCase()
+      .endsWith(
+        normalizedAccent.toLowerCase()
+      )
+
+  const mainTitle = titleHasAccent
+    ? normalizedTitle
+        .slice(
+          0,
+          normalizedTitle.length -
+            normalizedAccent.length
+        )
+        .trim()
+    : normalizedTitle
 
   const background =
     theme.background ||
     campaign?.heroImage ||
     campaign?.image ||
-    null;
-
-  useEffect(() => {
-    setBackgroundFailed(false);
-  }, [background]);
-
-  // CERRAR MODAL CON ESC
-  useEffect(() => {
-    if (!showShipping) return;
-
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setShowShipping(false);
-      }
-    };
-
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
-
-    return () => {
-      document.removeEventListener(
-        "keydown",
-        handleEscape
-      );
-    };
-  }, [showShipping]);
-
-  if (!campaign) return null;
-
-  const colors = campaign.colors || [
-    "#0755d7",
-    "#38bdf8",
-  ];
-
-  const name =
-    campaign.name ||
-    campaign.monthName ||
-    "temporada";
-
-  const title =
-    campaign.titleMain ||
-    campaign.title ||
-    `Ofertas de ${name}`;
-
-  const accent =
-    campaign.titleAccent ||
-    (campaign.titleMain ? "Tech" : "");
+    null
 
   const hasBackground = Boolean(
     background && !backgroundFailed
-  );
+  )
+
+  // ==========================================
+  // REINICIAR ESTADO DE IMAGEN
+  // ==========================================
+
+  useEffect(() => {
+    setBackgroundFailed(false)
+  }, [background])
+
+  // ==========================================
+  // CONTROL DEL MODAL
+  // ==========================================
+
+  useEffect(() => {
+    if (!showShipping) return
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowShipping(false)
+      }
+    }
+
+    const previousOverflow =
+      document.body.style.overflow
+
+    document.body.style.overflow = 'hidden'
+
+    closeButtonRef.current?.focus()
+
+    document.addEventListener(
+      'keydown',
+      handleEscape
+    )
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow
+
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      )
+    }
+  }, [showShipping])
+
+  // ==========================================
+  // OCULTAR SI NO HAY CAMPAÑA
+  // ==========================================
+
+  if (!campaign) return null
+
+  // ==========================================
+  // INTERFAZ PRINCIPAL
+  // ==========================================
 
   return (
     <div
       className={`seasonal-layout seasonal-theme-${campaign.id}`}
     >
-      {/* BANNER DE TEMPORADA */}
+
+      {/* =====================================
+          BANNER PRINCIPAL
+      ===================================== */}
+
       <section
         className="seasonal-hero"
         style={{
-          "--season-start": colors[0],
-          "--season-end": colors[1],
+          '--season-start': colors[0],
+          '--season-end': colors[1]
         }}
       >
-        {/* IMAGEN DECORATIVA */}
+
+        {/* =================================
+            FONDO DECORATIVO
+        ================================= */}
+
         {hasBackground && (
           <img
             key={background}
-            src={background}
+            src={getImageUrl(background)}
             alt=""
             aria-hidden="true"
             className="seasonal-background-image"
-            onError={() => setBackgroundFailed(true)}
+            onError={() =>
+              setBackgroundFailed(true)
+            }
           />
         )}
 
-        {/* DECORACIONES */}
+        {/* =================================
+            DECORACIONES
+        ================================= */}
+
         <div
           className={`seasonal-decorations ${
-            hasBackground ? "has-background" : ""
+            hasBackground
+              ? 'has-background'
+              : ''
           }`}
           aria-hidden="true"
         >
@@ -352,38 +588,80 @@ export default function SeasonalBanner({ campaign }) {
           </span>
         </div>
 
-        {/* INFORMACIÓN IZQUIERDA */}
+        {/* =================================
+            CONTENIDO DEL BANNER
+        ================================= */}
+
         <div className="seasonal-hero-copy">
+
+          {/* ETIQUETA DE TEMPORADA */}
+
           <span className="seasonal-ribbon">
-            ✦ {campaign.badge || campaign.label || name} ✦
+            ✦ {campaign.badge ||
+              campaign.label ||
+              name} ✦
           </span>
 
+          {/* TÍTULO */}
+
           <h1>
-            {title}{" "}
-            {accent && <em>{accent}</em>}
+            {mainTitle}
+
+            {normalizedAccent && (
+              <>
+                {' '}
+                <em>
+                  {normalizedAccent}
+                </em>
+              </>
+            )}
           </h1>
 
-          <p>{campaign.description}</p>
+          {/* DESCRIPCIÓN */}
+
+          {campaign.description && (
+            <p>
+              {campaign.description}
+            </p>
+          )}
+
+          {/* BOTÓN DE PROMOCIONES */}
 
           <Link
             className="seasonal-cta"
             to="/promotions#offers"
           >
-            {campaign.buttonText || "Ver promociones"}
-            <span>❯</span>
+            {campaign.buttonText ||
+              'Ver promociones'}
+
+            <span aria-hidden="true">
+              ❯
+            </span>
           </Link>
         </div>
 
-        {/* PRODUCTOS DESTACADOS */}
+        {/* =================================
+            PRODUCTOS DESTACADOS
+        ================================= */}
+
         <div className="seasonal-hero-showcase">
+
           {/* CLIENTE RECURRENTE */}
+
           <div className="seasonal-recurring">
-            <span className="seasonal-crown">
+
+            <span
+              className="seasonal-crown"
+              aria-hidden="true"
+            >
               👑
             </span>
 
             <div className="seasonal-recurring-text">
-              <strong>Cliente recurrente</strong>
+              <strong>
+                Cliente recurrente
+              </strong>
+
               <span>
                 ¡Gracias por seguir con nosotros!
               </span>
@@ -391,28 +669,21 @@ export default function SeasonalBanner({ campaign }) {
 
             <div className="seasonal-recurring-reward">
               ⭐ Beneficios exclusivos
+
               <small>
                 Para clientes frecuentes
               </small>
             </div>
+
           </div>
 
           {/* CUATRO PRODUCTOS */}
-          <div className="seasonal-featured-products">
-            {displayedProducts.map((product) => {
-              // ⚠️ AQUÍ APLICAMOS LA NUEVA FUNCIÓN
-              const firstImage = 
-                (product.images && product.images.length > 0) 
-                  ? product.images[0] 
-                  : null;
-              
-              const rawImage = 
-                product.image_url || 
-                product.image || 
-                (typeof firstImage === 'string' ? firstImage : firstImage?.url) || 
-                null;
 
-              const productImage = getImageUrl(rawImage);
+          <div className="seasonal-featured-products">
+
+            {displayedProducts.map((product) => {
+              const productImage =
+                getProductImage(product)
 
               return (
                 <Link
@@ -420,23 +691,37 @@ export default function SeasonalBanner({ campaign }) {
                   to={`/product/${product.id}`}
                   className="seasonal-product-card"
                 >
+
+                  {/* DESCUENTO */}
+
                   {product.discount > 0 && (
                     <span className="seasonal-product-badge">
                       -{product.discount}%
                     </span>
                   )}
 
+                  {/* IMAGEN */}
+
                   <div className="seasonal-product-image">
                     <ProductImage
                       src={productImage}
                       name={product.name}
-                      fallbackIcon={product.fallbackIcon}
+                      fallbackIcon={
+                        product.fallbackIcon
+                      }
                     />
                   </div>
 
-                  <h3>{product.name}</h3>
+                  {/* NOMBRE */}
+
+                  <h3>
+                    {product.name}
+                  </h3>
+
+                  {/* PRECIOS */}
 
                   <div className="seasonal-product-prices">
+
                     {product.discount > 0 && (
                       <del>
                         {money(product.original)}
@@ -446,41 +731,60 @@ export default function SeasonalBanner({ campaign }) {
                     <strong>
                       {money(product.price)}
                     </strong>
+
                   </div>
                 </Link>
-              );
+              )
             })}
+
           </div>
+
+          {/* SIN PRODUCTOS */}
 
           {displayedProducts.length === 0 && (
             <div className="seasonal-no-products">
-              <span>🎧 ⌚ 🎮 💻</span>
+
+              <span aria-hidden="true">
+                🎧 ⌚ 🎮 💻
+              </span>
+
               <p>
                 Próximamente, productos destacados
               </p>
+
             </div>
           )}
         </div>
       </section>
 
-      {/* TARJETAS INFERIORES */}
+      {/* =====================================
+          TARJETAS INFERIORES
+      ===================================== */}
+
       <section className="seasonal-promo-strip">
 
-        {/* COMBOS */}
+        {/* =================================
+            COMBOS TECNOLÓGICOS
+        ================================= */}
+
         <div className="seasonal-mini-card mini-blue">
-          <span className="mini-decoration">
+
+          <span
+            className="mini-decoration"
+            aria-hidden="true"
+          >
             {theme.combo}
           </span>
 
           <div>
             <h3>
               {campaign.miniPromo1Title ||
-                "Combo tecnológico"}
+                'Combo tecnológico'}
             </h3>
 
             <p>
               {campaign.miniPromo1Text ||
-                "Accesorios y dispositivos tecnológicos"}
+                'Accesorios y dispositivos tecnológicos'}
             </p>
 
             <Link
@@ -492,14 +796,23 @@ export default function SeasonalBanner({ campaign }) {
           </div>
         </div>
 
-        {/* CUPÓN SORPRESA */}
+        {/* =================================
+            CUPÓN SORPRESA
+        ================================= */}
+
         <div className="seasonal-mini-card mini-cream">
-          <span className="mini-decoration">
+
+          <span
+            className="mini-decoration"
+            aria-hidden="true"
+          >
             🎁
           </span>
 
           <div>
-            <h3>Premio sorpresa</h3>
+            <h3>
+              Premio sorpresa
+            </h3>
 
             <p>
               Compra y participa por un cupón
@@ -519,21 +832,28 @@ export default function SeasonalBanner({ campaign }) {
           </div>
         </div>
 
-        {/* OFERTAS */}
+        {/* =================================
+            TECNOLOGÍA EN OFERTA
+        ================================= */}
+
         <div className="seasonal-mini-card mini-blue">
-          <span className="mini-decoration">
+
+          <span
+            className="mini-decoration"
+            aria-hidden="true"
+          >
             {theme.special}
           </span>
 
           <div>
             <h3>
               {campaign.miniPromo2Title ||
-                "Tecnología en oferta"}
+                'Tecnología en oferta'}
             </h3>
 
             <p>
               {campaign.miniPromo2Text ||
-                "Descubre nuestros productos destacados"}
+                'Descubre nuestros productos destacados'}
             </p>
 
             <Link
@@ -545,9 +865,16 @@ export default function SeasonalBanner({ campaign }) {
           </div>
         </div>
 
-        {/* ENVÍOS */}
+        {/* =================================
+            ENVÍOS A NICARAGUA
+        ================================= */}
+
         <div className="seasonal-mini-card mini-cream">
-          <span className="mini-decoration">
+
+          <span
+            className="mini-decoration"
+            aria-hidden="true"
+          >
             🚚
           </span>
 
@@ -563,37 +890,56 @@ export default function SeasonalBanner({ campaign }) {
             <button
               type="button"
               className="mini-pill mini-action-button"
-              onClick={() => setShowShipping(true)}
+              onClick={() =>
+                setShowShipping(true)
+              }
             >
               Ver condiciones
             </button>
           </div>
         </div>
+
       </section>
 
-      {/* MODAL DE ENVÍOS */}
+      {/* =====================================
+          MODAL DE ENVÍOS
+      ===================================== */}
+
       {showShipping && (
         <div
           className="shipping-modal-overlay"
-          onClick={() => setShowShipping(false)}
+          onClick={() =>
+            setShowShipping(false)
+          }
         >
           <section
             className="shipping-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="shipping-modal-title"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
+
+            {/* CERRAR MODAL */}
+
             <button
+              ref={closeButtonRef}
               type="button"
               className="shipping-modal-close"
               aria-label="Cerrar ventana"
-              onClick={() => setShowShipping(false)}
+              onClick={() =>
+                setShowShipping(false)
+              }
             >
               ✕
             </button>
 
-            <span className="shipping-modal-icon">
+            <span
+              className="shipping-modal-icon"
+              aria-hidden="true"
+            >
               🚚
             </span>
 
@@ -610,13 +956,16 @@ export default function SeasonalBanner({ campaign }) {
             <Link
               to="/cart"
               className="shipping-modal-link"
-              onClick={() => setShowShipping(false)}
+              onClick={() =>
+                setShowShipping(false)
+              }
             >
               Revisar mi carrito
             </Link>
+
           </section>
         </div>
       )}
     </div>
-  );
+  )
 }
