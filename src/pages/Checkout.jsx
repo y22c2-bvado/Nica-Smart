@@ -20,13 +20,15 @@ const API_URL = String(
 
 const SHIPPING_COST = 150
 
+const TRANSFER_REFERENCE = '136071407'
+
 const PAYMENT_METHODS = {
   card: 'tarjeta_simulada',
   transfer: 'transferencia_simulada'
 }
 
-// Solo números públicos para demostración.
-// Nunca utilizar ni almacenar tarjetas reales.
+// Identificadores públicos para pagos de prueba.
+// Nunca se envían números de tarjeta al backend.
 
 const DEMO_CARDS = {
   '4111111111111111': {
@@ -57,10 +59,14 @@ function getStoredUser() {
   }
 }
 
+// Detectar automáticamente Visa o Mastercard.
+
 function getCardBrand(number) {
   const digits = String(number || '').replace(/\D/g, '')
 
-  if (/^4/.test(digits)) return 'visa'
+  if (/^4/.test(digits)) {
+    return 'visa'
+  }
 
   if (
     /^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))/.test(digits)
@@ -70,6 +76,8 @@ function getCardBrand(number) {
 
   return ''
 }
+
+// Separar número en grupos de cuatro.
 
 function formatCardNumber(value) {
   return String(value || '')
@@ -96,8 +104,10 @@ function getProductImage(product) {
     if (Array.isArray(value)) {
       for (const item of value) {
         const result = extract(item)
+
         if (result) return result
       }
+
       return ''
     }
 
@@ -110,11 +120,16 @@ function getProductImage(product) {
       )
     }
 
-    if (typeof value !== 'string') return ''
+    if (typeof value !== 'string') {
+      return ''
+    }
 
     const trimmed = value.trim()
 
-    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    if (
+      trimmed.startsWith('[') ||
+      trimmed.startsWith('{')
+    ) {
       try {
         return extract(JSON.parse(trimmed))
       } catch {
@@ -138,6 +153,7 @@ function getProductImage(product) {
 
   for (const candidate of candidates) {
     const image = extract(candidate)
+
     if (image) return image
   }
 
@@ -146,6 +162,7 @@ function getProductImage(product) {
 
 function ProductThumbnail({ product }) {
   const [failed, setFailed] = useState(false)
+
   const image = getProductImage(product)
 
   if (!image || failed) {
@@ -167,7 +184,7 @@ function ProductThumbnail({ product }) {
 }
 
 // ==========================================
-// CHECKOUT PRINCIPAL
+// COMPONENTE PRINCIPAL
 // ==========================================
 
 function Checkout() {
@@ -193,23 +210,28 @@ function Checkout() {
   const [error, setError] = useState('')
 
   const subtotal = Number(cartTotal) || 0
-  const shipping = cartItems.length > 0 ? SHIPPING_COST : 0
+
+  const shipping =
+    cartItems.length > 0 ? SHIPPING_COST : 0
+
   const estimatedTotal = subtotal + shipping
 
   const itemCount = useMemo(
     () =>
       cartItems.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 1),
+        (sum, item) =>
+          sum + (Number(item.quantity) || 1),
         0
       ),
     [cartItems]
   )
 
   const cardDigits = formData.cardNumber.replace(/\D/g, '')
+
   const cardBrand = getCardBrand(formData.cardNumber)
 
   // ==========================================
-  // CAMBIOS EN FORMULARIO
+  // CAMBIOS EN EL FORMULARIO
   // ==========================================
 
   const handleChange = (event) => {
@@ -226,17 +248,8 @@ function Checkout() {
     setError('')
   }
 
-  const selectDemoCard = (number) => {
-    setFormData((previous) => ({
-      ...previous,
-      cardNumber: formatCardNumber(number)
-    }))
-
-    setError('')
-  }
-
   // ==========================================
-  // VALIDACIONES
+  // VALIDAR DATOS
   // ==========================================
 
   const validateForm = () => {
@@ -261,6 +274,17 @@ function Checkout() {
       return 'Ingresá una dirección de entrega más detallada.'
     }
 
+    const fullAddress = [
+      formData.address.trim(),
+      formData.reference.trim()
+    ]
+      .filter(Boolean)
+      .join('\nReferencia: ')
+
+    if (fullAddress.length > 500) {
+      return 'La dirección y referencia son demasiado largas.'
+    }
+
     if (
       !Object.values(PAYMENT_METHODS).includes(
         formData.paymentMethod
@@ -269,17 +293,18 @@ function Checkout() {
       return 'Seleccioná un método de pago válido.'
     }
 
-    if (formData.paymentMethod === PAYMENT_METHODS.card) {
-      if (!DEMO_CARDS[cardDigits]) {
-        return 'Utilizá una de las tarjetas de ejemplo disponibles.'
-      }
+    if (
+      formData.paymentMethod === PAYMENT_METHODS.card &&
+      !DEMO_CARDS[cardDigits]
+    ) {
+      return 'Utilizá uno de los números habilitados para pruebas.'
     }
 
     return ''
   }
 
   // ==========================================
-  // CREAR PEDIDO Y ABRIR FACTURA
+  // REGISTRAR PEDIDO
   // ==========================================
 
   const handleConfirmOrder = async (event) => {
@@ -295,6 +320,7 @@ function Checkout() {
       navigate('/login', {
         state: { from: '/checkout' }
       })
+
       return
     }
 
@@ -313,25 +339,27 @@ function Checkout() {
         quantity: Number(item.quantity) || 1
       }))
 
+      const customerAddress = [
+        formData.address.trim(),
+        formData.reference.trim()
+      ]
+        .filter(Boolean)
+        .join('\nReferencia: ')
+
       const body = {
         customer_phone: formData.phone.trim(),
-
-        customer_address: [
-          formData.address.trim(),
-          formData.reference.trim()
-        ]
-          .filter(Boolean)
-          .join('\nReferencia: '),
-
+        customer_address: customerAddress,
         payment_method: formData.paymentMethod,
         payment_test_code: 'APROBAR',
         items
       }
 
-      // Solo enviamos la marca y el código de prueba.
-      // No enviamos el número de tarjeta.
+      // Solo identificadores de prueba.
+      // Nunca enviamos el número introducido.
 
-      if (formData.paymentMethod === PAYMENT_METHODS.card) {
+      if (
+        formData.paymentMethod === PAYMENT_METHODS.card
+      ) {
         const selectedCard = DEMO_CARDS[cardDigits]
 
         body.payment_card_brand = selectedCard.brand
@@ -350,12 +378,15 @@ function Checkout() {
         }
       )
 
-      const data = await response.json().catch(() => ({}))
+      const data = await response
+        .json()
+        .catch(() => ({}))
 
       if (response.status === 401) {
         navigate('/login', {
           state: { from: '/checkout' }
         })
+
         return
       }
 
@@ -367,8 +398,8 @@ function Checkout() {
         )
       }
 
-      // Compatibilidad con el backend actual.
-      // No significa que se haya cobrado dinero.
+      // Validar la confirmación del backend.
+      // No equivale a un cobro real.
 
       if (
         data.simulated !== true ||
@@ -388,7 +419,7 @@ function Checkout() {
       }
 
       // ======================================
-      // COMPRA CONFIRMADA
+      // PEDIDO REGISTRADO
       // ======================================
 
       if (typeof clearCart === 'function') {
@@ -396,7 +427,7 @@ function Checkout() {
       }
 
       // ======================================
-      // REDIRECCIÓN AUTOMÁTICA A LA FACTURA
+      // ABRIR FACTURA DIGITAL
       // ======================================
 
       navigate(
@@ -405,13 +436,16 @@ function Checkout() {
       )
 
     } catch (err) {
-      console.error('Error al registrar pedido:', err)
+      console.error(
+        'Error al registrar pedido:',
+        err
+      )
 
       setError(
         err instanceof TypeError
           ? 'No se pudo conectar con el servidor.'
           : err.message ||
-            'Ocurrió un error al registrar el pedido.'
+            'Ocurrió un error inesperado.'
       )
 
     } finally {
@@ -435,6 +469,8 @@ function Checkout() {
 
           <section className="checkout-main">
 
+            {/* ENCABEZADO */}
+
             <div className="checkout-heading">
               <span>COMPRA EN NICA S-MART</span>
 
@@ -451,12 +487,18 @@ function Checkout() {
               onSubmit={handleConfirmOrder}
             >
 
-              {/* CONTACTO */}
+              {/* ==================================
+                  INFORMACIÓN DE CONTACTO
+              ================================== */}
 
               <div className="checkout-card">
+
                 <div className="section-header">
                   <h2>Información de contacto</h2>
-                  <p>Datos para gestionar tu pedido.</p>
+
+                  <p>
+                    Datos para gestionar tu pedido.
+                  </p>
                 </div>
 
                 {user && (
@@ -481,7 +523,9 @@ function Checkout() {
                           'Cliente'}
                       </strong>
 
-                      <span>{user.email || ''}</span>
+                      <span>
+                        {user.email || ''}
+                      </span>
                     </div>
 
                   </div>
@@ -508,9 +552,12 @@ function Checkout() {
 
                   </div>
                 </div>
+
               </div>
 
-              {/* ENTREGA */}
+              {/* ==================================
+                  INFORMACIÓN DE ENTREGA
+              ================================== */}
 
               <div className="checkout-card">
 
@@ -567,7 +614,9 @@ function Checkout() {
                     <span>🚚</span>
 
                     <div>
-                      <strong>Entrega a domicilio</strong>
+                      <strong>
+                        Entrega a domicilio
+                      </strong>
 
                       <p>
                         Costo de envío: {money(shipping)}
@@ -577,15 +626,21 @@ function Checkout() {
                   </div>
 
                 </div>
+
               </div>
 
-              {/* MÉTODO DE PAGO */}
+              {/* ==================================
+                  MÉTODO DE PAGO
+              ================================== */}
 
               <div className="checkout-card">
 
                 <div className="section-header">
                   <h2>Método de pago</h2>
-                  <p>Elegí cómo registrar tu compra.</p>
+
+                  <p>
+                    Elegí cómo registrar tu compra.
+                  </p>
                 </div>
 
                 <div className="payment-methods">
@@ -617,7 +672,9 @@ function Checkout() {
                         Tarjeta de crédito o débito
                       </strong>
 
-                      <span>Visa y Mastercard</span>
+                      <span>
+                        Visa y Mastercard
+                      </span>
                     </div>
 
                   </label>
@@ -645,15 +702,22 @@ function Checkout() {
                     />
 
                     <div>
-                      <strong>Transferencia bancaria</strong>
-                      <span>Registro de demostración</span>
+                      <strong>
+                        Transferencia bancaria
+                      </strong>
+
+                      <span>
+                        Registro de transferencia
+                      </span>
                     </div>
 
                   </label>
 
                 </div>
 
-                {/* FORMULARIO DE TARJETA */}
+                {/* ==================================
+                    FORMULARIO DE TARJETA
+                ================================== */}
 
                 {formData.paymentMethod ===
                   PAYMENT_METHODS.card && (
@@ -663,10 +727,13 @@ function Checkout() {
                     <div className="payment-box-top">
 
                       <div>
-                        <h3>Datos de la tarjeta</h3>
+                        <h3>
+                          Datos de la tarjeta
+                        </h3>
 
                         <p className="checkout-card-subtitle">
-                          Seleccioná una tarjeta de ejemplo.
+                          La marca se detecta automáticamente
+                          al escribir.
                         </p>
                       </div>
 
@@ -693,26 +760,39 @@ function Checkout() {
                         </span>
 
                       </div>
+
                     </div>
 
                     <div className="form-group">
 
                       <label htmlFor="checkout-card-number">
-                        Número de tarjeta de ejemplo
+                        Número de tarjeta (solo sandbox)
                       </label>
 
-                      <input
-                        id="checkout-card-number"
-                        name="cardNumber"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        value={formData.cardNumber}
-                        onChange={handleChange}
-                        placeholder="0000 0000 0000 0000"
-                        maxLength={19}
-                        required
-                      />
+                      <div className="checkout-card-number-wrapper">
+
+                        <input
+                          id="checkout-card-number"
+                          name="cardNumber"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          value={formData.cardNumber}
+                          onChange={handleChange}
+                          placeholder="0000 0000 0000 0000"
+                          maxLength={19}
+                          required
+                        />
+
+                        <span className="checkout-detected-brand">
+                          {cardBrand === 'visa'
+                            ? 'VISA'
+                            : cardBrand === 'mastercard'
+                              ? 'Mastercard'
+                              : '💳'}
+                        </span>
+
+                      </div>
 
                       <span className="card-detection">
                         {cardBrand === 'visa'
@@ -724,68 +804,63 @@ function Checkout() {
 
                     </div>
 
-                    {/* TARJETAS DE EJEMPLO */}
-
-                    <div className="checkout-demo-examples">
-
-                      <span>
-                        Tarjetas disponibles para la práctica
-                      </span>
-
-                      <div className="checkout-demo-buttons">
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            selectDemoCard(
-                              '4111111111111111'
-                            )
-                          }
-                        >
-                          Visa de ejemplo
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            selectDemoCard(
-                              '5555555555554444'
-                            )
-                          }
-                        >
-                          Mastercard de ejemplo
-                        </button>
-
-                      </div>
-                    </div>
+                    <p className="checkout-card-subtitle">
+                      Números habilitados para pruebas:
+                      Visa 4111 1111 1111 1111 o
+                      Mastercard 5555 5555 5555 4444.
+                    </p>
 
                     <div className="secure-note">
-
                       <span>🔒</span>
 
                       <span>
                         Solo se aceptan tarjetas ficticias.
                         No ingresés datos bancarios reales.
                       </span>
-
                     </div>
 
                   </div>
                 )}
 
-                {/* TRANSFERENCIA */}
+                {/* ==================================
+                    TRANSFERENCIA
+                ================================== */}
 
                 {formData.paymentMethod ===
                   PAYMENT_METHODS.transfer && (
 
                   <div className="payment-box">
 
-                    <h3>Transferencia bancaria</h3>
+                    <h3>
+                      Transferencia bancaria
+                    </h3>
 
                     <p className="checkout-payment-description">
-                      Esta opción registra el pedido sin
-                      efectuar una transferencia de dinero.
+                      Referencia indicada:{' '}
+                      <strong>
+                        {TRANSFER_REFERENCE}
+                      </strong>.
+                      {' '}No realicés transferencias:
+                      el pedido se registra sin mover dinero.
                     </p>
+
+                    <button
+                      type="button"
+                      className="checkout-copy-reference"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            TRANSFER_REFERENCE
+                          )
+                        } catch {
+                          setError(
+                            'No se pudo copiar la referencia.'
+                          )
+                        }
+                      }}
+                    >
+                      Copiar referencia
+                    </button>
 
                   </div>
                 )}
@@ -793,11 +868,13 @@ function Checkout() {
               </div>
 
               <p className="checkout-demo-disclosure">
-                Entorno académico de demostración.
-                No se realizan cargos bancarios reales.
+                Entorno de pruebas: los pedidos no generan
+                cobros ni transferencias bancarias.
               </p>
 
-              {/* ERRORES */}
+              {/* ==================================
+                  ERRORES
+              ================================== */}
 
               {error && (
                 <div
@@ -808,7 +885,9 @@ function Checkout() {
                 </div>
               )}
 
-              {/* CONFIRMAR */}
+              {/* ==================================
+                  CONFIRMAR PEDIDO
+              ================================== */}
 
               <div className="checkout-actions">
 
@@ -837,6 +916,7 @@ function Checkout() {
               </div>
 
             </form>
+
           </section>
 
           {/* ==================================
@@ -858,7 +938,9 @@ function Checkout() {
                     : 'artículos'}
                 </span>
 
-                <span>NICA S-MART</span>
+                <span>
+                  NICA S-MART
+                </span>
 
               </div>
 
@@ -881,19 +963,19 @@ function Checkout() {
 
                       <div className="summary-item-info">
 
-                        <strong>{item.name}</strong>
+                        <strong>
+                          {item.name}
+                        </strong>
 
                         <span>
                           Cantidad: {item.quantity || 1}
                         </span>
 
                         <div className="summary-item-price">
-
                           {money(
                             Number(item.price) *
                             (Number(item.quantity) || 1)
                           )}
-
                         </div>
 
                       </div>
@@ -918,22 +1000,26 @@ function Checkout() {
 
                 <div>
                   <span>Subtotal</span>
-                  <strong>{money(subtotal)}</strong>
+
+                  <strong>
+                    {money(subtotal)}
+                  </strong>
                 </div>
 
                 <div>
                   <span>Envío</span>
-                  <strong>{money(shipping)}</strong>
+
+                  <strong>
+                    {money(shipping)}
+                  </strong>
                 </div>
 
                 <div className="summary-total-final">
-
                   <span>Total estimado</span>
 
                   <strong>
                     {money(estimatedTotal)}
                   </strong>
-
                 </div>
 
               </div>
