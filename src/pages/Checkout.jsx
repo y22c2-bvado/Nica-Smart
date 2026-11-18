@@ -19,7 +19,6 @@ const API_URL = String(
 ).trim().replace(/\/+$/, '')
 
 const SHIPPING_COST = 150
-
 const TRANSFER_REFERENCE = '136071407'
 
 const PAYMENT_METHODS = {
@@ -27,9 +26,8 @@ const PAYMENT_METHODS = {
   transfer: 'transferencia_simulada'
 }
 
-// Identificadores públicos para pagos de prueba.
-// Nunca se envían números de tarjeta al backend.
-
+// Tarjetas públicas de prueba compatibles con
+// el backend actual. No introducir tarjetas reales.
 const DEMO_CARDS = {
   '4111111111111111': {
     brand: 'visa',
@@ -59,8 +57,6 @@ function getStoredUser() {
   }
 }
 
-// Detectar automáticamente Visa o Mastercard.
-
 function getCardBrand(number) {
   const digits = String(number || '').replace(/\D/g, '')
 
@@ -76,8 +72,6 @@ function getCardBrand(number) {
 
   return ''
 }
-
-// Separar número en grupos de cuatro.
 
 function formatCardNumber(value) {
   return String(value || '')
@@ -104,7 +98,6 @@ function getProductImage(product) {
     if (Array.isArray(value)) {
       for (const item of value) {
         const result = extract(item)
-
         if (result) return result
       }
 
@@ -162,7 +155,6 @@ function getProductImage(product) {
 
 function ProductThumbnail({ product }) {
   const [failed, setFailed] = useState(false)
-
   const image = getProductImage(product)
 
   if (!image || failed) {
@@ -184,7 +176,7 @@ function ProductThumbnail({ product }) {
 }
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// CHECKOUT PRINCIPAL
 // ==========================================
 
 function Checkout() {
@@ -226,12 +218,14 @@ function Checkout() {
     [cartItems]
   )
 
-  const cardDigits = formData.cardNumber.replace(/\D/g, '')
+  const cardDigits =
+    formData.cardNumber.replace(/\D/g, '')
 
-  const cardBrand = getCardBrand(formData.cardNumber)
+  const cardBrand =
+    getCardBrand(formData.cardNumber)
 
   // ==========================================
-  // CAMBIOS EN EL FORMULARIO
+  // CAMBIOS EN FORMULARIO
   // ==========================================
 
   const handleChange = (event) => {
@@ -249,7 +243,7 @@ function Checkout() {
   }
 
   // ==========================================
-  // VALIDAR DATOS
+  // VALIDACIONES
   // ==========================================
 
   const validateForm = () => {
@@ -257,7 +251,8 @@ function Checkout() {
       return 'Tu carrito está vacío.'
     }
 
-    const phoneDigits = formData.phone.replace(/\D/g, '')
+    const phoneDigits =
+      formData.phone.replace(/\D/g, '')
 
     const validPhone =
       phoneDigits.length === 8 ||
@@ -297,7 +292,7 @@ function Checkout() {
       formData.paymentMethod === PAYMENT_METHODS.card &&
       !DEMO_CARDS[cardDigits]
     ) {
-      return 'Utilizá uno de los números habilitados para pruebas.'
+      return 'El número de tarjeta no está habilitado en el entorno de pruebas.'
     }
 
     return ''
@@ -354,8 +349,8 @@ function Checkout() {
         items
       }
 
-      // Solo identificadores de prueba.
-      // Nunca enviamos el número introducido.
+      // El backend recibe solo identificadores de prueba.
+      // Nunca recibe el número de tarjeta.
 
       if (
         formData.paymentMethod === PAYMENT_METHODS.card
@@ -398,19 +393,17 @@ function Checkout() {
         )
       }
 
-      // Validar la confirmación del backend.
-      // No equivale a un cobro real.
-
       if (
         data.simulated !== true ||
         data.payment_status !== 'aprobado_simulado'
       ) {
         throw new Error(
-          'El servidor no confirmó el pedido de demostración.'
+          'El servidor no confirmó el pedido.'
         )
       }
 
-      const orderId = data.orderId ?? data.order?.id
+      const orderId =
+        data.orderId ?? data.order?.id
 
       if (orderId == null) {
         throw new Error(
@@ -477,8 +470,8 @@ function Checkout() {
               <h1>Finalizar compra.</h1>
 
               <p>
-                Completá tus datos de entrega y confirmá
-                tu pedido.
+                Completá tus datos de entrega
+                y confirmá tu pedido.
               </p>
             </div>
 
@@ -655,7 +648,6 @@ function Checkout() {
                         : 'payment-option'
                     }
                   >
-
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -676,7 +668,6 @@ function Checkout() {
                         Visa y Mastercard
                       </span>
                     </div>
-
                   </label>
 
                   {/* TRANSFERENCIA */}
@@ -689,7 +680,6 @@ function Checkout() {
                         : 'payment-option'
                     }
                   >
-
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -710,7 +700,6 @@ function Checkout() {
                         Registro de transferencia
                       </span>
                     </div>
-
                   </label>
 
                 </div>
@@ -760,13 +749,12 @@ function Checkout() {
                         </span>
 
                       </div>
-
                     </div>
 
                     <div className="form-group">
 
                       <label htmlFor="checkout-card-number">
-                        Número de tarjeta (solo sandbox)
+                        Número de tarjeta
                       </label>
 
                       <div className="checkout-card-number-wrapper">
@@ -794,36 +782,13 @@ function Checkout() {
 
                       </div>
 
-                      <span className="card-detection">
-                        {cardBrand === 'visa'
-                          ? '✓ Tarjeta Visa detectada'
-                          : cardBrand === 'mastercard'
-                            ? '✓ Tarjeta Mastercard detectada'
-                            : 'Visa o Mastercard'}
-                      </span>
-
-                    </div>
-
-                    <p className="checkout-card-subtitle">
-                      Números habilitados para pruebas:
-                      Visa 4111 1111 1111 1111 o
-                      Mastercard 5555 5555 5555 4444.
-                    </p>
-
-                    <div className="secure-note">
-                      <span>🔒</span>
-
-                      <span>
-                        Solo se aceptan tarjetas ficticias.
-                        No ingresés datos bancarios reales.
-                      </span>
                     </div>
 
                   </div>
                 )}
 
                 {/* ==================================
-                    TRANSFERENCIA
+                    TRANSFERENCIA BANCARIA
                 ================================== */}
 
                 {formData.paymentMethod ===
@@ -873,7 +838,7 @@ function Checkout() {
               </p>
 
               {/* ==================================
-                  ERRORES
+                  MENSAJES DE ERROR
               ================================== */}
 
               {error && (
@@ -916,7 +881,6 @@ function Checkout() {
               </div>
 
             </form>
-
           </section>
 
           {/* ==================================
@@ -981,7 +945,6 @@ function Checkout() {
                       </div>
 
                     </div>
-
                   ))
 
                 ) : (
