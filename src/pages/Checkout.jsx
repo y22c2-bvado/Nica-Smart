@@ -177,17 +177,18 @@ function Checkout() {
     address: '',
     reference: '',
     paymentMethod: PAYMENT_METHODS.card,
-    cardNumber: ''
+    cardNumber: '',
+    cardHolder: '',
+    cardExpiry: '',
+    cardCvv: ''
   })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const subtotal = Number(cartTotal) || 0
-
   const shipping =
     cartItems.length > 0 ? SHIPPING_COST : 0
-
   const estimatedTotal = subtotal + shipping
 
   const itemCount = useMemo(
@@ -202,20 +203,32 @@ function Checkout() {
 
   const cardDigits =
     formData.cardNumber.replace(/\D/g, '')
-
   const cardBrand =
     getCardBrand(formData.cardNumber)
 
 
   const handleChange = (event) => {
     const { name, value } = event.target
+    let formattedValue = value
+
+    if (name === 'cardNumber') {
+      formattedValue = formatCardNumber(value)
+    } else if (name === 'cardHolder') {
+      formattedValue = value
+        .replace(/[^a-zA-ZÁÉÍÓÚÜÑáéíóúüñ\s]/g, '')
+        .slice(0, 70)
+    } else if (name === 'cardExpiry') {
+      const digits = value.replace(/\D/g, '').slice(0, 4)
+      formattedValue = digits.length > 2
+        ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+        : digits
+    } else if (name === 'cardCvv') {
+      formattedValue = value.replace(/\D/g, '').slice(0, 3)
+    }
 
     setFormData((previous) => ({
       ...previous,
-      [name]:
-        name === 'cardNumber'
-          ? formatCardNumber(value)
-          : value
+      [name]: formattedValue
     }))
 
     setError('')
@@ -263,11 +276,40 @@ function Checkout() {
       return 'Seleccioná un método de pago válido.'
     }
 
-    if (
-      formData.paymentMethod === PAYMENT_METHODS.card &&
-      !DEMO_CARDS[cardDigits]
-    ) {
-      return 'El número de tarjeta no está habilitado en el entorno de pruebas.'
+    if (formData.paymentMethod === PAYMENT_METHODS.card) {
+      if (formData.cardHolder.trim().length < 5) {
+        return 'Ingresá el nombre del titular.'
+      }
+
+      if (!DEMO_CARDS[cardDigits]) {
+        return 'Ingresá un número de tarjeta habilitado para pruebas.'
+      }
+
+      if (!/^\d{2}\/\d{2}$/.test(formData.cardExpiry)) {
+        return 'Ingresá el vencimiento en formato MM/AA.'
+      }
+
+      const [month, year] = formData.cardExpiry
+        .split('/')
+        .map(Number)
+
+      const now = new Date()
+      const currentYear = now.getFullYear() % 100
+      const currentMonth = now.getMonth() + 1
+
+      if (
+        month < 1 ||
+        month > 12 ||
+        year < currentYear ||
+        year > currentYear + 20 ||
+        (year === currentYear && month < currentMonth)
+      ) {
+        return 'La fecha de vencimiento no es válida.'
+      }
+
+      if (!/^\d{3}$/.test(formData.cardCvv)) {
+        return 'Ingresá un CVV de prueba de 3 dígitos.'
+      }
     }
 
     return ''
@@ -286,7 +328,6 @@ function Checkout() {
       navigate('/login', {
         state: { from: '/checkout' }
       })
-
       return
     }
 
@@ -349,7 +390,6 @@ function Checkout() {
         navigate('/login', {
           state: { from: '/checkout' }
         })
-
         return
       }
 
@@ -379,17 +419,9 @@ function Checkout() {
         )
       }
 
-      // ======================================
-      // PEDIDO REGISTRADO
-      // ======================================
-
       if (typeof clearCart === 'function') {
         clearCart()
       }
-
-      // ======================================
-      // ABRIR FACTURA DIGITAL
-      // ======================================
 
       navigate(
         `/invoice/${encodeURIComponent(orderId)}`,
@@ -448,15 +480,11 @@ function Checkout() {
               onSubmit={handleConfirmOrder}
             >
 
-              {/* ==================================
-                  INFORMACIÓN DE CONTACTO
-              ================================== */}
+              {/* INFORMACIÓN DE CONTACTO */}
 
               <div className="checkout-card">
-
                 <div className="section-header">
                   <h2>Información de contacto</h2>
-
                   <p>
                     Datos para gestionar tu pedido.
                   </p>
@@ -464,7 +492,6 @@ function Checkout() {
 
                 {user && (
                   <div className="checkout-customer">
-
                     <div className="checkout-customer-avatar">
                       {user.picture ? (
                         <img
@@ -488,13 +515,11 @@ function Checkout() {
                         {user.email || ''}
                       </span>
                     </div>
-
                   </div>
                 )}
 
                 <div className="form-grid">
                   <div className="form-group">
-
                     <label htmlFor="checkout-phone">
                       Número de teléfono
                     </label>
@@ -510,30 +535,22 @@ function Checkout() {
                       maxLength={20}
                       required
                     />
-
                   </div>
                 </div>
-
               </div>
 
-              {/* ==================================
-                  INFORMACIÓN DE ENTREGA
-              ================================== */}
+              {/* INFORMACIÓN DE ENTREGA */}
 
               <div className="checkout-card">
-
                 <div className="section-header">
                   <h2>Entrega de tu pedido</h2>
-
                   <p>
                     ¿Dónde querés recibir tus productos?
                   </p>
                 </div>
 
                 <div className="form-grid">
-
                   <div className="form-group">
-
                     <label htmlFor="checkout-address">
                       Dirección de entrega
                     </label>
@@ -549,11 +566,9 @@ function Checkout() {
                       maxLength={450}
                       required
                     />
-
                   </div>
 
                   <div className="form-group">
-
                     <label htmlFor="checkout-reference">
                       Referencia adicional (opcional)
                     </label>
@@ -567,38 +582,28 @@ function Checkout() {
                       placeholder="Frente a..., casa de portón..."
                       maxLength={500}
                     />
-
                   </div>
 
                   <div className="checkout-shipping-info">
-
                     <span>🚚</span>
 
                     <div>
                       <strong>
                         Entrega a domicilio
                       </strong>
-
                       <p>
                         Costo de envío: {money(shipping)}
                       </p>
                     </div>
-
                   </div>
-
                 </div>
-
               </div>
 
-              {/* ==================================
-                  MÉTODO DE PAGO
-              ================================== */}
+              {/* MÉTODO DE PAGO */}
 
               <div className="checkout-card">
-
                 <div className="section-header">
                   <h2>Método de pago</h2>
-
                   <p>
                     Elegí cómo registrar tu compra.
                   </p>
@@ -631,7 +636,6 @@ function Checkout() {
                       <strong>
                         Tarjeta de crédito o débito
                       </strong>
-
                       <span>
                         Visa y Mastercard
                       </span>
@@ -663,26 +667,20 @@ function Checkout() {
                       <strong>
                         Transferencia bancaria
                       </strong>
-
                       <span>
                         Registro de transferencia
                       </span>
                     </div>
                   </label>
-
                 </div>
 
-                {/* ==================================
-                    FORMULARIO DE TARJETA
-                ================================== */}
+                {/* FORMULARIO DE TARJETA */}
 
                 {formData.paymentMethod ===
                   PAYMENT_METHODS.card && (
 
                   <div className="payment-box checkout-card-entry">
-
                     <div className="payment-box-top">
-
                       <div>
                         <h3>
                           Datos de la tarjeta
@@ -695,7 +693,6 @@ function Checkout() {
                       </div>
 
                       <div className="card-brands">
-
                         <span
                           className={
                             cardBrand === 'visa'
@@ -715,18 +712,17 @@ function Checkout() {
                         >
                           Mastercard
                         </span>
-
                       </div>
                     </div>
 
-                    <div className="form-group">
+                    {/* NÚMERO DE TARJETA */}
 
+                    <div className="form-group">
                       <label htmlFor="checkout-card-number">
                         Número de tarjeta
                       </label>
 
                       <div className="checkout-card-number-wrapper">
-
                         <input
                           id="checkout-card-number"
                           name="cardNumber"
@@ -747,23 +743,79 @@ function Checkout() {
                               ? 'Mastercard'
                               : '💳'}
                         </span>
-
                       </div>
-
                     </div>
 
+                    {/* TITULAR, VENCIMIENTO Y CVV */}
+
+                    <div className="checkout-card-extra-fields">
+                      <div className="form-group">
+                        <label htmlFor="checkout-card-holder">
+                          Nombre del titular
+                        </label>
+
+                        <input
+                          id="checkout-card-holder"
+                          name="cardHolder"
+                          type="text"
+                          placeholder="Nombre y apellido"
+                          autoComplete="off"
+                          value={formData.cardHolder}
+                          onChange={handleChange}
+                          maxLength={70}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-grid two-columns">
+                        <div className="form-group">
+                          <label htmlFor="checkout-card-expiry">
+                            Fecha de vencimiento
+                          </label>
+
+                          <input
+                            id="checkout-card-expiry"
+                            name="cardExpiry"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="MM/AA"
+                            autoComplete="off"
+                            value={formData.cardExpiry}
+                            onChange={handleChange}
+                            maxLength={5}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="checkout-card-cvv">
+                            Código de seguridad (CVV)
+                          </label>
+
+                          <input
+                            id="checkout-card-cvv"
+                            name="cardCvv"
+                            type="password"
+                            inputMode="numeric"
+                            placeholder="•••"
+                            autoComplete="off"
+                            value={formData.cardCvv}
+                            onChange={handleChange}
+                            maxLength={3}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* ==================================
-                    TRANSFERENCIA BANCARIA
-                ================================== */}
+                {/* TRANSFERENCIA BANCARIA */}
 
                 {formData.paymentMethod ===
                   PAYMENT_METHODS.transfer && (
 
                   <div className="payment-box">
-
                     <h3>
                       Transferencia bancaria
                     </h3>
@@ -794,10 +846,8 @@ function Checkout() {
                     >
                       Copiar referencia
                     </button>
-
                   </div>
                 )}
-
               </div>
 
               <p className="checkout-demo-disclosure">
@@ -805,9 +855,7 @@ function Checkout() {
                 cobros ni transferencias bancarias.
               </p>
 
-              {/* ==================================
-                  MENSAJES DE ERROR
-              ================================== */}
+              {/* MENSAJES DE ERROR */}
 
               {error && (
                 <div
@@ -818,12 +866,9 @@ function Checkout() {
                 </div>
               )}
 
-              {/* ==================================
-                  CONFIRMAR PEDIDO
-              ================================== */}
+              {/* CONFIRMAR PEDIDO */}
 
               <div className="checkout-actions">
-
                 <button
                   type="submit"
                   className="pay-button"
@@ -845,24 +890,17 @@ function Checkout() {
                 >
                   ← Volver al carrito
                 </Link>
-
               </div>
-
             </form>
           </section>
 
-          {/* ==================================
-              RESUMEN DEL PEDIDO
-          ================================== */}
+          {/* RESUMEN DEL PEDIDO */}
 
           <aside className="checkout-summary">
-
             <div className="summary-card">
-
               <h2>Tu pedido</h2>
 
               <div className="summary-meta">
-
                 <span>
                   {itemCount}{' '}
                   {itemCount === 1
@@ -873,20 +911,15 @@ function Checkout() {
                 <span>
                   NICA S-MART
                 </span>
-
               </div>
 
               <div className="summary-items">
-
                 {cartItems.length > 0 ? (
-
                   cartItems.map((item) => (
-
                     <div
                       className="summary-item"
                       key={item.id}
                     >
-
                       <div className="checkout-summary-image">
                         <ProductThumbnail
                           product={item}
@@ -894,7 +927,6 @@ function Checkout() {
                       </div>
 
                       <div className="summary-item-info">
-
                         <strong>
                           {item.name}
                         </strong>
@@ -909,26 +941,19 @@ function Checkout() {
                             (Number(item.quantity) || 1)
                           )}
                         </div>
-
                       </div>
-
                     </div>
                   ))
-
                 ) : (
-
                   <p className="empty-summary">
                     No hay productos en el carrito.
                   </p>
-
                 )}
-
               </div>
 
               {/* TOTALES */}
 
               <div className="summary-totals">
-
                 <div>
                   <span>Subtotal</span>
 
@@ -952,29 +977,23 @@ function Checkout() {
                     {money(estimatedTotal)}
                   </strong>
                 </div>
-
               </div>
 
               <div className="summary-security">
-
                 <span>📦</span>
 
                 <p>
                   Los precios y las existencias se
                   verificarán al confirmar el pedido.
                 </p>
-
               </div>
 
               <p className="checkout-small-note">
                 El total definitivo será confirmado
                 por nuestro servidor.
               </p>
-
             </div>
-
           </aside>
-
         </div>
       </main>
 
