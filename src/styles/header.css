@@ -1,45 +1,87 @@
 
 /* ==========================================
-   NICA S-MART - HEADER
+   NICA S-MART - HEADER RESPONSIVE
+   DISEÑO PREMIUM
 ========================================== */
 
 /* ==========================================
-   BARRA SUPERIOR
+   1. CONFIGURACIÓN GENERAL
+========================================== */
+
+.topbar,
+.header {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.topbar *,
+.header *,
+.topbar *::before,
+.header *::before,
+.topbar *::after,
+.header *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================
+   2. BARRA SUPERIOR
 ========================================== */
 
 .topbar {
-  min-height: 34px;
-  padding: 0 7%;
-  background: #001b46;
-  color: white;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
 
+  min-height: 36px;
+  padding: 8px 7%;
+
+  background: #001b46;
+  color: #ffffff;
+
   font-size: 12px;
 }
+
+.topbar-message {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  min-width: 0;
+  font-weight: 500;
+}
+
+.topbar-message span {
+  line-height: 1.4;
+}
+
+/* ==========================================
+   3. ENLACES SUPERIORES
+========================================== */
 
 .topbar-links {
   display: flex;
-  gap: 20px;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-/* ENLACES AYUDA Y SEGUIMIENTO */
-
 .topbar-links a {
-  color: #ffffff;
-  text-decoration: none;
-
-  font-size: 12px;
-  font-weight: 500;
-
   display: inline-flex;
   align-items: center;
 
-  transition: color 0.2s, opacity 0.2s;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+  white-space: nowrap;
+
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .topbar-links a:hover {
@@ -54,445 +96,1038 @@
 }
 
 /* ==========================================
-   HEADER PRINCIPAL
+   4. HEADER PRINCIPAL
 ========================================== */
 
 .header {
-  min-height: 90px;
-  padding: 15px 7%;
-  background: white;
+  position: relative;
+  z-index: 20;
 
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    145px
+    minmax(180px, 1fr)
+    minmax(0, auto);
+
   align-items: center;
-  justify-content: space-between;
-  gap: 35px;
-}
+  column-gap: 28px;
 
-.logo {
-  min-width: 150px;
-  color: #0055bc;
-  font-weight: bold;
-  line-height: 0.9;
-}
+  min-height: 96px;
+  padding: 16px 7%;
 
-.logo-main {
-  font-size: 25px;
-}
-
-.logo-bottom {
-  font-size: 27px;
-}
-
-.logo span {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: #555;
+  background: #ffffff;
 }
 
 /* ==========================================
-   BUSCADOR
+   5. LOGOTIPO
 ========================================== */
 
-.search-container {
-  flex: 1;
-  max-width: 600px;
+.header .logo {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 
-  border: 1px solid #dcdcdc;
-  border-radius: 4px;
-  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+
+  color: #0055bc;
+  font-weight: 800;
+  line-height: 0.95;
+
+  text-decoration: none;
 }
 
-.search-container:focus-within {
-  border-color: #075cd8;
-  box-shadow: 0 0 0 2px rgba(7, 92, 216, 0.1);
+.header .logo-main {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
-.search-container input {
+.header .logo-bottom {
+  font-size: 27px;
+  font-weight: 850;
+  letter-spacing: -0.8px;
+}
+
+.header .logo span {
+  display: block;
+  margin-top: 7px;
+
+  color: #555555;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.3;
+}
+
+.header .logo:hover {
+  color: #075cd8;
+  text-decoration: none;
+}
+
+/* ==========================================
+   6. BUSCADOR
+========================================== */
+
+.header .search-container {
+  display: flex;
+  align-items: stretch;
+
   width: 100%;
   min-width: 0;
-  padding: 14px 16px;
+  max-width: 600px;
+  height: 50px;
+  margin: 0;
 
-  border: none;
-  outline: none;
+  background: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
 
-  font-size: 14px;
-  background: white;
+  overflow: hidden;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.search-container button {
-  width: 52px;
-  flex-shrink: 0;
-
-  border: none;
-  background: #075cd8;
-  color: white;
-
-  font-size: 17px;
-  cursor: pointer;
-
-  transition: background 0.2s;
-}
-
-.search-container button:hover {
-  background: #0044a9;
+.header .search-container:focus-within {
+  border-color: #075cd8;
+  box-shadow: 0 0 0 3px rgba(7, 92, 216, 0.1);
 }
 
 /* ==========================================
-   OPCIONES DEL HEADER
+   7. CAMPO DE BÚSQUEDA
 ========================================== */
 
-.header-options {
-  display: flex;
-  align-items: center;
-  gap: 30px;
+.header .search-container input {
+  display: block;
+
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 13px 16px;
+
+  background: #ffffff;
+  border: none;
+  outline: none;
+  border-radius: 0;
+
+  color: #121826;
+  font-family: inherit;
+  font-size: 14px;
 }
 
-.header-option {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.header .search-container input::placeholder {
+  color: #64748b;
+}
+
+.header .search-container input::-webkit-search-cancel-button {
   cursor: pointer;
 }
 
-.option-icon {
-  font-size: 25px;
+/* ==========================================
+   8. BOTÓN DE BÚSQUEDA
+========================================== */
 
+.header .search-container button {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  flex-shrink: 0;
+  width: 54px;
+  height: 100%;
+  flex: 0 0 54px;
+  padding: 0;
+
+  background: #075cd8;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+
+  font-size: 19px;
+  cursor: pointer;
+
+  transition: background 0.2s ease;
 }
 
-/* FOTO DE PERFIL */
+.header .search-container button:hover {
+  background: #0044a9;
+}
 
-.account-link .option-icon img {
-  width: 38px;
-  height: 38px;
-
-  border-radius: 50%;
-  object-fit: cover;
-
-  border: 2px solid #e4eaf5;
+.header .search-container button:active {
+  background: #003783;
 }
 
 /* ==========================================
-   INFORMACIÓN DE LA CUENTA
+   9. OPCIONES DEL HEADER
 ========================================== */
 
-.account-link {
+.header .header-options {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.header .header-option {
   position: relative;
 
   display: flex;
   align-items: center;
   gap: 10px;
 
-  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+
+  color: #10264e;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.account-info {
-  display: flex;
-  flex-direction: column;
+/* ==========================================
+   10. ÍCONOS DEL HEADER
+========================================== */
 
-  align-items: flex-start;
+.header .option-icon {
+  display: flex;
+  align-items: center;
   justify-content: center;
 
-  gap: 4px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+
+  font-size: 25px;
+  line-height: 1;
+}
+
+/* ==========================================
+   11. CUENTA DEL USUARIO
+========================================== */
+
+.header .account-link {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
   min-width: 0;
+  max-width: 100%;
 }
 
-/* NOMBRE DEL CLIENTE */
+.header .account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.account-name {
-  display: block;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
 
-  font-size: 14px;
-  font-weight: 700;
-  color: #09204b;
+  overflow: hidden;
 
-  line-height: 1.3;
-  white-space: nowrap;
+  background: #f1f5f9;
+  border: 2px solid #e4eaf5;
+  border-radius: 50%;
+
+  font-size: 23px;
 }
 
-/* ESTADO DE SESIÓN */
-
-.account-status {
+.header .account-avatar img {
   display: block;
 
-  font-size: 12px;
-  font-weight: 600;
-  color: #16a34a !important;
+  width: 100%;
+  height: 100%;
 
-  line-height: 1.3;
-  white-space: nowrap;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
-/* BOTÓN QUE ABRE EL MENÚ */
+/* ==========================================
+   12. BOTÓN DE LA CUENTA
+========================================== */
 
-.account-link > button {
-  display: block;
+.header .account-trigger {
+  display: flex;
+  align-items: center;
 
+  min-width: 0;
+  max-width: 100%;
   padding: 0;
-  border: none;
-  background: transparent;
 
+  background: transparent;
+  color: inherit;
+  border: none;
+
+  font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.account-link > button:hover .account-name {
+.header .account-trigger:hover .account-name {
   color: #075cd8;
 }
 
 /* ==========================================
-   USUARIO SIN INICIAR SESIÓN
+   13. INFORMACIÓN DEL USUARIO
 ========================================== */
 
-.header-option > div:not(.option-icon):not(.account-dropdown) {
+.header .account-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+
   min-width: 0;
+  max-width: 100%;
 }
 
-.header-option small {
-  color: #777;
-  font-size: 11px;
-}
+.header .account-name {
+  display: block;
 
-.header-option strong {
-  font-size: 12px;
+  max-width: 145px;
+  overflow: hidden;
+
+  color: #09204b;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.header-option .account-name {
-  font-size: 14px;
-  color: #09204b;
+/* ==========================================
+   14. ESTADO DE SESIÓN
+========================================== */
+
+.header .account-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+
+  white-space: nowrap;
 }
 
-.header-option .account-status {
-  font-size: 12px;
-  color: #16a34a;
+.header .account-status-dot {
+  display: inline-block;
+
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+
+  background: #16a34a;
+  border-radius: 50%;
 }
 
 /* ==========================================
-   MENÚ DESPLEGABLE DEL USUARIO
+   15. USUARIO SIN SESIÓN
 ========================================== */
 
-.account-dropdown {
-  position: absolute;
+.header a.account-link .account-info small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
 
+.header a.account-link .account-info strong {
+  color: #09204b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.header a.account-link:hover .account-info strong {
+  color: #075cd8;
+}
+
+/* ==========================================
+   16. MENÚ DESPLEGABLE
+========================================== */
+
+.header .account-dropdown {
+  position: absolute;
   top: calc(100% + 12px);
   right: 0;
+  z-index: 1000;
 
-  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  width: 270px;
+  max-width: calc(100vw - 24px);
   padding: 12px;
 
   background: #ffffff;
   color: #10264e;
 
   border: 1px solid #e4eaf5;
-  border-radius: 10px;
+  border-radius: 12px;
 
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
 }
 
-.account-dropdown a {
+/* ==========================================
+   17. INFORMACIÓN DEL MENÚ
+========================================== */
+
+.account-dropdown-header {
+  padding: 8px 12px 12px;
+  margin-bottom: 5px;
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.account-dropdown-header strong {
   display: block;
 
   color: #10264e;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+}
+
+.account-dropdown-header small {
+  display: block;
+  margin-top: 6px;
+
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   18. ENLACES DEL MENÚ
+========================================== */
+
+.header .account-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+
+  background: transparent;
+  color: #10264e;
+  border: none;
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+
+  text-align: left;
   text-decoration: none;
 
-  font-size: 13px;
-  font-weight: 500;
-
-  transition: color 0.2s;
-}
-
-.account-dropdown a:hover {
-  color: #075cd8;
-}
-
-.account-dropdown a:focus-visible,
-.account-dropdown button:focus-visible {
-  outline: 2px solid #075cd8;
-  outline-offset: 3px;
-}
-
-.account-dropdown button {
-  width: 100%;
-
-  border: none;
-  background: transparent;
-
-  color: #d62828;
-  text-align: left;
-  font-size: 13px;
-
   cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
-.account-dropdown button:hover {
+.header .account-dropdown-link span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.header .account-dropdown-link:hover {
+  background: #f1f5f9;
+  color: #075cd8;
+  text-decoration: none;
+}
+
+/* ==========================================
+   19. ENLACE DE ADMINISTRADOR
+========================================== */
+
+.header .admin-dropdown-link {
+  background: #eaf2ff;
+  color: #075cd8;
+  border: 1px solid #bfdbfe;
+  font-weight: 700;
+}
+
+.header .admin-dropdown-link:hover {
+  background: #dbeafe;
+  color: #0044a9;
+}
+
+/* ==========================================
+   20. SEPARADOR DEL MENÚ
+========================================== */
+
+.account-dropdown-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: #e2e8f0;
+}
+
+/* ==========================================
+   21. CERRAR SESIÓN
+========================================== */
+
+.header .account-logout {
+  color: #d62828;
+}
+
+.header .account-logout:hover {
+  background: #fff1f2;
   color: #a61b1b;
 }
 
 /* ==========================================
-   CONTADOR DEL CARRITO
+   22. CARRITO DE COMPRAS
 ========================================== */
 
-.cart-count {
-  position: absolute;
+.header .cart-link {
+  position: relative;
 
-  top: -10px;
-  left: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
 
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  min-width: 0;
+  flex-shrink: 0;
 
-  border-radius: 20px;
+  color: #10264e;
+  text-decoration: none;
 
-  background: #075cd8;
-  color: white;
+  transition: transform 0.2s ease;
+}
+
+.header .cart-link:hover {
+  transform: translateY(-1px);
+}
+
+/* ==========================================
+   23. ÍCONO DEL CARRITO
+========================================== */
+
+.header .cart-icon-wrapper {
+  position: relative;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  font-size: 10px;
-  font-weight: bold;
+  width: 45px;
+  height: 45px;
+  flex: 0 0 45px;
 }
 
-/* ==========================================
-   LINKS DEL HEADER
-========================================== */
+.header .cart-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.account-link,
-.cart-link {
-  color: inherit;
-  text-decoration: none;
+  width: 100%;
+  height: 100%;
+
+  font-size: 28px;
+  line-height: 1;
+
+  transition: transform 0.2s ease;
 }
 
-.account-link:hover .account-name,
-.cart-link:hover strong {
-  color: #075cd8;
-}
-
-/* ==========================================
-   HOVER DEL CARRITO
-========================================== */
-
-.cart-link {
-  transition: transform 0.2s;
-}
-
-.cart-link:hover {
-  transform: translateY(-1px);
-}
-
-.cart-link:hover .option-icon {
+.header .cart-link:hover .cart-icon {
   transform: scale(1.05);
 }
 
 /* ==========================================
-   RESPONSIVE
+   24. CONTADOR DEL CARRITO
 ========================================== */
 
-@media (max-width: 1000px) {
+.header .cart-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  left: auto;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
+
+  background: #075cd8;
+  color: #ffffff;
+
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+
+  box-shadow: 0 2px 5px rgba(7, 92, 216, 0.2);
+}
+
+/* ==========================================
+   25. INFORMACIÓN DEL CARRITO
+========================================== */
+
+.header .cart-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+
+  min-width: 0;
+}
+
+.header .cart-info small {
+  display: block;
+
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+
+  white-space: nowrap;
+}
+
+.header .cart-info strong {
+  display: block;
+
+  color: #09204b;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.header .cart-link:hover .cart-info strong {
+  color: #075cd8;
+}
+
+/* ==========================================
+   26. ACCESIBILIDAD
+========================================== */
+
+.header .logo:focus-visible,
+.header .search-container button:focus-visible,
+.header .account-trigger:focus-visible,
+.header .header-option:focus-visible,
+.header .account-dropdown-link:focus-visible {
+  outline: 3px solid #075cd8;
+  outline-offset: 3px;
+}
+
+/* ==========================================
+   27. PANTALLAS MEDIANAS
+========================================== */
+
+@media (max-width: 1200px) {
   .header {
+    grid-template-columns:
+      125px
+      minmax(160px, 1fr)
+      minmax(0, auto);
+
+    column-gap: 18px;
     padding: 15px 4%;
-    gap: 20px;
   }
 
   .topbar {
-    padding: 0 4%;
+    padding-left: 4%;
+    padding-right: 4%;
   }
 
-  .header-options {
-    gap: 18px;
+  .header .header-options {
+    gap: 14px;
   }
 
-  .search-container {
-    min-width: 160px;
+  .header .account-name {
+    max-width: 115px;
+  }
+
+  .header .cart-link {
+    gap: 6px;
   }
 }
 
-@media (max-width: 800px) {
+/* ==========================================
+   28. TABLETS Y PANTALLAS ESTRECHAS
+========================================== */
+
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns:
+      125px
+      minmax(0, 1fr);
+
+    grid-template-rows: auto auto;
+
+    gap: 18px;
+    padding: 20px 4%;
+  }
+
+  .header .logo {
+    grid-column: 1;
+    grid-row: 1;
+
+    align-items: flex-start;
+  }
+
+  .header .header-options {
+    grid-column: 2;
+    grid-row: 1;
+
+    justify-self: end;
+    justify-content: flex-end;
+
+    max-width: 100%;
+  }
+
+  .header .search-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+
+    width: 100%;
+    max-width: none;
+  }
+
+  .header .account-name {
+    max-width: 160px;
+  }
+}
+
+/* ==========================================
+   29. RESPONSIVE - CELULARES
+========================================== */
+
+@media (max-width: 650px) {
   .topbar {
-    padding: 8px 15px;
-    min-height: 34px;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px 20px;
+    gap: 7px 18px;
+
+    min-height: 34px;
+    padding: 10px 12px;
+
+    font-size: 11px;
     text-align: center;
+  }
+
+  .topbar-message {
+    justify-content: center;
   }
 
   .topbar-links {
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px 18px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 20px;
-  }
-
-  .logo {
-    text-align: center;
-  }
-
-  .search-container {
-    max-width: none;
-  }
-
-  .header-options {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 15px 12px;
-  }
-
-  .topbar {
-    font-size: 11px;
+    gap: 12px;
   }
 
   .topbar-links a {
     font-size: 11px;
   }
 
-  .header-options {
-    gap: 14px;
-    flex-wrap: wrap;
+  /* HEADER EN TRES FILAS */
+
+  .header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+
+    gap: 18px;
+    padding: 20px 16px;
   }
 
-  .account-link {
+  /* FILA 1: LOGO */
+
+  .header .logo {
+    grid-column: 1;
+    grid-row: 1;
+
+    justify-self: center;
+    align-items: center;
+
+    width: fit-content;
+    min-width: 0;
+    max-width: 100%;
+
+    text-align: center;
+  }
+
+  .header .logo-main {
+    font-size: 26px;
+  }
+
+  .header .logo-bottom {
+    font-size: 29px;
+  }
+
+  /* FILA 2: BUSCADOR */
+
+  .header .search-container {
+    grid-column: 1;
+    grid-row: 2;
+
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 52px;
+    margin: 0;
+  }
+
+  .header .search-container input {
+    min-width: 0;
+    padding: 13px 14px;
+  }
+
+  .header .search-container button {
+    width: 55px;
+    flex-basis: 55px;
+  }
+
+  /* FILA 3: CUENTA Y CARRITO */
+
+  .header .header-options {
+    grid-column: 1;
+    grid-row: 3;
+
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      max-content;
+
+    align-items: center;
+    justify-content: stretch;
+    justify-self: stretch;
+
+    width: 100%;
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .header .account-link {
     gap: 8px;
+    min-width: 0;
   }
 
-  .account-link .option-icon img {
-    width: 34px;
-    height: 34px;
+  .header .account-trigger {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
-  .header-option .account-name {
-    font-size: 12px;
+  .header .account-info {
+    min-width: 0;
+    max-width: 100%;
   }
 
-  .header-option .account-status {
+  .header .account-name {
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .header .account-status {
     font-size: 11px;
   }
 
-  .account-dropdown {
-    right: 0;
-    min-width: 170px;
+  .header .cart-link {
+    justify-content: flex-end;
+    gap: 7px;
+  }
+
+  .header .cart-info small {
+    font-size: 11px;
+  }
+
+  .header .cart-info strong {
+    font-size: 13px;
+  }
+
+  /* MENÚ DESPLEGABLE */
+
+  .header .account-dropdown {
+    right: auto;
+    left: 0;
+
+    width: min(270px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+  }
+}
+
+/* ==========================================
+   30. RESPONSIVE - CELULARES PEQUEÑOS
+========================================== */
+
+@media (max-width: 420px) {
+  .topbar {
+    gap: 6px 12px;
+    padding: 10px 8px;
+
+    font-size: 10px;
+  }
+
+  .topbar-links {
+    gap: 10px;
+  }
+
+  .topbar-links a {
+    font-size: 10px;
+  }
+
+  .header {
+    gap: 16px;
+    padding: 18px 12px;
+  }
+
+  .header .logo-main {
+    font-size: 24px;
+  }
+
+  .header .logo-bottom {
+    font-size: 27px;
+  }
+
+  .header .search-container {
+    height: 50px;
+  }
+
+  .header .header-options {
+    gap: 6px;
+  }
+
+  /* CUENTA */
+
+  .header .account-link {
+    gap: 7px;
+  }
+
+  .header .account-avatar {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+  }
+
+  .header .account-name {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .header .account-status {
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  /* CARRITO */
+
+  .header .cart-link {
+    gap: 6px;
+  }
+
+  .header .cart-icon-wrapper {
+    width: 36px;
+    height: 40px;
+    flex-basis: 36px;
+  }
+
+  .header .cart-icon {
+    font-size: 24px;
+  }
+
+  .header .cart-count {
+    top: -4px;
+    right: -5px;
+
+    min-width: 19px;
+    height: 19px;
+
+    font-size: 9px;
+  }
+
+  .header .cart-info small {
+    font-size: 10px;
+  }
+
+  .header .cart-info strong {
+    font-size: 12px;
+  }
+
+  /* MENÚ DESPLEGABLE */
+
+  .header .account-dropdown {
+    right: auto;
+    left: 0;
+
+    width: min(260px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* ==========================================
+   31. RESPONSIVE - PANTALLAS MUY PEQUEÑAS
+========================================== */
+
+@media (max-width: 340px) {
+  .header {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  .header .header-options {
+    grid-template-columns:
+      minmax(0, 1fr)
+      max-content;
+
+    gap: 4px;
+  }
+
+  .header .account-status {
+    display: none;
+  }
+
+  .header .cart-info small {
+    display: none;
+  }
+
+  .header .cart-info strong {
+    font-size: 11px;
+  }
+
+  .header .account-dropdown {
+    width: min(250px, calc(100vw - 18px));
+    max-width: calc(100vw - 18px);
+  }
+}
+
+/* ==========================================
+   32. REDUCCIÓN DE MOVIMIENTO
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .header *,
+  .topbar * {
+    transition: none !important;
+    animation: none !important;
   }
 }

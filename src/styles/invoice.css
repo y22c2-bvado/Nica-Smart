@@ -1,32 +1,71 @@
 
-/* ========================================
+/* ==========================================
    NICA S-MART - COMPROBANTE DIGITAL
-======================================== */
+   DISEÑO PREMIUM Y RESPONSIVE
+========================================== */
+
+/* ==========================================
+   1. CONFIGURACIÓN GENERAL
+========================================== */
 
 .invoice-page {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   padding: 35px 20px 80px;
   background: #eff1f4;
   color: #121826;
+  overflow-x: clip;
 }
 
-.invoice-page * {
+.invoice-page *,
+.invoice-page *::before,
+.invoice-page *::after {
   box-sizing: border-box;
 }
 
+.invoice-page img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.invoice-page p,
+.invoice-page strong,
+.invoice-page span,
+.invoice-page h1,
+.invoice-page h2,
+.invoice-page h3 {
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   2. BARRA DE HERRAMIENTAS
+========================================== */
+
 .invoice-toolbar {
-  width: min(900px, 100%);
-  margin: 0 auto 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 15px;
+
+  width: min(900px, 100%);
+  margin: 0 auto 22px;
 }
 
 .invoice-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-width: 0;
   color: #475569;
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+
+  transition: color 0.2s ease;
 }
 
 .invoice-back:hover {
@@ -34,46 +73,96 @@
 }
 
 .invoice-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 46px;
+  max-width: 100%;
   padding: 13px 22px;
-  color: white;
+
+  color: #ffffff;
   background: #1565d8;
   border: none;
   border-radius: 12px;
+
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
+  text-align: center;
+
   cursor: pointer;
-  transition: background 0.2s;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .invoice-download:hover {
   background: #104fa7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(21, 101, 216, 0.18);
 }
+
+.invoice-download:active {
+  transform: translateY(0);
+}
+
+.invoice-back:focus-visible,
+.invoice-download:focus-visible {
+  outline: 3px solid #1565d8;
+  outline-offset: 3px;
+}
+
+/* ==========================================
+   3. CONTENEDOR DEL COMPROBANTE
+========================================== */
 
 .invoice-paper {
   width: min(900px, 100%);
-  margin: auto;
+  min-width: 0;
+  margin: 0 auto;
   padding: 45px;
+
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
+
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
 }
 
+/* ==========================================
+   4. ENCABEZADO DEL COMPROBANTE
+========================================== */
+
 .invoice-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 22px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  align-items: start;
+  gap: 24px;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.invoice-header > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .invoice-header h1 {
   margin: 0;
+
   color: #121826;
-  font-size: 31px;
+  font-size: clamp(23px, 3vw, 31px);
   font-weight: 850;
   letter-spacing: -1px;
+  line-height: 1.2;
 }
 
 .invoice-header h1 span {
@@ -82,42 +171,84 @@
 
 .invoice-header p {
   margin: 7px 0 0;
+
   color: #64748b;
   font-size: 12px;
+  line-height: 1.6;
 }
 
+/* ==========================================
+   5. TÍTULO Y NÚMERO DEL PEDIDO
+========================================== */
+
 .invoice-heading-right {
+  min-width: 0;
   text-align: right;
 }
 
 .invoice-heading-right h2 {
   margin: 0;
-  font-size: 19px;
+
+  color: #121826;
+  font-size: clamp(15px, 2vw, 19px);
+  font-weight: 800;
   letter-spacing: -0.5px;
+  line-height: 1.35;
+}
+
+.invoice-heading-right p {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 13px;
 }
 
 .invoice-demo-badge {
   display: inline-block;
+  max-width: 100%;
+
   margin-top: 10px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 7px 11px;
+
   background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
   color: #475569;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
 }
 
+/* ==========================================
+   6. SEPARADOR
+========================================== */
+
 .invoice-divider {
+  width: 100%;
   height: 1px;
+
   margin: 30px 0;
+
   background: #e2e8f0;
 }
+
+/* ==========================================
+   7. INFORMACIÓN DEL EMISOR Y PEDIDO
+========================================== */
 
 .invoice-information {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 35px;
+
+  width: 100%;
+  min-width: 0;
   margin-bottom: 30px;
+}
+
+.invoice-information section {
+  min-width: 0;
 }
 
 .invoice-information h3,
@@ -125,92 +256,245 @@
 .invoice-products h3,
 .invoice-payment h3 {
   margin: 0 0 13px;
+
   color: #121826;
   font-size: 15px;
   font-weight: 750;
+  line-height: 1.4;
 }
 
 .invoice-information p,
 .invoice-customer p {
   margin: 7px 0;
+
   color: #475569;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
+
   overflow-wrap: anywhere;
 }
 
+/* ==========================================
+   8. DATOS DEL CLIENTE
+========================================== */
+
 .invoice-customer {
+  min-width: 0;
+  max-width: 100%;
+
   padding: 22px;
   margin-bottom: 32px;
+
   background: #f8fafc;
+  border: 1px solid #eef2f7;
   border-radius: 12px;
 }
 
-.invoice-customer strong {
-  font-size: 15px;
+.invoice-customer h3 {
+  margin-bottom: 14px;
 }
 
+.invoice-customer strong {
+  display: block;
+
+  color: #121826;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.invoice-customer p {
+  max-width: 100%;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   9. DETALLE DE PRODUCTOS
+========================================== */
+
 .invoice-products {
+  width: 100%;
+  min-width: 0;
   margin-bottom: 25px;
 }
 
+.invoice-products h3 {
+  margin-bottom: 18px;
+}
+
+/* ==========================================
+   10. CONTENEDOR RESPONSIVE DE LA TABLA
+========================================== */
+
 .invoice-table-scroll {
   width: 100%;
+  max-width: 100%;
+
   overflow-x: auto;
+  overflow-y: hidden;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
+
+.invoice-table-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+
+.invoice-table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.invoice-table-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+/* ==========================================
+   11. TABLA DE PRODUCTOS
+========================================== */
 
 .invoice-products table {
   width: 100%;
+  min-width: 580px;
+
   border-collapse: collapse;
+  border-spacing: 0;
+
   text-align: left;
+  table-layout: fixed;
+}
+
+.invoice-products th,
+.invoice-products td {
+  vertical-align: middle;
 }
 
 .invoice-products th {
   padding: 15px 12px;
+
   background: #f1f5f9;
   color: #475569;
+
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.5;
 }
 
 .invoice-products td {
   padding: 17px 12px;
+
+  background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
+
   color: #121826;
   font-size: 13px;
+  line-height: 1.6;
+
+  overflow-wrap: anywhere;
 }
 
-.invoice-products th:not(:first-child),
-.invoice-products td:not(:first-child) {
+.invoice-products tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.invoice-products tbody tr:hover td {
+  background: #fbfcff;
+}
+
+/* ==========================================
+   12. DISTRIBUCIÓN DE COLUMNAS
+========================================== */
+
+.invoice-products th:first-child,
+.invoice-products td:first-child {
+  width: 40%;
+  text-align: left;
+}
+
+.invoice-products th:nth-child(2),
+.invoice-products td:nth-child(2) {
+  width: 15%;
+  text-align: center;
+}
+
+.invoice-products th:nth-child(3),
+.invoice-products td:nth-child(3) {
+  width: 22%;
   text-align: right;
 }
+
+.invoice-products th:nth-child(4),
+.invoice-products td:nth-child(4) {
+  width: 23%;
+  text-align: right;
+}
+
+.invoice-products td:nth-child(2),
+.invoice-products td:nth-child(3),
+.invoice-products td:nth-child(4) {
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-products td:nth-child(3),
+.invoice-products td:nth-child(4) {
+  white-space: nowrap;
+}
+
+/* ==========================================
+   13. RESUMEN DE TOTALES
+========================================== */
 
 .invoice-totals-container {
   display: flex;
   justify-content: flex-end;
+
+  width: 100%;
+  min-width: 0;
   margin: 30px 0;
 }
 
 .invoice-totals {
   width: min(340px, 100%);
+  min-width: 0;
 }
 
 .invoice-totals > div {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, auto);
+
   align-items: center;
   gap: 15px;
+
   padding: 10px 0;
   font-size: 14px;
 }
 
 .invoice-totals span {
+  min-width: 0;
   color: #64748b;
+  line-height: 1.5;
 }
 
 .invoice-totals strong {
+  min-width: 0;
   color: #121826;
+  text-align: right;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+
+/* ==========================================
+   14. TOTAL FINAL
+========================================== */
 
 .invoice-totals .invoice-total {
   margin-top: 12px;
@@ -227,20 +511,33 @@
 .invoice-total strong {
   color: #1565d8;
   font-size: 23px;
-  white-space: nowrap;
+  font-weight: 850;
+  letter-spacing: -0.5px;
 }
 
+/* ==========================================
+   15. INFORMACIÓN DEL PAGO
+========================================== */
+
 .invoice-payment {
+  min-width: 0;
+  max-width: 100%;
+
   padding: 22px;
   margin: 30px 0;
+
   background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
 }
 
 .invoice-payment p {
   margin: 9px 0;
+
   color: #475569;
   font-size: 13px;
+  line-height: 1.7;
+
   overflow-wrap: anywhere;
 }
 
@@ -248,6 +545,10 @@
   color: #92400e;
   font-weight: 700;
 }
+
+/* ==========================================
+   16. PIE DEL COMPROBANTE
+========================================== */
 
 .invoice-footer {
   padding-top: 28px;
@@ -257,29 +558,124 @@
 
 .invoice-footer h3 {
   margin: 0 0 12px;
+
   color: #121826;
   font-size: 17px;
+  font-weight: 750;
+  line-height: 1.5;
 }
 
 .invoice-footer p {
-  margin: 7px 0;
+  max-width: 650px;
+  margin: 7px auto;
+
   color: #64748b;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.8;
 }
+
+/* ==========================================
+   17. MENSAJES DE CARGA Y ERROR
+========================================== */
 
 .invoice-message {
   width: min(900px, 100%);
+  min-width: 0;
+
   margin: 35px auto;
   padding: 35px;
-  background: #fff;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 15px;
+
   text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.invoice-message h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.invoice-message p {
+  margin: 8px 0;
+  line-height: 1.7;
 }
 
 .invoice-error {
   color: #b42318;
 }
+
+.invoice-error a {
+  display: inline-block;
+  margin-top: 12px;
+  color: #1565d8;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.invoice-error a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================
+   18. RESPONSIVE - COMPUTADORAS PEQUEÑAS
+========================================== */
+
+@media (max-width: 1024px) {
+  .invoice-paper {
+    padding: 36px;
+  }
+
+  .invoice-information {
+    gap: 25px;
+  }
+}
+
+/* ==========================================
+   19. RESPONSIVE - TABLETS
+========================================== */
+
+@media (max-width: 768px) {
+  .invoice-page {
+    padding: 28px 18px 60px;
+  }
+
+  .invoice-paper {
+    padding: 30px 25px;
+    border-radius: 16px;
+  }
+
+  .invoice-header {
+    gap: 20px;
+  }
+
+  .invoice-header h1 {
+    font-size: 27px;
+  }
+
+  .invoice-heading-right h2 {
+    font-size: 17px;
+  }
+
+  .invoice-information {
+    gap: 22px;
+  }
+
+  .invoice-products table {
+    min-width: 580px;
+  }
+
+  .invoice-customer,
+  .invoice-payment {
+    padding: 20px;
+  }
+}
+
+/* ==========================================
+   20. RESPONSIVE - CELULARES
+========================================== */
 
 @media (max-width: 650px) {
   .invoice-page {
@@ -287,7 +683,18 @@
   }
 
   .invoice-toolbar {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .invoice-back {
+    align-self: flex-start;
+  }
+
+  .invoice-download {
+    width: 100%;
+    min-height: 48px;
   }
 
   .invoice-paper {
@@ -296,7 +703,8 @@
   }
 
   .invoice-header {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
   }
 
   .invoice-heading-right {
@@ -307,34 +715,222 @@
     font-size: 27px;
   }
 
+  .invoice-heading-right h2 {
+    font-size: 18px;
+  }
+
+  .invoice-divider {
+    margin: 24px 0;
+  }
+
   .invoice-information {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
+    margin-bottom: 25px;
+  }
+
+  .invoice-customer {
+    padding: 18px;
+    margin-bottom: 27px;
   }
 
   .invoice-products table {
-    min-width: 550px;
+    min-width: 580px;
+  }
+
+  .invoice-totals-container {
+    justify-content: stretch;
+  }
+
+  .invoice-totals {
+    width: 100%;
   }
 
   .invoice-total strong {
-    font-size: 19px;
+    font-size: 21px;
+  }
+
+  .invoice-payment {
+    padding: 18px;
+  }
+
+  .invoice-footer {
+    padding-top: 23px;
   }
 }
 
+/* ==========================================
+   21. RESPONSIVE - CELULARES PEQUEÑOS
+========================================== */
+
+@media (max-width: 390px) {
+  .invoice-page {
+    padding: 16px 9px 40px;
+  }
+
+  .invoice-paper {
+    padding: 20px 14px;
+    border-radius: 12px;
+  }
+
+  .invoice-header h1 {
+    font-size: 24px;
+  }
+
+  .invoice-heading-right h2 {
+    font-size: 16px;
+  }
+
+  .invoice-demo-badge {
+    font-size: 10px;
+  }
+
+  .invoice-customer,
+  .invoice-payment {
+    padding: 15px;
+  }
+
+  .invoice-information p,
+  .invoice-customer p,
+  .invoice-payment p {
+    font-size: 12px;
+  }
+
+  .invoice-total span {
+    font-size: 14px;
+  }
+
+  .invoice-total strong {
+    font-size: 18px;
+  }
+
+  .invoice-totals > div {
+    gap: 10px;
+  }
+
+  .invoice-footer h3 {
+    font-size: 15px;
+  }
+
+  .invoice-message {
+    padding: 25px 18px;
+  }
+}
+
+/* ==========================================
+   22. IMPRESIÓN DEL COMPROBANTE
+========================================== */
+
 @media print {
-  .invoice-toolbar {
-    display: none;
+  @page {
+    size: A4;
+    margin: 12mm;
   }
 
   .invoice-page {
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+
     padding: 0;
-    background: white;
+    margin: 0;
+
+    background: #ffffff;
+    color: #121826;
+
+    overflow: visible;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .invoice-toolbar {
+    display: none !important;
   }
 
   .invoice-paper {
     width: 100%;
-    padding: 15mm;
+    max-width: none;
+
+    padding: 0;
+    margin: 0;
+
+    background: #ffffff;
     border: none;
+    border-radius: 0;
     box-shadow: none;
+  }
+
+  .invoice-header {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    gap: 15px;
+  }
+
+  .invoice-heading-right {
+    text-align: right;
+  }
+
+  .invoice-information {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .invoice-customer,
+  .invoice-payment {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .invoice-products {
+    width: 100%;
+  }
+
+  .invoice-table-scroll {
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+  }
+
+  .invoice-products table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .invoice-products th,
+  .invoice-products td {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+
+  .invoice-products td:nth-child(3),
+  .invoice-products td:nth-child(4) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .invoice-products thead {
+    display: table-header-group;
+  }
+
+  .invoice-products tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .invoice-totals-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .invoice-total strong {
+    font-size: 20px;
+  }
+
+  .invoice-footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

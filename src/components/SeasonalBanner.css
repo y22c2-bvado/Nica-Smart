@@ -1,13 +1,18 @@
 
 /* ==========================================
    NICA S-MART
-   SEASONAL BANNER CSS
-   DISEÑO FESTIVO + BOTONES FUNCIONALES
+   SEASONAL BANNER RESPONSIVE
+   DISEÑO FESTIVO PREMIUM
+========================================== */
+
+/* ==========================================
+   1. CONTENEDOR GENERAL
 ========================================== */
 
 .seasonal-layout {
-  width: 95%;
-  max-width: 1600px;
+  width: min(95%, 1600px);
+  max-width: 100%;
+  min-width: 0;
   margin: 20px auto 30px;
 }
 
@@ -17,31 +22,38 @@
   box-sizing: border-box;
 }
 
+.seasonal-layout img {
+  max-width: 100%;
+}
+
+.seasonal-layout a {
+  text-decoration: none;
+}
+
 /* ==========================================
-   BANNER PRINCIPAL
+   2. BANNER PRINCIPAL
 ========================================== */
 
 .seasonal-layout .seasonal-hero {
   position: relative;
   isolation: isolate;
 
-  width: 100%;
-  max-width: none;
-  min-height: 390px;
-
-  margin: 0;
-  padding: 28px 34px;
-
   display: grid;
   grid-template-columns:
-    minmax(0, 49%)
-    minmax(0, 51%);
+    minmax(0, 0.9fr)
+    minmax(0, 1.1fr);
 
   align-items: center;
-  gap: 0;
+  gap: 32px;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 440px;
+
+  margin: 0;
+  padding: 36px 40px;
 
   overflow: hidden;
-  border-radius: 22px;
 
   background: linear-gradient(
     120deg,
@@ -49,45 +61,51 @@
     var(--season-end, #38bdf8)
   );
 
-  color: white;
+  border-radius: 22px;
+  color: #ffffff;
 }
 
 /* ==========================================
-   FONDO FESTIVO
+   3. CAPA DE FONDO
 ========================================== */
 
 .seasonal-layout .seasonal-hero::before {
   content: "";
+
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
 
   background:
-    radial-gradient(
-      circle at 54% 30%,
-      rgba(255, 221, 137, 0.15),
-      transparent 25%
+    linear-gradient(
+      90deg,
+      rgba(4, 7, 18, 0.55) 0%,
+      rgba(4, 7, 18, 0.26) 45%,
+      rgba(4, 7, 18, 0.15) 100%
     ),
     radial-gradient(
-      circle at 15% 85%,
-      rgba(112, 42, 221, 0.35),
-      transparent 40%
+      circle at 72% 30%,
+      rgba(255, 221, 137, 0.15),
+      transparent 38%
     );
 
   pointer-events: none;
 }
 
+/* ==========================================
+   4. FRANJA DECORATIVA INFERIOR
+========================================== */
+
 .seasonal-layout .seasonal-hero::after {
   content: "";
-  position: absolute;
 
-  bottom: -45px;
+  position: absolute;
+  bottom: -48px;
   left: -5%;
+  z-index: 1;
 
   width: 110%;
-  height: 80px;
-
-  z-index: 0;
+  height: 85px;
 
   background: linear-gradient(
     100deg,
@@ -97,12 +115,16 @@
   );
 
   border-radius: 50% 50% 0 0;
+
   transform: rotate(-2deg);
-  opacity: 0.75;
+  opacity: 0.65;
+
   pointer-events: none;
 }
 
-/* IMAGEN REAL DE TEMPORADA */
+/* ==========================================
+   5. IMAGEN DE TEMPORADA
+========================================== */
 
 .seasonal-layout .seasonal-background-image {
   position: absolute;
@@ -110,33 +132,21 @@
   z-index: 0;
 
   display: block;
+
   width: 100%;
   height: 100%;
 
   object-fit: cover;
   object-position: center;
 
-  opacity: 0.65;
+  opacity: 0.55;
 
   pointer-events: none;
-}
-
-/* CAPA PARA MEJORAR LA LEGIBILIDAD */
-
-.seasonal-layout .seasonal-hero:has(
-  .seasonal-background-image
-)::before {
-  background: linear-gradient(
-    90deg,
-    rgba(20, 8, 52, 0.45),
-    rgba(20, 8, 52, 0.12) 50%,
-    rgba(10, 18, 70, 0.35)
-  );
-  z-index: 1;
+  user-select: none;
 }
 
 /* ==========================================
-   DECORACIONES AUTOMÁTICAS
+   6. DECORACIONES
 ========================================== */
 
 .seasonal-layout .seasonal-decorations {
@@ -145,21 +155,23 @@
   z-index: 2;
 
   overflow: hidden;
+
   pointer-events: none;
+  user-select: none;
 }
 
-/* LUNA */
+/* ==========================================
+   7. CÍRCULO DECORATIVO
+========================================== */
 
 .seasonal-layout .seasonal-moon {
   position: absolute;
 
-  width: 150px;
-  height: 150px;
+  top: 15%;
+  right: 22%;
 
-  top: 12%;
-  left: 45%;
-
-  border-radius: 50%;
+  width: 145px;
+  height: 145px;
 
   background: radial-gradient(
     circle at 35% 35%,
@@ -168,11 +180,17 @@
     #ffa53a
   );
 
-  box-shadow: 0 0 60px rgba(255, 205, 104, 0.5);
-  opacity: 0.9;
+  border-radius: 50%;
+
+  box-shadow:
+    0 0 60px rgba(255, 205, 104, 0.4);
+
+  opacity: 0.65;
 }
 
-/* ELEMENTOS FESTIVOS */
+/* ==========================================
+   8. ELEMENTOS FESTIVOS
+========================================== */
 
 .seasonal-layout .decor {
   position: absolute;
@@ -181,47 +199,52 @@
   line-height: 1;
 
   filter: drop-shadow(
-    0 8px 12px rgba(0, 0, 0, 0.3)
+    0 8px 12px rgba(0, 0, 0, 0.25)
   );
 }
 
 .seasonal-layout .decor-top {
   top: 6%;
-  left: 38%;
+  right: 35%;
 
-  font-size: 43px;
+  font-size: 40px;
   transform: rotate(-18deg);
 }
 
 .seasonal-layout .decor-side {
-  top: 34%;
-  left: 55%;
+  top: 35%;
+  right: 9%;
 
-  font-size: 34px;
+  font-size: 32px;
 }
 
 .seasonal-layout .decor-main {
-  left: 33%;
-  bottom: 1%;
+  right: 26%;
+  bottom: 5%;
 
-  font-size: clamp(80px, 12vw, 170px);
+  font-size: clamp(70px, 9vw, 125px);
+  opacity: 0.65;
 }
 
 .seasonal-layout .decor-second {
-  left: 51%;
-  bottom: 6%;
+  right: 6%;
+  bottom: 10%;
 
-  font-size: 73px;
+  font-size: 65px;
+  opacity: 0.75;
 }
 
 .seasonal-layout .decor-details {
-  left: 4%;
-  bottom: 5%;
+  left: 3%;
+  bottom: 8%;
 
-  font-size: 36px;
+  font-size: 30px;
+  opacity: 0.4;
 }
 
-/* OCULTAR EMOJIS CUANDO EXISTE IMAGEN */
+/* ==========================================
+   9. OCULTAR DECORACIONES CON IMAGEN
+========================================== */
 
 .seasonal-layout
 .seasonal-decorations.has-background
@@ -232,48 +255,83 @@
   display: none;
 }
 
-/* ESTRELLAS */
+/* ==========================================
+   10. ESTRELLAS DECORATIVAS
+========================================== */
 
 .seasonal-layout .seasonal-spark {
   position: absolute;
 
   color: #ffd15c;
-  font-size: 26px;
+  font-size: 24px;
 
-  text-shadow: 0 0 12px #ffd15c;
+  text-shadow:
+    0 0 12px rgba(255, 209, 92, 0.8);
+
+  opacity: 0.65;
 }
 
 .seasonal-layout .spark-one {
   top: 8%;
-  left: 6%;
+  right: 45%;
 }
 
 .seasonal-layout .spark-two {
-  bottom: 12%;
-  left: 62%;
+  right: 7%;
+  bottom: 14%;
 }
 
 /* ==========================================
-   TEXTO DEL BANNER
+   11. CONTENIDO DEL BANNER
 ========================================== */
 
 .seasonal-layout .seasonal-hero-copy {
   position: relative;
   z-index: 3;
 
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  width: 100%;
   min-width: 0;
-  padding-right: 20px;
+  max-width: 610px;
+
+  padding: 12px 8px 12px 0;
 }
 
-/* ETIQUETA FESTIVA */
+/* ==========================================
+   12. PROTECCIÓN VISUAL DEL TEXTO
+========================================== */
+
+.seasonal-layout .seasonal-hero-copy::before {
+  content: "";
+
+  position: absolute;
+  inset: -18px -15px;
+  z-index: -1;
+
+  background: linear-gradient(
+    90deg,
+    rgba(4, 7, 18, 0.28),
+    rgba(4, 7, 18, 0)
+  );
+
+  border-radius: 18px;
+
+  pointer-events: none;
+}
+
+/* ==========================================
+   13. ETIQUETA DE TEMPORADA
+========================================== */
 
 .seasonal-layout .seasonal-ribbon {
   display: inline-block;
 
-  padding: 11px 24px;
+  max-width: 100%;
+  padding: 11px 22px;
   margin-bottom: 22px;
-
-  border-radius: 30px;
 
   background: linear-gradient(
     90deg,
@@ -282,61 +340,78 @@
     #dc8b0d
   );
 
-  color: #082451;
+  border-radius: 30px;
 
-  font-size: 15px;
+  color: #082451;
+  font-size: 14px;
   font-weight: 900;
-  letter-spacing: 0.5px;
+  line-height: 1.4;
+  letter-spacing: 0.4px;
+
+  overflow-wrap: anywhere;
 }
 
-/* TÍTULO */
+/* ==========================================
+   14. TÍTULO PRINCIPAL
+========================================== */
 
 .seasonal-layout .seasonal-hero h1 {
-  max-width: 550px;
+  width: 100%;
+  max-width: 560px;
 
-  margin: 0 0 16px;
+  margin: 0 0 18px;
 
-  color: white;
-
-  font-size: clamp(34px, 4.3vw, 66px);
+  color: #ffffff;
+  font-size: clamp(34px, 3.6vw, 58px);
   font-weight: 900;
-  line-height: 1.03;
-  letter-spacing: -1px;
+  line-height: 1.1;
+  letter-spacing: -1.1px;
 
   overflow-wrap: break-word;
+  word-break: normal;
+
+  text-wrap: balance;
+
+  text-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.2);
 }
 
 .seasonal-layout .seasonal-hero h1 em {
-  font-style: normal;
   color: #ffc857;
+  font-style: normal;
 }
 
-/* DESCRIPCIÓN */
+/* ==========================================
+   15. DESCRIPCIÓN PRINCIPAL
+========================================== */
 
 .seasonal-layout .seasonal-hero-copy p {
   max-width: 500px;
 
-  margin: 0 0 22px;
+  margin: 0 0 24px;
 
-  color: white;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 450;
+  line-height: 1.65;
 
-  font-size: 17px;
-  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-/* BOTÓN PRINCIPAL */
+/* ==========================================
+   16. BOTÓN VER PROMOCIONES
+========================================== */
 
 .seasonal-layout .seasonal-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 15px;
 
-  gap: 20px;
+  max-width: 100%;
+  min-height: 50px;
 
-  padding: 15px 28px;
-
-  border: 2px solid #77afff;
-  border-radius: 13px;
+  padding: 13px 24px;
 
   background: linear-gradient(
     180deg,
@@ -344,25 +419,39 @@
     #0646bd
   );
 
-  color: white;
+  border: 2px solid #77afff;
+  border-radius: 13px;
 
-  font-size: 17px;
-  font-weight: 900;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.4;
+
+  text-align: center;
   text-decoration: none;
 
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 5px 15px rgba(0, 0, 0, 0.2);
 
   cursor: pointer;
-  transition: transform 0.2s ease;
+
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
 }
 
 .seasonal-layout .seasonal-cta:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   filter: brightness(1.08);
+  color: #ffffff;
+}
+
+.seasonal-layout .seasonal-cta span {
+  flex-shrink: 0;
 }
 
 /* ==========================================
-   ZONA DERECHA
+   17. ZONA DE PRODUCTOS
 ========================================== */
 
 .seasonal-layout .seasonal-hero-showcase {
@@ -371,15 +460,17 @@
 
   display: flex;
   flex-direction: column;
+  gap: 16px;
 
-  gap: 14px;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
 
-  padding-left: 8px;
+  padding: 0;
 }
 
 /* ==========================================
-   CLIENTE RECURRENTE
+   18. CLIENTE RECURRENTE
 ========================================== */
 
 .seasonal-layout .seasonal-recurring {
@@ -387,10 +478,10 @@
   align-items: center;
   gap: 12px;
 
-  padding: 13px 17px;
+  width: 100%;
+  min-width: 0;
 
-  border: 4px solid #ffc857;
-  border-radius: 22px;
+  padding: 13px 16px;
 
   background: linear-gradient(
     105deg,
@@ -398,94 +489,131 @@
     #061950
   );
 
-  color: white;
+  border: 3px solid #ffc857;
+  border-radius: 18px;
 
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.25);
 }
+
+/* ==========================================
+   19. CORONA DEL CLIENTE
+========================================== */
 
 .seasonal-layout .seasonal-crown {
-  flex-shrink: 0;
-  font-size: 32px;
+  flex: 0 0 auto;
+
+  font-size: 30px;
+  line-height: 1;
 }
 
-.seasonal-layout .seasonal-recurring-text {
-  flex: 1;
-  min-width: 0;
+/* ==========================================
+   20. TEXTO DE CLIENTE RECURRENTE
+========================================== */
 
+.seasonal-layout .seasonal-recurring-text {
   display: flex;
   flex-direction: column;
-
   gap: 5px;
+
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .seasonal-layout .seasonal-recurring-text strong {
-  color: white;
+  display: block;
 
-  font-size: clamp(15px, 1.6vw, 24px);
+  color: #ffffff;
+  font-size: clamp(14px, 1.4vw, 20px);
   font-weight: 900;
+  line-height: 1.25;
+
+  overflow-wrap: anywhere;
 }
 
 .seasonal-layout .seasonal-recurring-text span {
+  display: block;
+
   color: #e8efff;
   font-size: 12px;
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
 }
 
+/* ==========================================
+   21. BENEFICIOS EXCLUSIVOS
+========================================== */
+
 .seasonal-layout .seasonal-recurring-reward {
-  max-width: 180px;
+  flex: 0 1 170px;
+  min-width: 0;
+  max-width: 170px;
 
-  padding: 10px 14px;
-
-  border-radius: 15px;
+  padding: 9px 12px;
 
   background: #ffdf83;
-  color: #092451;
+  border-radius: 12px;
 
-  font-size: 13px;
+  color: #092451;
+  font-size: 12px;
   font-weight: 900;
+  line-height: 1.4;
   text-align: center;
+
+  overflow-wrap: anywhere;
 }
 
 .seasonal-layout .seasonal-recurring-reward small {
   display: block;
-
   margin-top: 5px;
 
   font-size: 10px;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 /* ==========================================
-   PRODUCTOS DESTACADOS
+   22. GRID DE PRODUCTOS DESTACADOS
 ========================================== */
 
 .seasonal-layout .seasonal-featured-products {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
-
-  gap: 10px;
+  width: 100%;
+  min-width: 0;
 }
+
+/* ==========================================
+   23. TARJETAS DE PRODUCTOS
+========================================== */
 
 .seasonal-layout .seasonal-product-card {
   position: relative;
 
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 
+  width: 100%;
   min-width: 0;
-  min-height: 220px;
+  min-height: 245px;
 
-  padding: 12px;
-
-  border-radius: 16px;
+  padding: 15px;
 
   background: #f8fbff;
-  color: #092451;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
 
+  color: #092451;
   text-decoration: none;
 
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.13);
+  box-shadow:
+    0 5px 15px rgba(0, 0, 0, 0.13);
 
   transition:
     transform 0.2s ease,
@@ -493,32 +621,41 @@
 }
 
 .seasonal-layout .seasonal-product-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-/* ETIQUETA DE DESCUENTO */
+/* ==========================================
+   24. ETIQUETA DE DESCUENTO
+========================================== */
 
 .seasonal-layout .seasonal-product-badge {
   position: absolute;
-
-  top: 9px;
-  left: 9px;
+  top: 10px;
+  left: 10px;
   z-index: 2;
 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  max-width: calc(100% - 20px);
   padding: 6px 10px;
 
+  background: #ed202f;
   border-radius: 22px;
 
-  background: #ed202f;
-  color: white;
-
+  color: #ffffff;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1.2;
 }
 
-/* IMAGEN DEL PRODUCTO */
+/* ==========================================
+   25. IMAGEN DEL PRODUCTO
+========================================== */
 
 .seasonal-layout .seasonal-product-image {
   display: flex;
@@ -526,9 +663,10 @@
   justify-content: center;
 
   width: 100%;
-  height: 115px;
+  min-width: 0;
+  height: 125px;
 
-  margin: 12px 0 5px;
+  margin: 16px 0 8px;
 
   overflow: hidden;
 }
@@ -536,97 +674,151 @@
 .seasonal-layout .seasonal-product-image img {
   display: block;
 
+  width: 100%;
+  height: 100%;
   max-width: 100%;
-  max-height: 105px;
+  max-height: 100%;
 
   object-fit: contain;
+  object-position: center;
 }
+
+/* ==========================================
+   26. IMAGEN ALTERNATIVA
+========================================== */
 
 .seasonal-layout .seasonal-product-fallback {
-  font-size: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  font-size: 55px;
+  line-height: 1;
 }
 
-/* NOMBRE DEL PRODUCTO */
+/* ==========================================
+   27. NOMBRE DEL PRODUCTO
+========================================== */
 
 .seasonal-layout .seasonal-product-card h3 {
-  flex: 1;
+  flex: 1 1 auto;
 
-  margin: 7px 0 10px;
+  min-width: 0;
+  margin: 8px 0 12px;
 
   color: #092451;
-
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
 }
 
-/* PRECIOS */
+/* ==========================================
+   28. PRECIOS
+========================================== */
 
 .seasonal-layout .seasonal-product-prices {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 10px;
 
-  gap: 5px;
+  width: 100%;
+  min-width: 0;
 }
 
 .seasonal-layout .seasonal-product-prices del {
   color: #6b7280;
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .seasonal-layout .seasonal-product-prices strong {
-  color: #0755d7;
+  display: block;
 
-  font-size: clamp(13px, 1.25vw, 19px);
+  color: #0755d7;
+  font-size: clamp(15px, 1.5vw, 20px);
   font-weight: 900;
+  line-height: 1.3;
+
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================
+   29. SIN PRODUCTOS
+========================================== */
+
 .seasonal-layout .seasonal-no-products {
+  width: 100%;
   padding: 28px;
 
-  border-radius: 15px;
-
   background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
 
   text-align: center;
 }
 
 .seasonal-layout .seasonal-no-products span {
+  display: block;
   font-size: 36px;
 }
 
+.seasonal-layout .seasonal-no-products p {
+  margin: 12px 0 0;
+  color: #ffffff;
+  line-height: 1.6;
+}
+
 /* ==========================================
-   CUATRO TARJETAS INFERIORES
+   30. CUATRO PROMOCIONES INFERIORES
 ========================================== */
 
 .seasonal-layout .seasonal-promo-strip {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
-
-  gap: 12px;
-
+  width: 100%;
   margin-top: 14px;
 }
 
+/* ==========================================
+   31. TARJETAS PROMOCIONALES
+========================================== */
+
 .seasonal-layout .seasonal-mini-card {
+  position: relative;
+
   display: flex;
   align-items: center;
-
-  gap: 12px;
+  gap: 14px;
 
   min-width: 0;
-  min-height: 130px;
+  min-height: 150px;
 
-  padding: 18px 15px;
+  padding: 20px 17px;
 
   border-radius: 16px;
   overflow: hidden;
 }
 
-/* TARJETAS AZULES */
+.seasonal-layout .seasonal-mini-card > div {
+  position: relative;
+  z-index: 1;
+
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ==========================================
+   32. TARJETAS AZULES
+========================================== */
 
 .seasonal-layout .mini-blue {
   background: linear-gradient(
@@ -635,10 +827,12 @@
     #071c84
   );
 
-  color: white;
+  color: #ffffff;
 }
 
-/* TARJETAS CLARAS */
+/* ==========================================
+   33. TARJETAS CLARAS
+========================================== */
 
 .seasonal-layout .mini-cream {
   background: linear-gradient(
@@ -650,57 +844,73 @@
   color: #092451;
 }
 
-.seasonal-layout .mini-decoration {
-  flex-shrink: 0;
+/* ==========================================
+   34. DECORACIÓN DE LAS TARJETAS
+========================================== */
 
-  font-size: clamp(32px, 3.3vw, 56px);
+.seasonal-layout .mini-decoration {
+  position: relative;
+  z-index: 0;
+
+  flex: 0 0 auto;
+
+  font-size: clamp(30px, 3vw, 46px);
+  line-height: 1;
+
+  opacity: 0.9;
 }
 
-/* TEXTOS */
+/* ==========================================
+   35. TÍTULOS DE TARJETAS
+========================================== */
 
 .seasonal-layout .seasonal-mini-card h3 {
-  margin: 0 0 7px;
+  margin: 0 0 8px;
 
   color: inherit;
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.3;
 
-  font-size: 17px;
-  font-weight: 800;
-  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
+/* ==========================================
+   36. DESCRIPCIÓN DE TARJETAS
+========================================== */
+
 .seasonal-layout .seasonal-mini-card p {
-  margin: 0 0 9px;
+  margin: 0 0 12px;
 
   color: inherit;
-
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.55;
+
+  overflow-wrap: anywhere;
 }
 
 .seasonal-layout .seasonal-mini-card small {
   display: block;
-
-  margin-top: 7px;
+  margin-top: 9px;
 
   color: inherit;
-
   font-size: 10px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* ==========================================
-   BOTONES FUNCIONALES
+   37. BOTONES DE PROMOCIONES
 ========================================== */
 
 .seasonal-layout .mini-pill {
   display: inline-flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+
+  max-width: 100%;
+  min-height: 37px;
 
   padding: 9px 14px;
-
-  border: none;
-  border-radius: 30px;
 
   background: linear-gradient(
     180deg,
@@ -708,13 +918,20 @@
     #ffc331
   );
 
-  color: #082451;
+  border: none;
+  border-radius: 30px;
 
+  color: #082451;
   font-family: inherit;
   font-size: 12px;
-  font-weight: 900;
-  line-height: 1.3;
+  font-weight: 850;
+  line-height: 1.4;
+
+  text-align: center;
   text-decoration: none;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
 
   cursor: pointer;
 
@@ -726,28 +943,32 @@
 .seasonal-layout .mini-pill:hover {
   transform: translateY(-2px);
   filter: brightness(1.05);
+  color: #082451;
 }
 
-/* CUPÓN */
+/* ==========================================
+   38. CUPONES
+========================================== */
 
 .seasonal-layout .mini-coupon {
   display: inline-block;
 
+  max-width: 100%;
   padding: 9px 13px;
 
+  background: #ffffff;
   border: 2px dashed #dc971a;
   border-radius: 10px;
 
-  background: white;
   color: #0755d7;
-
   font-size: 17px;
   font-weight: 900;
+
+  overflow-wrap: anywhere;
 }
 
 .seasonal-layout .mini-coupon-button {
   font-family: inherit;
-
   cursor: pointer;
 
   transition:
@@ -765,19 +986,9 @@
   cursor: pointer;
 }
 
-/* ACCESIBILIDAD */
-
-.seasonal-layout button:focus-visible,
-.seasonal-layout a:focus-visible {
-  outline: 3px solid #f59e0b;
-  outline-offset: 3px;
-}
-
 /* ==========================================
-   TEMAS AUTOMÁTICOS
+   39. TEMA HALLOWEEN
 ========================================== */
-
-/* HALLOWEEN */
 
 .seasonal-layout.seasonal-theme-halloween
 .seasonal-hero {
@@ -789,7 +1000,9 @@
   );
 }
 
-/* BLACK NOVEMBER */
+/* ==========================================
+   40. BLACK NOVEMBER Y BLACK FRIDAY
+========================================== */
 
 .seasonal-layout.seasonal-theme-black-november
 .seasonal-hero,
@@ -815,7 +1028,9 @@
   );
 }
 
-/* NAVIDAD */
+/* ==========================================
+   41. TEMA NAVIDAD
+========================================== */
 
 .seasonal-layout.seasonal-theme-navidad
 .seasonal-hero,
@@ -829,7 +1044,9 @@
   );
 }
 
-/* FIESTAS AGOSTINAS Y MES PATRIO */
+/* ==========================================
+   42. FIESTAS AGOSTINAS Y MES PATRIO
+========================================== */
 
 .seasonal-layout.seasonal-theme-agosto
 .seasonal-hero,
@@ -849,14 +1066,14 @@
 .seasonal-hero::after {
   background: linear-gradient(
     90deg,
-    white,
+    #ffffff,
     #0064d7,
-    white
+    #ffffff
   );
 }
 
 /* ==========================================
-   MODAL DE ENVÍOS
+   43. MODAL DE ENVÍOS
 ========================================== */
 
 .shipping-modal-overlay {
@@ -865,52 +1082,66 @@
   z-index: 9999;
 
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 
+  width: 100%;
+  min-height: 100vh;
   padding: 20px;
 
-  background: rgba(0, 12, 40, 0.72);
+  background: rgba(0, 12, 40, 0.75);
+
   backdrop-filter: blur(4px);
 }
+
+/* ==========================================
+   44. VENTANA DEL MODAL
+========================================== */
 
 .shipping-modal {
   position: relative;
 
   width: 100%;
   max-width: 460px;
-  max-height: 90vh;
-
-  overflow-y: auto;
+  max-height: calc(100dvh - 40px);
 
   padding: 35px;
 
-  border-radius: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   background: #ffffff;
+  border-radius: 18px;
+
   color: #082451;
 
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-/* CERRAR */
+/* ==========================================
+   45. BOTÓN CERRAR MODAL
+========================================== */
 
 .shipping-modal-close {
   position: absolute;
-
   top: 15px;
   right: 15px;
 
-  width: 35px;
-  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
+  width: 36px;
+  height: 36px;
+
+  background: #f1f5f9;
   border: none;
   border-radius: 50%;
 
-  background: #f1f5f9;
   color: #334155;
-
   font-size: 20px;
+
   cursor: pointer;
 }
 
@@ -919,7 +1150,9 @@
   color: #dc2626;
 }
 
-/* ICONO */
+/* ==========================================
+   46. ICONO DEL MODAL
+========================================== */
 
 .shipping-modal-icon {
   display: block;
@@ -930,113 +1163,161 @@
   text-align: center;
 }
 
-/* TÍTULO */
+/* ==========================================
+   47. TÍTULO DEL MODAL
+========================================== */
 
 .shipping-modal h2 {
   margin: 15px 0;
 
   color: #082451;
-
   font-size: 25px;
   font-weight: 900;
+  line-height: 1.3;
   text-align: center;
 }
 
-/* DESCRIPCIÓN */
+/* ==========================================
+   48. DESCRIPCIÓN DEL MODAL
+========================================== */
 
 .shipping-modal p {
-  margin-bottom: 15px;
+  margin: 0 0 15px;
 
   color: #475569;
-
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.7;
+
+  overflow-wrap: anywhere;
 }
 
-/* BOTÓN DEL CARRITO */
+/* ==========================================
+   49. BOTÓN DEL CARRITO
+========================================== */
 
 .shipping-modal-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 47px;
 
   margin-top: 20px;
   padding: 14px 20px;
 
+  background: #0755d7;
   border-radius: 10px;
 
-  background: #0755d7;
-  color: white;
-
+  color: #ffffff;
   font-size: 15px;
   font-weight: 800;
-  text-decoration: none;
+  line-height: 1.4;
+
   text-align: center;
+  text-decoration: none;
 }
 
 .shipping-modal-link:hover {
   background: #0045ad;
+  color: #ffffff;
 }
 
 /* ==========================================
-   RESPONSIVE
+   50. ACCESIBILIDAD
 ========================================== */
 
-/* PANTALLAS MEDIANAS */
-
-@media (max-width: 1350px) {
-  .seasonal-layout .seasonal-hero {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-
-  .seasonal-layout .seasonal-hero-copy {
-    max-width: 650px;
-    padding-right: 0;
-  }
-
-  .seasonal-layout .seasonal-hero-showcase {
-    padding-left: 0;
-  }
-
-  .seasonal-layout .seasonal-promo-strip {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
+.seasonal-layout button:focus-visible,
+.seasonal-layout a:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
 }
 
-/* TABLETS */
+/* ==========================================
+   51. PANTALLAS GRANDES
+========================================== */
 
-@media (max-width: 850px) {
+@media (min-width: 1600px) {
   .seasonal-layout .seasonal-hero {
-    padding: 26px;
+    gap: 45px;
+    padding: 42px 48px;
   }
 
   .seasonal-layout .seasonal-hero h1 {
-    font-size: 43px;
+    font-size: 60px;
+  }
+
+  .seasonal-layout .seasonal-product-card {
+    min-height: 255px;
+  }
+}
+
+/* ==========================================
+   52. PORTÁTILES Y TABLETS HORIZONTALES
+========================================== */
+
+@media (max-width: 1150px) {
+  .seasonal-layout .seasonal-hero {
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 28px;
+    padding: 32px;
+  }
+
+  .seasonal-layout .seasonal-hero-copy {
+    max-width: 780px;
+    padding: 0;
+  }
+
+  .seasonal-layout .seasonal-hero-showcase {
+    padding: 0;
   }
 
   .seasonal-layout .seasonal-featured-products {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
   }
+
+  .seasonal-layout .seasonal-promo-strip {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  /* ALEJAR DECORACIONES DEL TÍTULO */
+
+  .seasonal-layout .seasonal-moon {
+    top: 10%;
+    right: 8%;
+  }
+
+  .seasonal-layout .decor-main {
+    right: 5%;
+    bottom: 40%;
+    opacity: 0.3;
+  }
+
+  .seasonal-layout .decor-second {
+    display: none;
+  }
 }
 
-/* MÓVILES */
+/* ==========================================
+   53. TABLETS
+========================================== */
 
-@media (max-width: 700px) {
+@media (max-width: 850px) {
   .seasonal-layout {
     width: 94%;
-    margin: 16px auto 25px;
   }
 
   .seasonal-layout .seasonal-hero {
-    padding: 24px 16px;
-    gap: 25px;
-
-    border-radius: 16px;
+    gap: 26px;
+    padding: 28px;
   }
 
   .seasonal-layout .seasonal-hero h1 {
-    font-size: 35px;
+    max-width: 650px;
+    font-size: clamp(34px, 5vw, 45px);
   }
 
   .seasonal-layout .seasonal-hero-copy p {
@@ -1048,45 +1329,222 @@
   }
 
   .seasonal-layout .seasonal-recurring-reward {
-    max-width: none;
-    width: 100%;
+    flex-basis: auto;
+    max-width: 100%;
   }
+
+  .seasonal-layout .seasonal-product-card {
+    min-height: 245px;
+  }
+
+  .seasonal-layout .seasonal-mini-card {
+    min-height: 140px;
+  }
+}
+
+/* ==========================================
+   54. CELULARES
+========================================== */
+
+@media (max-width: 650px) {
+  .seasonal-layout {
+    width: calc(100% - 24px);
+    max-width: 100%;
+
+    margin: 16px auto 25px;
+  }
+
+  /* BANNER */
+
+  .seasonal-layout .seasonal-hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+
+    gap: 24px;
+
+    min-height: 0;
+    padding: 26px 18px;
+
+    border-radius: 16px;
+  }
+
+  /* FONDO */
+
+  .seasonal-layout .seasonal-background-image {
+    object-position: center top;
+    opacity: 0.28;
+  }
+
+  .seasonal-layout .seasonal-hero::before {
+    background: linear-gradient(
+      180deg,
+      rgba(4, 7, 18, 0.78) 0%,
+      rgba(4, 7, 18, 0.65) 45%,
+      rgba(4, 7, 18, 0.45) 100%
+    );
+  }
+
+  /* OCULTAR DECORACIONES GRANDES */
+
+  .seasonal-layout .seasonal-moon,
+  .seasonal-layout .decor-main,
+  .seasonal-layout .decor-second,
+  .seasonal-layout .decor-side {
+    display: none;
+  }
+
+  .seasonal-layout .decor-top {
+    top: 12px;
+    right: 15px;
+    left: auto;
+
+    font-size: 24px;
+    opacity: 0.35;
+  }
+
+  .seasonal-layout .decor-details {
+    left: auto;
+    right: 14px;
+    bottom: 12px;
+
+    font-size: 25px;
+    opacity: 0.3;
+  }
+
+  .seasonal-layout .seasonal-spark {
+    font-size: 16px;
+    opacity: 0.25;
+  }
+
+  /* TEXTO */
+
+  .seasonal-layout .seasonal-hero-copy {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .seasonal-layout .seasonal-hero-copy::before {
+    display: none;
+  }
+
+  .seasonal-layout .seasonal-ribbon {
+    padding: 9px 15px;
+    margin-bottom: 18px;
+
+    font-size: 12px;
+  }
+
+  .seasonal-layout .seasonal-hero h1 {
+    max-width: 100%;
+
+    margin-bottom: 15px;
+
+    font-size: clamp(30px, 7.5vw, 39px);
+    line-height: 1.12;
+    letter-spacing: -0.7px;
+  }
+
+  .seasonal-layout .seasonal-hero-copy p {
+    max-width: 100%;
+
+    margin-bottom: 20px;
+
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .seasonal-layout .seasonal-cta {
+    min-height: 46px;
+    padding: 11px 17px;
+
+    font-size: 14px;
+  }
+
+  /* CLIENTE RECURRENTE */
+
+  .seasonal-layout .seasonal-recurring {
+    gap: 10px;
+    padding: 14px;
+
+    border-width: 2px;
+    border-radius: 14px;
+  }
+
+  .seasonal-layout .seasonal-crown {
+    font-size: 25px;
+  }
+
+  .seasonal-layout .seasonal-recurring-text strong {
+    font-size: 16px;
+  }
+
+  .seasonal-layout .seasonal-recurring-text span {
+    font-size: 11px;
+  }
+
+  .seasonal-layout .seasonal-recurring-reward {
+    flex: 1 1 100%;
+
+    width: 100%;
+    max-width: 100%;
+
+    padding: 9px;
+    font-size: 12px;
+  }
+
+  /* PRODUCTOS */
 
   .seasonal-layout .seasonal-featured-products {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
   }
+
+  .seasonal-layout .seasonal-product-card {
+    min-height: 225px;
+    padding: 11px;
+    border-radius: 13px;
+  }
+
+  .seasonal-layout .seasonal-product-image {
+    height: 95px;
+    margin-top: 19px;
+  }
+
+  .seasonal-layout .seasonal-product-card h3 {
+    font-size: 12px;
+  }
+
+  .seasonal-layout .seasonal-product-prices strong {
+    font-size: 14px;
+  }
+
+  /* PROMOCIONES INFERIORES */
 
   .seasonal-layout .seasonal-promo-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 
-  .seasonal-layout .seasonal-moon {
-    left: 55%;
-    width: 100px;
-    height: 100px;
+  .seasonal-layout .seasonal-mini-card {
+    min-height: 125px;
+    padding: 18px;
   }
 
-  .seasonal-layout .decor-main {
-    left: 60%;
-    bottom: 40%;
-
-    font-size: 75px;
-    opacity: 0.65;
+  .seasonal-layout .mini-decoration {
+    font-size: 38px;
   }
 
-  .seasonal-layout .decor-second {
-    display: none;
-  }
+  /* MODAL */
 
-  .seasonal-layout .mini-pill,
-  .seasonal-layout .mini-coupon-button {
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
+  .shipping-modal-overlay {
+    padding: 15px;
   }
 
   .shipping-modal {
+    max-height: calc(100dvh - 30px);
     padding: 28px 20px;
   }
 
@@ -1096,7 +1554,134 @@
 }
 
 /* ==========================================
-   ACCESIBILIDAD
+   55. CELULARES PEQUEÑOS
+========================================== */
+
+@media (max-width: 480px) {
+  .seasonal-layout {
+    width: calc(100% - 20px);
+  }
+
+  .seasonal-layout .seasonal-hero {
+    gap: 22px;
+    padding: 23px 15px;
+  }
+
+  .seasonal-layout .seasonal-hero h1 {
+    font-size: clamp(28px, 8vw, 35px);
+  }
+
+  .seasonal-layout .seasonal-hero-copy p {
+    font-size: 14px;
+  }
+
+  /* UN PRODUCTO POR FILA */
+
+  .seasonal-layout .seasonal-featured-products {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .seasonal-layout .seasonal-product-card {
+    min-height: 0;
+    padding: 15px;
+  }
+
+  .seasonal-layout .seasonal-product-image {
+    height: 140px;
+    margin: 20px 0 10px;
+  }
+
+  .seasonal-layout .seasonal-product-card h3 {
+    margin: 8px 0 12px;
+    font-size: 14px;
+  }
+
+  .seasonal-layout .seasonal-product-prices {
+    gap: 6px 12px;
+  }
+
+  .seasonal-layout .seasonal-product-prices del {
+    font-size: 12px;
+  }
+
+  .seasonal-layout .seasonal-product-prices strong {
+    font-size: 18px;
+  }
+
+  /* PROMOCIONES */
+
+  .seasonal-layout .seasonal-mini-card {
+    gap: 12px;
+    min-height: 120px;
+    padding: 16px;
+  }
+
+  .seasonal-layout .seasonal-mini-card h3 {
+    font-size: 15px;
+  }
+
+  .seasonal-layout .mini-decoration {
+    font-size: 34px;
+  }
+
+  .seasonal-layout .mini-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+/* ==========================================
+   56. PANTALLAS MUY ESTRECHAS
+========================================== */
+
+@media (max-width: 340px) {
+  .seasonal-layout .seasonal-hero {
+    padding: 20px 12px;
+  }
+
+  .seasonal-layout .seasonal-ribbon {
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+  .seasonal-layout .seasonal-hero h1 {
+    font-size: 27px;
+  }
+
+  .seasonal-layout .seasonal-cta {
+    width: 100%;
+    padding: 11px 12px;
+    font-size: 13px;
+  }
+
+  .seasonal-layout .seasonal-recurring {
+    padding: 10px;
+  }
+
+  .seasonal-layout .seasonal-recurring-text strong {
+    font-size: 14px;
+  }
+
+  .seasonal-layout .seasonal-product-image {
+    height: 120px;
+  }
+
+  .seasonal-layout .seasonal-mini-card {
+    padding: 13px;
+  }
+
+  .seasonal-layout .mini-decoration {
+    font-size: 28px;
+  }
+
+  .shipping-modal {
+    padding: 25px 15px;
+  }
+}
+
+/* ==========================================
+   57. ACCESIBILIDAD Y MOVIMIENTO REDUCIDO
 ========================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1105,5 +1690,6 @@
   .seasonal-layout .mini-pill,
   .seasonal-layout .mini-coupon-button {
     transition: none;
+    animation: none;
   }
 }

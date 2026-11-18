@@ -1,34 +1,373 @@
+
+/* ==========================================
+   NICA S-MART - NAVBAR RESPONSIVE
+   DISEÑO PREMIUM
+========================================== */
+
+/* ==========================================
+   1. CONTENEDOR PRINCIPAL
+========================================== */
+
 .navbar {
+  position: relative;
+  z-index: 15;
+
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
   min-height: 43px;
-  padding: 0 7%;
+  margin: 0;
+  padding: 0;
 
   background-color: #075cd8;
+  color: #ffffff;
+  box-sizing: border-box;
+}
 
+.navbar *,
+.navbar *::before,
+.navbar *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================
+   2. CONTENEDOR DE ENLACES
+========================================== */
+
+.navbar-links {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 
-  gap: 35px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 52px;
+
+  margin: 0;
+  padding: 7px 7%;
+  gap: 8px 24px;
 }
 
-.navbar a {
-  color: white;
+/* ==========================================
+   3. ENLACES DE NAVEGACIÓN
+========================================== */
 
-  text-decoration: none;
+.navbar .navbar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
 
-  font-weight: bold;
+  min-height: 37px;
+  padding: 9px 12px;
+
+  background: transparent;
+  border-radius: 8px;
+
+  color: #ffffff;
+  font-family: inherit;
   font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
 
-  transition: 0.2s;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.navbar a:hover {
-  opacity: 0.8;
+/* ==========================================
+   4. EFECTO HOVER
+========================================== */
+
+.navbar .navbar-link:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  text-decoration: none;
 }
 
-@media (max-width: 800px) {
+/* ==========================================
+   5. ENLACE ACTIVO
+========================================== */
+
+.navbar .navbar-link-active {
+  background-color: rgba(0, 27, 70, 0.25);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* ==========================================
+   6. PANEL DE ADMINISTRADOR
+========================================== */
+
+.navbar .navbar-admin-link {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+
+  font-weight: 700;
+}
+
+.navbar .navbar-admin-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ==========================================
+   7. BARRA DE NAVEGACIÓN MÓVIL
+========================================== */
+
+.navbar-mobile-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 16px;
+
+  background: #075cd8;
+}
+
+/* ==========================================
+   8. TÍTULO DEL MENÚ MÓVIL
+========================================== */
+
+.navbar-mobile-title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+}
+
+/* ==========================================
+   9. BOTÓN HAMBURGUESA
+========================================== */
+
+.navbar-toggle {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  width: 42px;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 8px;
+
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  transition: background-color 0.2s ease;
+}
+
+.navbar-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================================
+   10. LÍNEAS DEL BOTÓN
+========================================== */
+
+.navbar-toggle-line {
+  display: block;
+
+  width: 21px;
+  height: 2px;
+  flex: 0 0 2px;
+
+  background: #ffffff;
+  border-radius: 3px;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* ==========================================
+   11. ANIMACIÓN AL ABRIR
+========================================== */
+
+.navbar-toggle-active .navbar-toggle-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.navbar-toggle-active .navbar-toggle-line:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar-toggle-active .navbar-toggle-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ==========================================
+   12. ACCESIBILIDAD
+========================================== */
+
+.navbar .navbar-link:focus-visible,
+.navbar-toggle:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+/* ==========================================
+   13. RESPONSIVE - PANTALLAS MEDIANAS
+========================================== */
+
+@media (max-width: 1100px) {
+  .navbar-links {
+    padding-left: 4%;
+    padding-right: 4%;
+    gap: 6px 15px;
+  }
+
+  .navbar .navbar-link {
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+}
+
+/* ==========================================
+   14. RESPONSIVE - TABLETS Y CELULARES
+========================================== */
+
+@media (max-width: 768px) {
   .navbar {
-    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    min-height: 50px;
 
-    white-space: nowrap;
+    overflow: visible;
+  }
+
+  /* MOSTRAR BARRA MÓVIL */
+
+  .navbar-mobile-bar {
+    display: flex;
+  }
+
+  .navbar-toggle {
+    display: flex;
+  }
+
+  /* OCULTAR ENLACES INICIALMENTE */
+
+  .navbar-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+
+    padding: 8px 14px 16px;
+    margin: 0;
+    gap: 5px;
+
+    background-color: #075cd8;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* ABRIR MENÚ */
+
+  .navbar-links.navbar-links-open {
+    display: flex;
+  }
+
+  /* ENLACES VERTICALES */
+
+  .navbar .navbar-link {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 15px;
+
+    background: transparent;
+    border-radius: 9px;
+
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.4;
+
+    text-align: left;
+    white-space: normal;
+  }
+
+  .navbar .navbar-link:hover {
+    background: rgba(255, 255, 255, 0.13);
+  }
+
+  /* ENLACE ACTIVO EN MÓVIL */
+
+  .navbar .navbar-link-active {
+    background: #0050ad;
+    font-weight: 800;
+  }
+
+  /* ADMINISTRADOR */
+
+  .navbar .navbar-admin-link {
+    margin-top: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+  }
+}
+
+/* ==========================================
+   15. RESPONSIVE - CELULARES PEQUEÑOS
+========================================== */
+
+@media (max-width: 420px) {
+  .navbar-mobile-bar {
+    min-height: 50px;
+    padding: 7px 12px;
+  }
+
+  .navbar-mobile-title {
+    font-size: 13px;
+  }
+
+  .navbar-toggle {
+    width: 40px;
+    height: 38px;
+  }
+
+  .navbar-links {
+    padding: 7px 10px 12px;
+  }
+
+  .navbar .navbar-link {
+    min-height: 44px;
+    padding: 11px 12px;
+    font-size: 13px;
+  }
+}
+
+/* ==========================================
+   16. REDUCCIÓN DE MOVIMIENTO
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar *,
+  .navbar *::before,
+  .navbar *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

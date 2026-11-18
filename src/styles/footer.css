@@ -1,548 +1,843 @@
-/* =========================================
-   FOOTER
-   NICA S-MART
-   ========================================= */
+
+/* ==========================================
+   NICA S-MART - FOOTER RESPONSIVE
+   DISEÑO MODERNO Y COMPACTO
+========================================== */
+
+/* ==========================================
+   1. CONTENEDOR PRINCIPAL
+========================================== */
 
 .footer {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 
   margin-top: auto;
 
-  background:
-    linear-gradient(
-      135deg,
-      #041b3d 0%,
-      #062b5f 45%,
-      #041b3d 100%
-    );
+  background: linear-gradient(
+    135deg,
+    #041b3d 0%,
+    #062b5f 45%,
+    #041b3d 100%
+  );
 
   color: #ffffff;
 }
 
+.footer *,
+.footer *::before,
+.footer *::after {
+  box-sizing: border-box;
+}
 
-/* =========================================
-   CONTENEDOR PRINCIPAL
-   ========================================= */
+/* ==========================================
+   2. DISTRIBUCIÓN DEL FOOTER
+========================================== */
 
 .footer-container {
-  width: min(1450px, 90%);
-
-  margin: 0 auto;
-
   display: grid;
 
   grid-template-columns:
-    1.35fr
-    1fr
-    1fr
-    1fr;
+    minmax(0, 1.4fr)
+    repeat(3, minmax(0, 1fr));
 
-  gap: 70px;
+  align-items: start;
+  gap: 36px;
 
-  padding: 75px 0 65px;
+  width: min(1320px, 90%);
+  max-width: 100%;
+  min-width: 0;
+
+  margin: 0 auto;
+  padding: 55px 0 48px;
 }
 
-
-/* =========================================
-   MARCA
-   ========================================= */
+/* ==========================================
+   3. MARCA NICA S-MART
+========================================== */
 
 .footer-brand {
   display: flex;
-
   flex-direction: column;
-
   align-items: flex-start;
+  gap: 0;
+
+  min-width: 0;
+  max-width: 100%;
 }
 
-
-/* LOGO */
+/* ==========================================
+   4. LOGOTIPO
+========================================== */
 
 .footer-logo {
-  display: flex;
-
+  display: inline-flex;
   align-items: center;
+  gap: 12px;
 
-  gap: 14px;
+  max-width: 100%;
+  min-width: 0;
+
+  margin-bottom: 18px;
 
   color: #ffffff;
-
   text-decoration: none;
 
-  margin-bottom: 32px;
+  transition: opacity 0.2s ease;
 }
 
+.footer-logo:hover {
+  opacity: 0.9;
+  text-decoration: none;
+}
 
-/* ÍCONO DEL CARRITO */
+/* ==========================================
+   5. ÍCONO DEL LOGOTIPO
+========================================== */
 
 .footer-logo-icon {
-  font-size: 58px;
+  width: 43px;
+  height: 43px;
+
+  flex: 0 0 43px;
 
   color: #3d9cff;
+  stroke-width: 1.8;
 }
 
-
-/* TEXTO DEL LOGO */
+/* ==========================================
+   6. TEXTO DEL LOGOTIPO
+========================================== */
 
 .footer-logo span {
-  font-size: 36px;
+  min-width: 0;
 
+  color: #ffffff;
+  font-size: clamp(23px, 2.3vw, 30px);
   font-weight: 800;
-
-  letter-spacing: -1px;
+  line-height: 1.2;
+  letter-spacing: -0.8px;
 
   white-space: nowrap;
 }
 
-
-/* S-MART AZUL */
-
 .footer-logo strong {
   color: #2687ee;
-
-  font-weight: 800;
+  font-weight: 850;
 }
 
-
-/* =========================================
-   DESCRIPCIÓN
-   ========================================= */
+/* ==========================================
+   7. DESCRIPCIÓN DE LA TIENDA
+========================================== */
 
 .footer-description {
+  max-width: 300px;
+
   margin: 0;
 
-  font-size: 19px;
-
-  line-height: 1.7;
-
   color: #cbd8e8;
-
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.7;
   text-align: left;
+
+  overflow-wrap: anywhere;
 }
 
-
-/* =========================================
-   REDES SOCIALES
-   ========================================= */
+/* ==========================================
+   8. REDES SOCIALES
+========================================== */
 
 .footer-social {
   display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
 
-  gap: 18px;
-
-  margin-top: 38px;
+  width: 100%;
+  margin-top: 24px;
 }
 
+/* ==========================================
+   9. BOTONES DE REDES SOCIALES
+========================================== */
 
+.footer-social-link,
 .footer-social a {
-  width: 48px;
-
-  height: 48px;
-
-  display: flex;
-
+  display: inline-flex;
   align-items: center;
-
   justify-content: center;
 
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
 
-  background-color: rgba(255, 255, 255, 0.07);
-
   color: #ffffff;
-
-  font-size: 21px;
-
+  font-size: 19px;
   text-decoration: none;
 
   transition:
     background-color 0.25s ease,
-    transform 0.25s ease,
-    color 0.25s ease;
+    color 0.25s ease,
+    transform 0.25s ease;
 }
 
+.footer-social-link svg,
+.footer-social a svg {
+  width: 19px;
+  height: 19px;
+}
 
-/* HOVER REDES */
+/* ==========================================
+   10. HOVER REDES SOCIALES
+========================================== */
 
+.footer-social-link:hover,
 .footer-social a:hover {
-  background-color: #2687ee;
-
+  background: #2687ee;
   color: #ffffff;
 
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
-
-/* =========================================
-   COLUMNAS
-   ========================================= */
+/* ==========================================
+   11. COLUMNAS DE INFORMACIÓN
+========================================== */
 
 .footer-column {
   display: flex;
-
   flex-direction: column;
-
   align-items: flex-start;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
-
-/* TÍTULOS */
+/* ==========================================
+   12. TÍTULOS DE COLUMNAS
+========================================== */
 
 .footer-column h3 {
   margin: 0;
 
-  font-size: 29px;
-
-  font-weight: 750;
-
   color: #ffffff;
-
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.4;
   text-align: left;
 }
 
-
-/* LÍNEA AZUL BAJO EL TÍTULO */
+/* ==========================================
+   13. LÍNEA DECORATIVA
+========================================== */
 
 .footer-title-line {
-  width: 45px;
+  width: 40px;
+  height: 3px;
 
-  height: 4px;
+  margin-top: 12px;
+  margin-bottom: 21px;
 
-  margin-top: 17px;
-
-  margin-bottom: 29px;
-
+  background: #2687ee;
   border-radius: 10px;
-
-  background-color: #2687ee;
 }
 
+/* ==========================================
+   14. CONTENEDOR DE ENLACES
+========================================== */
 
-/* =========================================
-   LINKS DEL FOOTER
-   ========================================= */
-
-.footer-column a {
-  width: fit-content;
-
+.footer-column-links {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
 
+  width: 100%;
+  min-width: 0;
+}
+
+/* ==========================================
+   15. ENLACES DE COLUMNAS
+========================================== */
+
+.footer-column .footer-nav-link {
+  display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
 
-  gap: 22px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 
-  margin-bottom: 22px;
+  margin: 0;
+  padding: 2px 0;
 
   color: #f1f5f9;
-
-  font-size: 18px;
-
-  text-decoration: none;
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.6;
 
   text-align: left;
+  text-decoration: none;
 
   transition:
     color 0.2s ease,
     transform 0.2s ease;
 }
 
+.footer-column .footer-nav-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
-/* ICONOS */
+/* ==========================================
+   16. ÍCONOS DE ENLACES
+========================================== */
 
-.footer-column a svg {
-  min-width: 29px;
+.footer-column .footer-link-icon {
+  width: 19px;
+  height: 19px;
 
-  font-size: 29px;
+  min-width: 19px;
+  flex: 0 0 19px;
 
   color: #63b3ff;
-
   stroke-width: 1.8;
 }
 
+/* ==========================================
+   17. HOVER DE ENLACES
+========================================== */
 
-/* HOVER */
-
-.footer-column a:hover {
+.footer-column .footer-nav-link:hover {
   color: #63b3ff;
-
-  transform: translateX(5px);
+  transform: translateX(3px);
 }
 
-
-/* =========================================
-   PARTE INFERIOR
-   ========================================= */
+/* ==========================================
+   18. SECCIÓN INFERIOR
+========================================== */
 
 .footer-bottom {
   width: 100%;
+  max-width: 100%;
 
-  border-top: 1px solid rgba(126, 188, 255, 0.45);
+  border-top: 1px solid rgba(
+    126,
+    188,
+    255,
+    0.28
+  );
 }
 
-
-/* CONTENEDOR DEL COPYRIGHT */
+/* ==========================================
+   19. CONTENEDOR INFERIOR
+========================================== */
 
 .footer-bottom-container {
-  width: min(1450px, 90%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 30px;
+
+  width: min(1320px, 90%);
+  max-width: 100%;
+  min-width: 0;
 
   margin: 0 auto;
-
-  min-height: 100px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  gap: 30px;
+  padding: 25px 0;
 }
 
+/* ==========================================
+   20. DERECHOS RESERVADOS
+========================================== */
 
-/* COPYRIGHT */
-
+.footer-copyright,
 .footer-bottom p {
+  flex: 0 1 auto;
+  min-width: 0;
+
   margin: 0;
 
-  font-size: 16px;
-
-  color: #f1f5f9;
+  color: #cbd8e8;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
 
   text-align: left;
 }
 
-
-/* =========================================
-   ENLACES LEGALES
-   ========================================= */
+/* ==========================================
+   21. INFORMACIÓN LEGAL
+========================================== */
 
 .footer-legal {
   display: flex;
-
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 0;
 
-  gap: 25px;
+  min-width: 0;
+  max-width: 100%;
 }
 
+/* ==========================================
+   22. ELEMENTOS LEGALES
+========================================== */
 
-.footer-legal a {
+.footer-legal-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* ==========================================
+   23. ENLACES LEGALES
+========================================== */
+
+.footer-legal .footer-legal-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 12px;
+
   color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.5;
 
-  font-size: 16px;
-
+  text-align: center;
   text-decoration: none;
 
   transition: color 0.2s ease;
 }
 
-
-.footer-legal a:hover {
+.footer-legal .footer-legal-link:hover {
   color: #63b3ff;
 }
 
+/* ==========================================
+   24. ÍCONOS LEGALES
+========================================== */
 
-/* SEPARADORES */
+.footer-legal-icon {
+  width: 15px;
+  height: 15px;
 
-.footer-legal > span {
-  width: 1px;
+  flex: 0 0 15px;
 
-  height: 32px;
-
-  background-color: rgba(255, 255, 255, 0.5);
+  color: #63b3ff;
 }
 
+/* ==========================================
+   25. SEPARADORES LEGALES
+========================================== */
 
-/* =========================================
-   TABLET GRANDE
-   ========================================= */
+.footer-legal-divider {
+  display: block;
 
-@media (max-width: 1200px) {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 1px;
 
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==========================================
+   26. ACCESIBILIDAD
+========================================== */
+
+.footer a:focus-visible {
+  outline: 2px solid #63b3ff;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* ==========================================
+   27. PANTALLAS GRANDES
+========================================== */
+
+@media (min-width: 1500px) {
   .footer-container {
-    grid-template-columns:
-      1.2fr
-      1fr
-      1fr
-      1fr;
-
-    gap: 40px;
+    gap: 50px;
+    padding-top: 65px;
+    padding-bottom: 55px;
   }
-
-
-  .footer-logo span {
-    font-size: 30px;
-  }
-
-
-  .footer-logo-icon {
-    font-size: 50px;
-  }
-
 
   .footer-column h3 {
+    font-size: 23px;
+  }
+
+  .footer-column .footer-nav-link {
+    font-size: 15px;
+  }
+
+  .footer-description {
+    font-size: 16px;
+  }
+}
+
+/* ==========================================
+   28. PORTÁTILES
+========================================== */
+
+@media (max-width: 1200px) {
+  .footer-container {
+    grid-template-columns:
+      minmax(0, 1.25fr)
+      repeat(3, minmax(0, 1fr));
+
+    gap: 25px;
+  }
+
+  .footer-logo span {
     font-size: 25px;
   }
 
-
-  .footer-column a {
-    font-size: 16px;
-
-    gap: 15px;
+  .footer-logo-icon {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
   }
 
-
-  .footer-column a svg {
-    font-size: 24px;
+  .footer-column h3 {
+    font-size: 19px;
   }
 
-}
-
-
-/* =========================================
-   TABLET
-   ========================================= */
-
-@media (max-width: 950px) {
-
-  .footer-container {
-    grid-template-columns:
-      repeat(2, 1fr);
-
-    gap: 55px 70px;
-
-    padding: 60px 0;
+  .footer-column .footer-nav-link {
+    gap: 9px;
+    font-size: 13px;
   }
 
+  .footer-column .footer-link-icon {
+    width: 17px;
+    height: 17px;
+    min-width: 17px;
+    flex-basis: 17px;
+  }
 
   .footer-bottom-container {
     flex-direction: column;
-
     justify-content: center;
-
-    padding: 25px 0;
+    gap: 14px;
   }
 
-
+  .footer-copyright,
   .footer-bottom p {
     text-align: center;
   }
 
+  .footer-legal {
+    justify-content: center;
+  }
 }
 
+/* ==========================================
+   29. TABLETS
+========================================== */
 
-/* =========================================
-   MÓVIL
-   ========================================= */
-
-@media (max-width: 600px) {
-
+@media (max-width: 900px) {
   .footer-container {
-    width: 88%;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
 
-    grid-template-columns: 1fr;
+    gap: 35px 45px;
 
-    gap: 45px;
-
-    padding: 50px 0;
+    padding: 45px 0 40px;
   }
-
-
-  /* CENTRAR MARCA */
-
-  .footer-brand {
-    align-items: center;
-
-    text-align: center;
-  }
-
-
-  .footer-logo {
-    justify-content: center;
-
-    margin-bottom: 22px;
-  }
-
 
   .footer-logo span {
     font-size: 27px;
   }
 
-
-  .footer-logo-icon {
-    font-size: 44px;
-  }
-
-
   .footer-description {
-    text-align: center;
-
-    font-size: 16px;
+    font-size: 14px;
   }
-
 
   .footer-social {
-    margin-top: 28px;
+    margin-top: 20px;
   }
 
+  .footer-column h3 {
+    font-size: 20px;
+  }
+
+  .footer-title-line {
+    margin-bottom: 18px;
+  }
+
+  .footer-column-links {
+    gap: 12px;
+  }
+
+  .footer-column .footer-nav-link {
+    font-size: 14px;
+  }
+
+  .footer-bottom-container {
+    padding: 23px 0;
+  }
+}
+
+/* ==========================================
+   30. CELULARES
+========================================== */
+
+@media (max-width: 600px) {
+  .footer-container {
+    width: calc(100% - 36px);
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 30px 18px;
+
+    padding: 38px 0 35px;
+  }
+
+  /* MARCA OCUPA TODO EL ANCHO */
+
+  .footer-brand {
+    grid-column: 1 / -1;
+
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-logo {
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .footer-logo span {
+    font-size: 27px;
+  }
+
+  .footer-logo-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .footer-description {
+    max-width: 300px;
+
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  /* REDES SOCIALES */
+
+  .footer-social {
+    justify-content: center;
+    gap: 12px;
+
+    margin-top: 20px;
+  }
+
+  .footer-social-link,
+  .footer-social a {
+    width: 43px;
+    height: 43px;
+    flex-basis: 43px;
+  }
 
   /* COLUMNAS */
 
   .footer-column {
-    align-items: center;
+    align-items: flex-start;
   }
-
 
   .footer-column h3 {
-    text-align: center;
-
-    font-size: 24px;
+    font-size: 18px;
+    text-align: left;
   }
-
 
   .footer-title-line {
-    margin-left: auto;
+    width: 35px;
+    height: 3px;
 
-    margin-right: auto;
+    margin-top: 10px;
+    margin-bottom: 15px;
   }
 
-
-  .footer-column a {
-    font-size: 16px;
+  .footer-column-links {
+    gap: 10px;
   }
 
+  .footer-column .footer-nav-link {
+    gap: 8px;
+
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .footer-column .footer-link-icon {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    flex-basis: 16px;
+  }
 
   /* PARTE INFERIOR */
 
   .footer-bottom-container {
-    width: 88%;
+    width: calc(100% - 36px);
 
-    min-height: auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 17px;
 
-    padding: 30px 0;
+    padding: 24px 0;
   }
 
-
+  .footer-copyright,
   .footer-bottom p {
-    font-size: 14px;
-
+    font-size: 12px;
     line-height: 1.6;
+    text-align: center;
   }
 
+  .footer-legal {
+    justify-content: center;
+    gap: 8px 0;
+  }
+
+  .footer-legal .footer-legal-link {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .footer-legal-icon {
+    width: 13px;
+    height: 13px;
+    flex-basis: 13px;
+  }
+
+  .footer-legal-divider {
+    height: 15px;
+  }
+}
+
+/* ==========================================
+   31. CELULARES PEQUEÑOS
+========================================== */
+
+@media (max-width: 390px) {
+  .footer-container {
+    width: calc(100% - 28px);
+    gap: 27px 12px;
+  }
+
+  .footer-logo span {
+    font-size: 24px;
+  }
+
+  .footer-logo-icon {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .footer-column h3 {
+    font-size: 16px;
+  }
+
+  .footer-column .footer-nav-link {
+    gap: 7px;
+    font-size: 12px;
+  }
+
+  .footer-column .footer-link-icon {
+    width: 15px;
+    height: 15px;
+    min-width: 15px;
+    flex-basis: 15px;
+  }
+
+  .footer-title-line {
+    margin-bottom: 13px;
+  }
+
+  .footer-bottom-container {
+    width: calc(100% - 28px);
+  }
+
+  .footer-legal .footer-legal-link {
+    font-size: 11px;
+    padding: 5px 7px;
+  }
+}
+
+/* ==========================================
+   32. PANTALLAS MUY ESTRECHAS
+========================================== */
+
+@media (max-width: 320px) {
+  .footer-container {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 25px;
+  }
+
+  .footer-brand {
+    grid-column: 1;
+  }
+
+  .footer-column {
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-column h3 {
+    text-align: center;
+  }
+
+  .footer-title-line {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .footer-column-links {
+    align-items: center;
+  }
+
+  .footer-column .footer-nav-link {
+    justify-content: center;
+  }
 
   .footer-legal {
     flex-direction: column;
-
-    gap: 14px;
+    align-items: center;
+    gap: 8px;
   }
 
-
-  .footer-legal > span {
+  .footer-legal-divider {
     display: none;
   }
+}
 
+/* ==========================================
+   33. REDUCCIÓN DE MOVIMIENTO
+========================================== */
 
-  .footer-legal a {
-    font-size: 14px;
+@media (prefers-reduced-motion: reduce) {
+  .footer a,
+  .footer a:hover {
+    transition: none !important;
+    transform: none !important;
   }
-
 }
