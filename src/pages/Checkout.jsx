@@ -1,17 +1,10 @@
-
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
 import Header from '../components/Header'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
-
 import '../styles/checkout.css'
-
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
 
 const API_URL = String(
   import.meta.env.VITE_API_URL ||
@@ -26,8 +19,6 @@ const PAYMENT_METHODS = {
   transfer: 'transferencia_simulada'
 }
 
-// Tarjetas públicas de prueba compatibles con
-// el backend actual. No introducir tarjetas reales.
 const DEMO_CARDS = {
   '4111111111111111': {
     brand: 'visa',
@@ -39,9 +30,6 @@ const DEMO_CARDS = {
   }
 }
 
-// ==========================================
-// UTILIDADES
-// ==========================================
 
 const money = (value) =>
   `C$ ${Number(value || 0).toLocaleString('es-NI', {
@@ -81,9 +69,6 @@ function formatCardNumber(value) {
     .trim()
 }
 
-// ==========================================
-// IMÁGENES DE PRODUCTOS
-// ==========================================
 
 function getProductImage(product) {
   const candidates = [
@@ -175,9 +160,6 @@ function ProductThumbnail({ product }) {
   )
 }
 
-// ==========================================
-// CHECKOUT PRINCIPAL
-// ==========================================
 
 function Checkout() {
   const navigate = useNavigate()
@@ -224,9 +206,6 @@ function Checkout() {
   const cardBrand =
     getCardBrand(formData.cardNumber)
 
-  // ==========================================
-  // CAMBIOS EN FORMULARIO
-  // ==========================================
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -241,10 +220,6 @@ function Checkout() {
 
     setError('')
   }
-
-  // ==========================================
-  // VALIDACIONES
-  // ==========================================
 
   const validateForm = () => {
     if (cartItems.length === 0) {
@@ -298,10 +273,6 @@ function Checkout() {
     return ''
   }
 
-  // ==========================================
-  // REGISTRAR PEDIDO
-  // ==========================================
-
   const handleConfirmOrder = async (event) => {
     event.preventDefault()
 
@@ -348,9 +319,6 @@ function Checkout() {
         payment_test_code: 'APROBAR',
         items
       }
-
-      // El backend recibe solo identificadores de prueba.
-      // Nunca recibe el número de tarjeta.
 
       if (
         formData.paymentMethod === PAYMENT_METHODS.card
